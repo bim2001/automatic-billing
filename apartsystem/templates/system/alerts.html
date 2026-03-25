@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Alerts - Smart Energy System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+        }
+        
+        /* Reuse navbar styles */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .nav-icon {
+            font-size: 32px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .nav-title h1 {
+            font-size: 22px;
+            margin: 0;
+        }
+        
+        .nav-title p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin: 3px 0 0 0;
+        }
+        
+        .user-info {
+            text-align: right;
+        }
+        
+        .logout-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 18px;
+            border-radius: 20px;
+            transition: background 0.3s;
+            margin-left: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .page-header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .page-header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .page-header h1 i {
+            color: #667eea;
+        }
+        
+        .alert-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        /* Alerts list */
+        .alerts-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .alert-item {
+            padding: 20px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            transition: background 0.3s;
+        }
+        
+        .alert-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .alert-item.unread {
+            background-color: #f0f7ff;
+            border-left: 4px solid #667eea;
+        }
+        
+        .alert-icon {
+            font-size: 20px;
+            padding: 10px;
+            border-radius: 10px;
+            min-width: 45px;
+            text-align: center;
+        }
+        
+        .alert-icon.over_limit {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .alert-icon.power_off {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .alert-icon.power_on {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-icon.billing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .alert-icon.tenant_assigned {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-icon.tenant_removed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .alert-icon.abnormal_usage {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .alert-icon.late_payment {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .alert-content {
+            flex: 1;
+        }
+        
+        .alert-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .alert-message {
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .alert-time {
+            color: #7f8c8d;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .alert-room {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #e9ecef;
+            color: #495057;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .mark-read-btn {
+            background: none;
+            border: 1px solid #dee2e6;
+            color: #6c757d;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .mark-read-btn:hover {
+            background: #e9ecef;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        
+        .empty-icon {
+            font-size: 64px;
+            color: #bdc3c7;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            color: #95a5a6;
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 40px;
+        }
+        
+        .footer i {
+            margin-right: 5px;
+        }
+        
+        .dashboard-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-top: 15px;
+        }
+        
+        .dashboard-link:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .alert-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-icon"><i class="fas fa-bell"></i></div>
+            <div class="nav-title">
+                <h1>Smart Energy System</h1>
+                <p>Alerts & Notifications</p>
+            </div>
+        </div>
+        <div class="user-info">
+            <div style="margin-bottom: 8px; font-size: 15px;">Welcome, <strong>{{ username }}</strong></div>
+            <a href="{% url 'dashboard' %}" class="logout-btn"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-bell"></i> System Alerts</h1>
+            <div class="alert-actions">
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="mark_all_read" class="action-btn btn-primary">
+                        <i class="fas fa-envelope-open-text"></i> Mark All as Read
+                    </button>
+                </form>
+                <form method="post" action="{% url 'clear_all_alerts' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="action-btn btn-danger" onclick="return confirm('Clear all alerts? This cannot be undone.')">
+                        <i class="fas fa-trash-alt"></i> Clear All
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        {% if alerts %}
+        <div class="alerts-list">
+            {% for alert in alerts %}
+            <div class="alert-item {% if not alert.is_read %}unread{% endif %}">
+                <div class="alert-icon {{ alert.alert_type }}">
+                    {% if alert.alert_type == 'over_limit' %}<i class="fas fa-exclamation-triangle"></i>
+                    {% elif alert.alert_type == 'power_off' %}<i class="fas fa-power-off"></i>
+                    {% elif alert.alert_type == 'power_on' %}<i class="fas fa-plug"></i>
+                    {% elif alert.alert_type == 'billing' %}<i class="fas fa-file-invoice-dollar"></i>
+                    {% elif alert.alert_type == 'tenant_assigned' %}<i class="fas fa-user-plus"></i>
+                    {% elif alert.alert_type == 'tenant_removed' %}<i class="fas fa-user-minus"></i>
+                    {% elif alert.alert_type == 'abnormal_usage' %}<i class="fas fa-chart-line"></i>
+                    {% elif alert.alert_type == 'late_payment' %}<i class="fas fa-clock"></i>
+                    {% elif alert.alert_type == 'high_consumption' %}<i class="fas fa-fire"></i>
+                    {% else %}<i class="fas fa-bell"></i>
+                    {% endif %}
+                </div>
+                
+                <div class="alert-content">
+                    <div class="alert-title">
+                        <span><i class="fas fa-tag"></i> {{ alert.get_alert_type_display }}</span>
+                        {% if alert.room %}
+                        <span class="alert-room"><i class="fas fa-door-open"></i> Room: {{ alert.room.name }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="alert-message">{{ alert.message }}</div>
+                    
+                    <div class="alert-time">
+                        <i class="far fa-clock"></i> {{ alert.created_at|timesince }} ago
+                        <span style="margin: 0 8px;">•</span>
+                        <i class="far fa-calendar-alt"></i> {{ alert.created_at|date:"M d, Y h:i A" }}
+                        
+                        {% if not alert.is_read %}
+                        <form method="post" action="{% url 'mark_alert_read' alert.id %}" style="display: inline; margin-left: 10px;">
+                            {% csrf_token %}
+                            <button type="submit" class="mark-read-btn">
+                                <i class="fas fa-check-circle"></i> Mark as Read
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="alert-badge"><i class="fas fa-check"></i> Read</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-bell-slash"></i></div>
+            <h3><i class="fas fa-check-circle" style="color: #28a745;"></i> No alerts yet</h3>
+            <p>System alerts will appear here for over-limit usage, power changes, and billing notifications.</p>
+            <a href="{% url 'dashboard' %}" class="dashboard-link">
+                <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+            </a>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <i class="fas fa-bolt"></i> Smart Energy Monitoring System • Alerts Module
+            <br>
+            <small><i class="fas fa-bell"></i> Real-time notifications for system events and anomalies</small>
+        </div>
+    </div>
+</body>
+</html>

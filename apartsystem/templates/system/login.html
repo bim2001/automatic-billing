@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Energy System - Login / Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .container { 
+            width: 100%; 
+            max-width: 450px; 
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            background: #f0f0f0;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #555;
+        }
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            box-shadow: inset 0 -3px 0 #667eea;
+        }
+        .tab-button:first-child { border-radius: 10px 0 0 10px; }
+        .tab-button:last-child { border-radius: 0 10px 10px 0; }
+        .box { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            text-align: center; 
+            display: none; 
+        }
+        .box.active { display: block; }
+        h1 { color: #333; margin-bottom: 5px; font-size: 1.8rem; }
+        .subtitle { color: #666; margin-bottom: 30px; font-size: 0.9rem; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            color: #555; 
+            font-weight: 500; 
+            font-size: 0.95rem;
+        }
+        input { 
+            width: 100%; 
+            padding: 12px 15px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 8px; 
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        input:focus { outline: none; border-color: #667eea; }
+        .btn { 
+            width: 100%; 
+            padding: 14px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active { transform: translateY(0); }
+        .error-message { 
+            background: #ffebee; 
+            color: #c62828; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-bottom: 20px; 
+            border-left: 4px solid #c62828; 
+            text-align: left; 
+            font-size: 0.9rem;
+        }
+        .info-text { margin-top: 15px; color: #666; font-size: 0.85rem; }
+
+        /* Responsive adjustments for small devices */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { max-width: 100%; }
+            .box { padding: 25px; }
+            h1 { font-size: 1.5rem; }
+            .subtitle { margin-bottom: 20px; }
+            .tab-button { padding: 12px; font-size: 0.9rem; }
+            input { padding: 10px 12px; font-size: 0.95rem; }
+            .btn { padding: 12px; font-size: 0.95rem; }
+            .error-message { padding: 8px; font-size: 0.85rem; }
+            .info-text { font-size: 0.8rem; }
+        }
+
+        /* Extra small devices (optional) */
+        @media (max-width: 360px) {
+            .box { padding: 20px; }
+            .tab-button { padding: 10px; font-size: 0.85rem; }
+            h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Tab Buttons -->
+        <div class="tab-buttons">
+            <button class="tab-button" id="tab-login" onclick="showTab('login')">Login</button>
+            <button class="tab-button" id="tab-register" onclick="showTab('register')">Register</button>
+        </div>
+
+        <!-- Login Box -->
+        <div class="box" id="login-box">
+            <h1>Owner Login</h1>
+            <p class="subtitle">Smart Energy System</p>
+
+            {% if login_error %}
+            <div class="error-message">
+                ❌ {{ login_error }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'login_view' %}">
+                {% csrf_token %}
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" name="username" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" name="password" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+        </div>
+
+        <!-- Register Box -->
+        <div class="box" id="register-box">
+            <h1>Register New Account</h1>
+            <p class="subtitle">New users will be created as tenants</p>
+
+            {% if register_error %}
+            <div class="error-message">
+                ❌ {{ register_error }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="{% url 'register_tenant' %}">
+                {% csrf_token %}
+                <div class="input-group">
+                    <label>Username</label>
+                    <input type="text" name="username" required>
+                </div>
+                    <div class="input-group">
+                <label>Email</label>
+                   <input type="email" name="email" required>
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="input-group">
+                    <label>Confirm Password</label>
+                    <input type="password" name="password2" required>
+                </div>
+                <button type="submit" class="btn">Register new Account</button>
+            </form>
+            <p class="info-text">
+                After registration, you can login to view your billing and usage.
+            </p>
+        </div>
+    </div>
+
+<!-- Add data attributes to a hidden element -->
+<div id="error-data" 
+     data-login-error="{% if login_error %}true{% else %}false{% endif %}"
+     data-register-error="{% if register_error %}true{% else %}false{% endif %}"
+     style="display: none;"></div>
+
+<script>
+    function showTab(tabName) {
+        const loginBox = document.getElementById('login-box');
+        const registerBox = document.getElementById('register-box');
+        const tabLogin = document.getElementById('tab-login');
+        const tabRegister = document.getElementById('tab-register');
+
+        if (!loginBox || !registerBox || !tabLogin || !tabRegister) {
+            console.error('Tab elements not found');
+            return;
+        }
+
+        loginBox.classList.remove('active');
+        registerBox.classList.remove('active');
+        tabLogin.classList.remove('active');
+        tabRegister.classList.remove('active');
+
+        if (tabName === 'login') {
+            loginBox.classList.add('active');
+            tabLogin.classList.add('active');
+        } else {
+            registerBox.classList.add('active');
+            tabRegister.classList.add('active');
+        }
+    }
+
+    window.onload = function() {
+        // Get error data from hidden element
+        const errorData = document.getElementById('error-data');
+        
+        if (errorData) {
+            const loginError = errorData.dataset.loginError === 'true';
+            const registerError = errorData.dataset.registerError === 'true';
+            
+            if (registerError) {
+                showTab('register');
+            } else {
+                showTab('login');
+            }
+        } else {
+            // Default to login tab if no data
+            showTab('login');
+        }
+    };
+</script>
+</body>
+</html>

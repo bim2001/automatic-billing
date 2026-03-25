@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Tenant Dashboard - Smart Energy Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logout-btn {
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Welcome Banner */
+        .welcome-banner {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .welcome-text h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .welcome-text p {
+            color: #666;
+        }
+
+        .date-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .date-badge .day {
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .date-badge .month {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card.warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .stat-card.danger {
+            border-left: 4px solid #dc3545;
+        }
+
+        .stat-card.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .stat-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-sub {
+            color: #999;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ffc107, #fd7e14);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-header h2 {
+            color: #333;
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Room Info Grid */
+        .room-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Power Toggle */
+        .power-toggle {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .toggle-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-on {
+            background: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
+        }
+
+        .status-off {
+            background: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.5);
+        }
+
+        /* Current Bill */
+        .current-bill {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .bill-amount {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .bill-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .bill-detail-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .bill-detail-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .bill-detail-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px 10px;
+            background: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 15px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #666;
+        }
+
+        .payment-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .paid {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .unpaid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Alerts */
+        .alerts-list {
+            margin-top: 15px;
+        }
+
+        .alert-item {
+            padding: 15px;
+            border-left: 4px solid;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Original alert types (keep these) */
+        .alert-item.over_limit {
+            border-left-color: #dc3545;
+        }
+
+        .alert-item.power_off {
+            border-left-color: #ffc107;
+        }
+
+        .alert-item.power_on {
+            border-left-color: #28a745;
+        }
+
+        .alert-item.billing {
+            border-left-color: #17a2b8;
+        }
+
+        /* NEW Smart Features Alert Types */
+        .alert-item.abnormal_usage {
+            border-left-color: #dc3545;
+        }
+
+        .alert-item.high_consumption {
+            border-left-color: #ffc107;
+        }
+
+        .alert-item.late_payment {
+            border-left-color: #fd7e14;
+        }
+
+        /* Alert message */
+        .alert-message {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .alert-time {
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* New badge */
+        .badge-new {
+            background: #28a745;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        /* No Room State */
+        .no-room-card {
+            text-align: center;
+            padding: 60px 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .no-room-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .no-room-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .no-room-text {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .contact-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .contact-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .room-info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .bill-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .welcome-banner {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+        }
+    </style>
+
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="navbar-brand">
+        <i class="fas fa-bolt"></i> Smart Energy Monitor
+    </div>
+    <div class="navbar-user">
+        <span><i class="fas fa-user"></i> Welcome, <strong>{{ username }}</strong></span>
+        <a href="{% url 'logout_view' %}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+</div>
+
+<div class="container">
+
+{% if no_room %}
+<div class="no-room-card">
+    <div class="no-room-icon"><i class="fas fa-home"></i> <i class="fas fa-times-circle" style="color: #dc3545;"></i></div>
+    <h1 class="no-room-title">No Room Assigned Yet</h1>
+
+    <p class="no-room-text">
+        You haven't been assigned to any room yet. Please contact the administrator to request your room assignment.
+    </p>
+
+    <div style="margin-top:20px;">
+        <p><strong><i class="fas fa-user-tie"></i> Administrator:</strong> {{ admin_info.admin_name }}</p>
+        <p><strong><i class="fas fa-phone-alt"></i> Phone:</strong> {{ admin_info.admin_phone }}</p>
+        <p><strong><i class="fas fa-envelope"></i> Email:</strong> {{ admin_info.admin_email }}</p>
+    </div>
+
+    <div style="margin-top:20px;">
+        <a href="tel:{{ admin_info.admin_phone }}" class="contact-btn">
+            <i class="fas fa-phone-alt"></i> Call Admin
+        </a>
+        <a href="mailto:{{ admin_info.admin_email }}" class="contact-btn">
+            <i class="fas fa-envelope"></i> Email Admin
+        </a>
+    </div>
+</div>
+{% else %}
+
+{% if alerts %}
+<div class="alert-box">
+    <h3><i class="fas fa-exclamation-triangle"></i> Notifications</h3>
+    {% for alert in alerts %}
+        <div class="alert-item">
+            {{ alert.message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <div class="welcome-text">
+            <h1><i class="fas fa-smile-wink"></i> Hello, {{ username }}!</h1>
+            <p><i class="fas fa-chart-line"></i> Here's your energy consumption overview for {{ current_month }}</p>
+        </div>
+        <div class="date-badge">
+            <div class="day">{{ current_date|date:"d" }}</div>
+            <div class="month">{{ current_date|date:"F Y" }}</div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <!-- Current Usage Card -->
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-bolt"></i></div>
+            <div class="stat-value">{{ room.usage|floatformat:1 }}</div>
+            <div class="stat-label">Current Usage (kWh)</div>
+            <div class="stat-sub">Limit: {{ room.limit }} kWh</div>
+            {% if room.usage > room.limit %}
+            <div style="color: #dc3545; font-size: 12px; margin-top: 5px;"><i class="fas fa-exclamation-triangle"></i> Over Limit</div>
+            {% endif %}
+        </div>
+
+        <!-- Current Bill Card -->
+        <div class="stat-card {% if current_bill and not current_bill.is_paid %}warning{% endif %}">
+            <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="stat-value">
+                {% if current_bill %}
+                    ₱{{ current_bill.cost|floatformat:2 }}
+                {% else %}
+                    ₱{{ room.cost|floatformat:2 }}
+                {% endif %}
+            </div>
+            <div class="stat-label">Current Bill</div>
+            <div class="stat-sub">{{ current_month }}</div>
+            {% if current_bill %}
+                {% if current_bill.is_paid %}
+                <div style="color: #28a745; font-size: 12px; margin-top: 5px;"><i class="fas fa-check-circle"></i> Paid</div>
+                {% else %}
+                <div style="color: #dc3545; font-size: 12px; margin-top: 5px;"><i class="fas fa-exclamation-circle"></i> Unpaid</div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Average Daily Card -->
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-value">{{ avg_daily_usage|floatformat:1 }}</div>
+            <div class="stat-label">Avg Daily (kWh)</div>
+            <div class="stat-sub">Last 30 days</div>
+        </div>
+
+        <!-- Power Status Card -->
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-plug"></i></div>
+            <div class="stat-value">
+                {% if room.power_status %}
+                    <span style="color: #28a745;"><i class="fas fa-toggle-on"></i> ON</span>
+                {% else %}
+                    <span style="color: #dc3545;"><i class="fas fa-toggle-off"></i> OFF</span>
+                {% endif %}
+            </div>
+            <div class="stat-label">Power Status</div>
+            <div class="stat-sub">
+                {% if room.power_status %}
+                    Active
+                {% else %}
+                    Inactive
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Room Information Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-home"></i> Room Information</h2>
+            <span class="badge {% if room.power_status %}badge-success{% else %}badge-danger{% endif %}">
+                {% if room.power_status %}<i class="fas fa-check-circle"></i> Active{% else %}<i class="fas fa-times-circle"></i> Inactive{% endif %}
+            </span>
+        </div>
+        
+        <div class="room-info-grid">
+            <div class="info-item">
+                <div class="info-label"><i class="fas fa-tag"></i> Room Name</div>
+                <div class="info-value">{{ room.name }}</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label"><i class="fas fa-coins"></i> Electricity Rate</div>
+                <div class="info-value">₱{{ electricity_rate }}/kWh</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label"><i class="fas fa-tachometer-alt"></i> Monthly Limit</div>
+                <div class="info-value">{{ room.limit }} kWh</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label"><i class="fas fa-chart-simple"></i> Current Usage</div>
+                <div class="info-value">{{ room.usage }} kWh</div>
+            </div>
+        </div>
+
+        <div class="power-toggle" style="margin-top: 20px;">
+            <div class="toggle-status">
+                <span class="status-indicator {% if room.power_status %}status-on{% else %}status-off{% endif %}"></span>
+                <span>Power is currently <strong>{% if room.power_status %}ON{% else %}OFF{% endif %}</strong></span>
+            </div>
+            {% if room.usage > room.limit %}
+            <div class="badge badge-warning">
+                <i class="fas fa-exclamation-triangle"></i> Exceeded monthly limit
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Energy Usage Graph Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-line"></i> Daily Energy Consumption</h2>
+            <span class="badge badge-info" id="usage-month"><i class="fas fa-calendar-alt"></i> {{ current_month }}</span>
+        </div>
+        
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="usageChart"></canvas>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; text-align: center;">
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                <div style="color: #666; font-size: 13px;"><i class="fas fa-calendar-week"></i> This Month</div>
+                <div style="font-size: 24px; font-weight: bold; color: #28a745;" id="total-current">0</div>
+                <div style="color: #999; font-size: 12px;">kWh</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                <div style="color: #666; font-size: 13px;"><i class="fas fa-calendar-alt"></i> Last Month</div>
+                <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="total-previous">0</div>
+                <div style="color: #999; font-size: 12px;">kWh</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+                <div style="color: #666; font-size: 13px;"><i class="fas fa-chart-line"></i> Change</div>
+                <div style="font-size: 24px; font-weight: bold;" id="total-change">0</div>
+                <div style="color: #999; font-size: 12px;" id="change-label">vs last month</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Bill Card -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-file-invoice-dollar"></i> Current Bill - {{ current_month }}</h2>
+            {% if current_bill %}
+                <span class="badge {% if current_bill.is_paid %}badge-success{% else %}badge-warning{% endif %}">
+                    {% if current_bill.is_paid %}<i class="fas fa-check-circle"></i> Paid{% else %}<i class="fas fa-clock"></i> Unpaid{% endif %}
+                </span>
+            {% endif %}
+        </div>
+
+        {% if current_bill %}
+            <div class="current-bill">
+                <div style="font-size: 16px; opacity: 0.9;"><i class="fas fa-receipt"></i> Total Amount Due</div>
+                <div class="bill-amount">₱{{ current_bill.cost|floatformat:2 }}</div>
+                
+                <div class="bill-details">
+                    <div class="bill-detail-item">
+                        <div class="bill-detail-label"><i class="fas fa-bolt"></i> kWh Used</div>
+                        <div class="bill-detail-value">{{ current_bill.kwh }}</div>
+                    </div>
+                    <div class="bill-detail-item">
+                        <div class="bill-detail-label"><i class="fas fa-coins"></i> Rate</div>
+                        <div class="bill-detail-value">₱{{ electricity_rate }}</div>
+                    </div>
+                    <div class="bill-detail-item">
+                        <div class="bill-detail-label"><i class="fas fa-calendar-alt"></i> Due Date</div>
+                        <div class="bill-detail-value">{{ due_date|date:"M d, Y" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if not current_bill.is_paid %}
+            <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                <strong><i class="fas fa-info-circle"></i> Payment Instructions:</strong>
+                <p style="margin-top: 10px; color: #856404;">
+                    Please settle your payment before the due date to avoid service interruption.
+                    Contact the administrator for payment options.
+                </p>
+            </div>
+            {% endif %}
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <p style="font-size: 18px; margin-bottom: 10px;"><i class="fas fa-folder-open"></i> No billing record yet for this month</p>
+                <p>Your bill will appear here once the administrator generates it.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Alerts -->
+    {% if recent_alerts %}
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-bell"></i> Recent Notifications</h2>
+            <div>
+                {% if unread_alerts_count > 0 %}
+                <span class="badge badge-info" style="margin-right: 10px;"><i class="fas fa-envelope"></i> {{ unread_alerts_count }} new</span>
+                {% endif %}
+                <a href="{% url 'tenant_notifications' %}" style="font-size: 14px; padding: 5px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; text-decoration: none;">
+                    <i class="fas fa-eye"></i> View All →
+                </a>
+            </div>
+        </div>
+        
+        <div class="alerts-list">
+            {% for alert in recent_alerts|slice:":2" %}
+            <div class="alert-item 
+                {% if alert.alert_type == 'abnormal_usage' %}abnormal_usage
+                {% elif alert.alert_type == 'high_consumption' %}high_consumption
+                {% elif alert.alert_type == 'late_payment' %}late_payment
+                {% elif alert.alert_type == 'over_limit' %}over_limit
+                {% elif alert.alert_type == 'power_off' %}power_off
+                {% elif alert.alert_type == 'power_on' %}power_on
+                {% elif alert.alert_type == 'billing' %}billing
+                {% endif %}">
+                
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 20px;">
+                        {% if alert.alert_type == 'abnormal_usage' %}<i class="fas fa-chart-line" style="color: #dc3545;"></i>
+                        {% elif alert.alert_type == 'high_consumption' %}<i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>
+                        {% elif alert.alert_type == 'late_payment' %}<i class="fas fa-clock" style="color: #fd7e14;"></i>
+                        {% elif alert.alert_type == 'over_limit' %}<i class="fas fa-ban" style="color: #dc3545;"></i>
+                        {% elif alert.alert_type == 'power_off' %}<i class="fas fa-power-off" style="color: #ffc107;"></i>
+                        {% elif alert.alert_type == 'power_on' %}<i class="fas fa-plug" style="color: #28a745;"></i>
+                        {% elif alert.alert_type == 'billing' %}<i class="fas fa-file-invoice-dollar" style="color: #17a2b8;"></i>
+                        {% else %}<i class="fas fa-bell"></i>
+                        {% endif %}
+                    </span>
+                    <div>
+                        <div class="alert-message">{{ alert.message }}</div>
+                        <div class="alert-time"><i class="far fa-clock"></i> {{ alert.created_at|timesince }} ago</div>
+                    </div>
+                </div>
+                
+                {% if not alert.is_read %}
+                <span class="badge-new"><i class="fas fa-star"></i> New</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            {% if alerts_count > 2 %}
+            <div style="text-align: center; padding: 15px; border-top: 1px solid #f0f0f0;">
+                <a href="{% url 'tenant_notifications' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                    <i class="fas fa-bell"></i> View all {{ alerts_count }} notifications →
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Billing History -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-history"></i> Billing History</h2>
+            <span class="badge badge-info"><i class="fas fa-file-alt"></i> {{ bills|length }} records</span>
+        </div>
+
+        {% if bills %}
+            <table>
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-calendar-alt"></i> Billing Month</th>
+                        <th><i class="fas fa-bolt"></i> kWh Used</th>
+                        <th><i class="fas fa-coins"></i> Rate</th>
+                        <th><i class="fas fa-money-bill-wave"></i> Amount</th>
+                        <th><i class="fas fa-check-circle"></i> Status</th>
+                        <th><i class="fas fa-calendar-day"></i> Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in bills %}
+                    <tr>
+                        <td><strong>{{ bill.billing_month }}</strong></td>
+                        <td>{{ bill.kwh }}</td>
+                        <td>₱{{ electricity_rate }}</td>
+                        <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
+                        <td>
+                            <span class="payment-status {% if bill.is_paid %}paid{% else %}unpaid{% endif %}">
+                                {% if bill.is_paid %}<i class="fas fa-check-circle"></i> PAID{% else %}<i class="fas fa-hourglass-half"></i> UNPAID{% endif %}
+                            </span>
+                        </td>
+                        <td>{{ bill.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Summary Statistics -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+                    <div>
+                        <div style="color: #666; font-size: 14px;"><i class="fas fa-receipt"></i> Total Bills</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #333;">{{ bills|length }}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 14px;"><i class="fas fa-bolt"></i> Total kWh Used</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #333;">{{ total_kwh|floatformat:1 }}</div>
+                    </div>
+                    <div>
+                        <div style="color: #666; font-size: 14px;"><i class="fas fa-check-circle"></i> Total Amount Paid</div>
+                        <div style="font-size: 24px; font-weight: bold; color: #28a745;">₱{{ total_paid|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 60px 20px; color: #666;">
+                <div style="font-size: 48px; margin-bottom: 20px;"><i class="fas fa-folder-open"></i></div>
+                <p style="font-size: 18px;">No billing history available</p>
+                <p style="color: #999; margin-top: 10px;">Your past bills will appear here once available.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Energy Saving Tips -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-lightbulb"></i> Energy Saving Tips</h2>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <div style="font-size: 24px; margin-bottom: 10px;"><i class="fas fa-lightbulb" style="color: #ffc107;"></i></div>
+                <h3 style="margin-bottom: 10px;">LED Lights</h3>
+                <p style="color: #666; font-size: 14px;">Switch to LED bulbs - they use 75% less energy than incandescent bulbs.</p>
+            </div>
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <div style="font-size: 24px; margin-bottom: 10px;"><i class="fas fa-plug" style="color: #667eea;"></i></div>
+                <h3 style="margin-bottom: 10px;">Unplug Devices</h3>
+                <p style="color: #666; font-size: 14px;">Unplug electronics when not in use to avoid phantom energy consumption.</p>
+            </div>
+            <div style="padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <div style="font-size: 24px; margin-bottom: 10px;"><i class="fas fa-snowflake" style="color: #17a2b8;"></i></div>
+                <h3 style="margin-bottom: 10px;">AC Temperature</h3>
+                <p style="color: #666; font-size: 14px;">Set AC to 24-26°C for optimal energy efficiency.</p>
+            </div>
+        </div>
+    </div>
+
+{% endif %}
+
+</div>
+
+<script>
+// Load usage data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/room-usage/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error:', data.error);
+                return;
+            }
+            
+            // Update month display
+            document.getElementById('usage-month').innerHTML = '<i class="fas fa-calendar-alt"></i> ' + data.current_month;
+            
+            // Update summary cards
+            document.getElementById('total-current').textContent = data.total_current;
+            document.getElementById('total-previous').textContent = data.total_previous;
+            
+            const change = document.getElementById('total-change');
+            const changeLabel = document.getElementById('change-label');
+            
+            if (data.comparison > 0) {
+                change.textContent = `+${data.comparison}`;
+                change.style.color = '#dc3545';  // red for increase
+                changeLabel.innerHTML = '<i class="fas fa-arrow-up"></i> more than last month';
+            } else if (data.comparison < 0) {
+                change.textContent = `${data.comparison}`;
+                change.style.color = '#28a745';  // green for decrease
+                changeLabel.innerHTML = '<i class="fas fa-arrow-down"></i> less than last month';
+            } else {
+                change.textContent = '0';
+                change.style.color = '#666';
+                changeLabel.innerHTML = '<i class="fas fa-equals"></i> same as last month';
+            }
+            
+            // Create chart
+            const ctx = document.getElementById('usageChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.days,
+                    datasets: [{
+                        label: 'kWh Used',
+                        data: data.daily_usage,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: 'white',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw} kWh`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'kWh'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching usage data:', error);
+        });
+});
+</script>
+
+</body>
+</html>

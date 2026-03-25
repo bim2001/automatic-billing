@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notifications - Smart Energy Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logout-btn {
+            color: white;
+            text-decoration: none;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header-title p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .badge {
+            background: #dc3545;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .alerts-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .alert-item {
+            padding: 20px 25px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            transition: background 0.3s;
+        }
+
+        .alert-item:hover {
+            background: #f8f9fa;
+        }
+
+        .alert-item.unread {
+            background: #f0f7ff;
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .alert-type-badge {
+            background: #e9ecef;
+            color: #495057;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .alert-message {
+            color: #4a5568;
+            font-size: 15px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .alert-time {
+            color: #718096;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .new-badge {
+            background: #28a745;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            color: #cbd5e0;
+            margin-bottom: 15px;
+        }
+
+        .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #718096;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+
+        .btn-outline:hover {
+            background: #f0f7ff;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .pagination a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+        }
+
+        .pagination a:hover {
+            background: #e9ecef;
+        }
+
+        .pagination .current {
+            color: #666;
+            padding: 8px 12px;
+        }
+
+        .mark-read-form {
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            .header-card {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="navbar-brand">
+        ⚡ Smart Energy Monitor
+    </div>
+    <div class="navbar-user">
+        <span>Welcome, <strong>{{ username }}</strong></span>
+        <a href="{% url 'logout_view' %}" class="logout-btn">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header-card">
+        <div class="header-title">
+            <h1>🔔 Notifications</h1>
+            <p>Room: {{ room.name }}</p>
+        </div>
+        <div>
+            {% if unread_count > 0 %}
+            <form method="post" style="display: inline;" class="mark-read-form">
+                {% csrf_token %}
+                <button type="submit" name="mark_all_read" class="btn btn-outline">
+                    ✓ Mark all as read
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'tenant_dashboard' %}" class="btn btn-primary" style="margin-left: 10px;">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerts List -->
+    <div class="alerts-container">
+        {% if alerts %}
+            {% for alert in alerts %}
+            <div class="alert-item {% if not alert.is_read %}unread{% endif %}">
+                <div class="alert-icon">
+                    {% if alert.alert_type == 'over_limit' %}⚠️
+                    {% elif alert.alert_type == 'power_off' %}🔌
+                    {% elif alert.alert_type == 'power_on' %}⚡
+                    {% elif alert.alert_type == 'billing' %}💰
+                    {% else %}📢
+                    {% endif %}
+                </div>
+                <div class="alert-content">
+                    <div class="alert-title">
+                        {{ alert.get_alert_type_display }}
+                        <span class="alert-type-badge">{{ alert.room.name }}</span>
+                        {% if not alert.is_read %}
+                        <span class="new-badge">NEW</span>
+                        {% endif %}
+                    </div>
+                    <div class="alert-message">{{ alert.message }}</div>
+                    <div class="alert-time">
+                        <span>🕒</span> {{ alert.created_at|timesince }} ago
+                        ({{ alert.created_at|date:"M d, Y h:i A" }})
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if alerts.paginator.num_pages > 1 %}
+            <div class="pagination">
+                {% if alerts.has_previous %}
+                <a href="?page=1">&laquo; First</a>
+                <a href="?page={{ alerts.previous_page_number }}">Previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ alerts.number }} of {{ alerts.paginator.num_pages }}
+                </span>
+
+                {% if alerts.has_next %}
+                <a href="?page={{ alerts.next_page_number }}">Next</a>
+                <a href="?page={{ alerts.paginator.num_pages }}">Last &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🔕</div>
+            <h3>No Notifications</h3>
+            <p>You don't have any notifications at the moment.</p>
+            <a href="{% url 'tenant_dashboard' %}" class="btn btn-primary" style="margin-top: 20px;">
+                Back to Dashboard
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

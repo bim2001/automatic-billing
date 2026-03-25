@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Room - Smart Energy System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        /* Main Container */
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+        }
+        
+        /* Confirmation Card */
+        .confirmation-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+        }
+        
+        .warning-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #dc3545;
+        }
+        
+        .confirmation-title {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .room-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .room-details h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .room-details p {
+            margin: 8px 0;
+            color: #555;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 10px;
+            min-width: 120px;
+            transition: all 0.3s;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .note {
+            margin-top: 25px;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 6px;
+            color: #856404;
+            font-size: 14px;
+            border-left: 4px solid #ffc107;
+            text-align: left;
+        }
+        
+        .note i {
+            margin-right: 8px;
+        }
+        
+        /* Custom Modal Styles (for the dashboard delete button) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 450px;
+            width: 90%;
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            color: #dc3545;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 25px;
+        }
+        
+        .modal-body .warning-icon-small {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #dc3545;
+        }
+        
+        .modal-room-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .modal-room-details p {
+            margin: 5px 0;
+        }
+        
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .modal-btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .modal-btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        @media (max-width: 480px) {
+            .confirmation-card {
+                padding: 25px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                min-width: 100px;
+                margin: 0 5px;
+            }
+            
+            .modal-footer {
+                flex-direction: column;
+            }
+            
+            .modal-btn {
+                width: 100%;
+            }
+        }
+    </style>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="confirmation-card">
+            <div class="warning-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h1 class="confirmation-title">Delete Room Confirmation</h1>
+            
+            <p style="color: #666; margin-bottom: 20px;">
+                Are you sure you want to delete this room? This action cannot be undone.
+            </p>
+            
+            <div class="room-details">
+                <h4><i class="fas fa-door-open"></i> Room Details:</h4>
+                <p><i class="fas fa-tag"></i> <strong>Name:</strong> {{ room.name }}</p>
+                <p><i class="fas fa-chart-line"></i> <strong>Current Usage:</strong> {{ room.usage }} kWh</p>
+                <p><i class="fas fa-tachometer-alt"></i> <strong>Monthly Limit:</strong> {{ room.limit }} kWh</p>
+                <p><i class="fas fa-power-off"></i> <strong>Status:</strong> {% if room.power_status %}<span style="color: #28a745;">ON ⚡</span>{% else %}<span style="color: #dc3545;">OFF 🔌</span>{% endif %}</p>
+            </div>
+            
+            <div class="note">
+                <i class="fas fa-exclamation-circle"></i>
+                <strong>Warning:</strong> Deleting this room will also remove all related billing records and alerts.
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt"></i> Delete Permanently
+                    </button>
+                </form>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Template - This will be used in dashboard for delete confirmation -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Delete Room</h3>
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon-small">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <p style="text-align: center; margin-bottom: 15px;">
+                    Are you sure you want to delete <strong id="modalRoomName"></strong>?
+                </p>
+                <div class="modal-room-details">
+                    <p><i class="fas fa-chart-line"></i> <strong>Current Usage:</strong> <span id="modalRoomUsage"></span> kWh</p>
+                    <p><i class="fas fa-tachometer-alt"></i> <strong>Monthly Limit:</strong> <span id="modalRoomLimit"></span> kWh</p>
+                </div>
+                <p style="font-size: 13px; color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px;">
+                    <i class="fas fa-exclamation-circle"></i> This action cannot be undone. All billing records and alerts for this room will be deleted.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <form id="deleteForm" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="modal-btn modal-btn-danger">
+                        <i class="fas fa-trash-alt"></i> Yes, Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to show modal
+        function showDeleteModal(roomId, roomName, roomUsage, roomLimit) {
+            const modal = document.getElementById('deleteModal');
+            const modalRoomName = document.getElementById('modalRoomName');
+            const modalRoomUsage = document.getElementById('modalRoomUsage');
+            const modalRoomLimit = document.getElementById('modalRoomLimit');
+            const deleteForm = document.getElementById('deleteForm');
+            
+            // Set modal content
+            modalRoomName.textContent = roomName;
+            modalRoomUsage.textContent = roomUsage;
+            modalRoomLimit.textContent = roomLimit;
+            
+            // Set form action
+            deleteForm.action = `/room/${roomId}/delete/`;
+            
+            // Show modal
+            modal.classList.add('show');
+        }
+        
+        // Function to close modal
+        function closeModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('show');
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('deleteModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

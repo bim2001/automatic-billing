@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Room</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            max-width: 800px;
+            margin: 0 auto 30px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .form-title {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .current-room {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .tenant-info {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tenant-details h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .tenant-details p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .btn-remove {
+            background: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .messages {
+            max-width: 600px;
+            margin: 20px auto;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Simple Navigation -->
+    <nav class="navbar">
+        <div style="font-size: 20px; font-weight: 600;">✏️ Edit Room</div>
+        <div>
+            <a href="{% url 'dashboard' %}" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px;">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="form-card">
+            <h1 class="form-title">Edit Room: {{ room.name }}</h1>
+            
+            <!-- Tenant Information -->
+            {% if room.is_occupied %}
+            <div class="tenant-info">
+                <div class="tenant-details">
+                    <h3>👤 Current Tenant: {{ room.get_tenant_name }}</h3>
+                    <p>This room is currently occupied. Editing room details will affect this tenant's billing.</p>
+                </div>
+                <a href="{% url 'remove_tenant' room.id %}" class="btn-remove" onclick="return confirm('Remove tenant from this room?')">
+                    Remove Tenant
+                </a>
+            </div>
+            {% else %}
+            <div class="tenant-info" style="background: #fff3cd; border-left-color: #ffc107;">
+                <div class="tenant-details">
+                    <h3>🏠 No Tenant Assigned</h3>
+                    <p>This room is currently vacant. You can assign a tenant from the dashboard.</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="current-room">
+                <strong>Current Details:</strong><br>
+                • Room Name: {{ room.name }}<br>
+                • Current Usage: {{ room.usage }} kWh<br>
+                • Monthly Limit: {{ room.limit }} kWh<br>
+                • Power Status: {% if room.power_status %}ON ⚡{% else %}OFF 🔌{% endif %}<br>
+                • Current Bill: ₱{{ room.cost|floatformat:2 }}
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label>Room Name</label>
+                    <input type="text" name="name" class="form-control" required 
+                           value="{{ room.name }}" placeholder="e.g., Room 101">
+                    <div class="help-text">Change the room name if needed</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Current Usage (kWh)</label>
+                    <input type="number" name="usage" class="form-control" step="0.01" required 
+                           value="{{ room.usage }}" placeholder="0.00">
+                    <div class="help-text">Current electricity usage for this month</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Monthly Electricity Limit (kWh)</label>
+                    <input type="number" name="limit" class="form-control" step="0.01" required 
+                           value="{{ room.limit }}" placeholder="50">
+                    <div class="help-text">System will create alerts when usage exceeds this limit</div>
+                </div>
+                
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

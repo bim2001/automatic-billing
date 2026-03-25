@@ -1,0 +1,8 @@
+# WINDOWS TASK SCHEDULER SETUP
+
+## Para i-automate ang daily tasks:
+
+### Step 1: Create Batch File
+Gumawa ng file: C:\Users\User\Desktop_Local\appartment\apartsystem\run_daily.bat
+
+Content:

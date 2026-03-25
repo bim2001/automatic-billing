@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Smart Energy System - Billing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        /* Navigation Bar */
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .nav-icon {
+            font-size: 32px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .nav-title h1 {
+            font-size: 22px;
+            margin: 0;
+        }
+        
+        .nav-title p {
+            font-size: 13px;
+            opacity: 0.9;
+            margin: 3px 0 0 0;
+        }
+        
+        .user-info {
+            text-align: right;
+        }
+        
+        .username {
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+        
+        .nav-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            transition: background 0.3s;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        /* Page Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin: 0;
+        }
+        
+        .page-header h1 i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .back-btn:hover {
+            background: #5a6268;
+        }
+        
+        /* Payment Summary */
+        .payment-summary {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .payment-summary h2 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .payment-summary h2 i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-box i {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .paid-stat {
+            color: #28a745 !important;
+        }
+        
+        /* Bills Table */
+        .section-title {
+            color: #2c3e50;
+            font-size: 22px;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title span i {
+            margin-right: 10px;
+            color: #667eea;
+        }
+        
+        .view-history-btn {
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .view-history-btn:hover {
+            background: #138496;
+        }
+        
+        .bills-table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+            overflow-x: auto;
+        }
+        
+        .bills-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        
+        .bills-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .bills-table th {
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .bills-table th i {
+            margin-right: 6px;
+        }
+        
+        .bills-table td {
+            padding: 18px 15px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 15px;
+        }
+        
+        .bills-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Status Badges */
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .status-badge i {
+            margin-right: 5px;
+        }
+        
+        .status-paid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-unpaid {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Action Buttons */
+        .action-form {
+            display: inline;
+        }
+        
+        .action-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+            min-width: 140px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .btn-paid {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-paid:hover {
+            background-color: #218838;
+        }
+        
+        .btn-unpaid {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-unpaid:hover {
+            background-color: #c82333;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 25px;
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 40px;
+            border-top: 1px solid #ecf0f1;
+            background: white;
+            border-radius: 12px;
+        }
+        
+        .footer i {
+            margin-right: 5px;
+        }
+        
+        .system-version {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .system-version i {
+            margin-right: 4px;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <div class="nav-icon"><i class="fas fa-coins"></i></div>
+            <div class="nav-title">
+                <h1>Smart Energy System</h1>
+                <p>Billing Management • {{ current_month }}</p>
+            </div>
+        </div>
+        <div class="user-info">
+            <div class="username">Welcome, <strong>{{ username }}</strong></div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <a href="{% url 'dashboard' %}" class="nav-btn"><i class="fas fa-chart-line"></i> Dashboard</a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-money-bill-wave"></i> Billing Management - {{ current_month }}</h1>
+        </div>
+        
+        <!-- Payment Summary -->
+        <div class="payment-summary">
+            <h2><i class="fas fa-chart-pie"></i> Payment Summary</h2>
+            <div class="summary-stats">
+                <div class="stat-box">
+                    <i class="fas fa-bolt"></i>
+                    <span class="stat-number">{{ total_kwh|floatformat:2 }}</span>
+                    <span class="stat-label">TOTAL KWH</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-coins"></i>
+                    <span class="stat-number">₱{{ total_cost|floatformat:2 }}</span>
+                    <span class="stat-label">TOTAL COST</span>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="stat-number paid-stat">{{ paid_count }} / {{ bills.count }}</span>
+                    <span class="stat-label">PAID BILLS</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Room Bills -->
+        <div class="section-title">
+            <span><i class="fas fa-door-open"></i> Room Bills - {{ current_month }}</span>
+            <a href="{% url 'billing_history' %}" class="view-history-btn"><i class="fas fa-history"></i> View History →</a>
+        </div>
+        
+        {% if bills %}
+        <div class="bills-table-container">
+            <table class="bills-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-door-open"></i> Room</th>
+                        <th><i class="fas fa-chart-line"></i> kWh Used</th>
+                        <th><i class="fas fa-tag"></i> Rate (₱/kWh)</th>
+                        <th><i class="fas fa-coins"></i> Amount Due</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                        <th><i class="fas fa-cog"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in bills %}
+                    <tr>
+                        <td><strong>{{ bill.room.name }}</strong></td>
+                        <td>{{ bill.kwh|floatformat:2 }}</td>
+                        <td>₱{{ electricity_rate }}</td>
+                        <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
+                        <td>
+                            <span class="status-badge {% if bill.is_paid %}status-paid{% else %}status-unpaid{% endif %}">
+                                {% if bill.is_paid %}<i class="fas fa-check-circle"></i> PAID{% else %}<i class="fas fa-times-circle"></i> UNPAID{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'mark_as_paid' bill.id %}" class="action-form">
+                                {% csrf_token %}
+                                <button type="submit" class="action-btn {% if bill.is_paid %}btn-unpaid{% else %}btn-paid{% endif %}">
+                                    {% if bill.is_paid %}<i class="fas fa-undo-alt"></i> MARK AS UNPAID{% else %}<i class="fas fa-check"></i> MARK AS PAID{% endif %}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+            <h3>No bills for {{ current_month }}</h3>
+            <p>Billing records will be generated at the end of the month.</p>
+        </div>
+        {% endif %}
+        
+        <!-- Footer -->
+        <div class="footer">
+            <i class="fas fa-bolt"></i> Smart Energy System • Billing Module • {{ current_month }}
+            <span class="system-version"><i class="fas fa-tag"></i> v1.2</span>
+            <br>
+            <small><i class="fas fa-charging-station"></i> Electricity rate: ₱{{ electricity_rate }} per kWh • Auto-generated monthly</small>
+        </div>
+    </div>
+</body>
+</html>

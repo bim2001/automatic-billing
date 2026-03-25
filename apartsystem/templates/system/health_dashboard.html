@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>System Health - Smart Energy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .navbar-left i {
+            font-size: 24px;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .navbar-right a {
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 18px;
+            border-radius: 20px;
+            transition: background 0.3s;
+        }
+
+        .navbar-right a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title h1 i {
+            color: #667eea;
+        }
+
+        .header-title p {
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge {
+            background: #28a745;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-sub {
+            color: #999;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .activity-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .activity-card h2 {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .activity-card h2 i {
+            color: #667eea;
+        }
+
+        .activity-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .activity-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .activity-label {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .activity-time {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .warning-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .warning-card h2 {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .warning-card h2 i {
+            color: #dc3545;
+        }
+
+        .warning-item {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .warning-item i {
+            color: #ffc107;
+            font-size: 18px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .header-card {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .activity-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .navbar-right {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <i class="fas fa-heartbeat"></i> System Health Dashboard
+        </div>
+        <div class="navbar-right">
+            <span><i class="fas fa-user"></i> Welcome, <strong>{{ username }}</strong></span>
+            <a href="{% url 'dashboard' %}"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header-card">
+            <div class="header-title">
+                <h1><i class="fas fa-chart-line"></i> System Health Overview</h1>
+                <p><i class="fas fa-info-circle"></i> Real-time status of your Smart Energy System</p>
+            </div>
+            <div class="status-badge">
+                <i class="fas fa-check-circle"></i> HEALTHY
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-label">Total Rooms</div>
+                <div class="stat-value">{{ stats.rooms }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-label">Total Tenants</div>
+                <div class="stat-value">{{ stats.tenants }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div class="stat-label">Total Bills</div>
+                <div class="stat-value">{{ stats.bills }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-chart-simple"></i></div>
+                <div class="stat-label">Energy Readings</div>
+                <div class="stat-value">{{ stats.readings }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-bell"></i></div>
+                <div class="stat-label">Unread Alerts</div>
+                <div class="stat-value" {% if stats.unread_alerts > 0 %}style="color: #dc3545;"{% endif %}>{{ stats.unread_alerts }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-calendar-week"></i></div>
+                <div class="stat-label">Upcoming Bills</div>
+                <div class="stat-value">{{ stats.upcoming }}</div>
+                <div class="stat-sub"><i class="fas fa-hourglass-half"></i> Due soon</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-label">Overdue Bills</div>
+                <div class="stat-value" {% if stats.overdue > 0 %}style="color: #dc3545;"{% endif %}>{{ stats.overdue }}</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-label">Rooms Over Limit</div>
+                <div class="stat-value" {% if rooms_over_limit|length > 0 %}style="color: #dc3545;"{% endif %}>{{ rooms_over_limit|length }}</div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="activity-card">
+            <h2><i class="fas fa-clock"></i> Recent Activity</h2>
+            <p style="color: #666; margin-bottom: 20px;"><i class="fas fa-history"></i> Last system events</p>
+            
+            <div class="activity-grid">
+                <div class="activity-item">
+                    <div class="activity-label"><i class="fas fa-microchip"></i> Last Meter Reading</div>
+                    <div class="activity-time">
+                        {% if last_reading %}
+                            {{ last_reading.timestamp|date:"M d, Y h:i A" }}
+                        {% else %}
+                            <i class="fas fa-database"></i> No readings yet
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-label"><i class="fas fa-bell"></i> Last Alert</div>
+                    <div class="activity-time">
+                        {% if last_alert %}
+                            {{ last_alert.created_at|date:"M d, Y h:i A" }}
+                        {% else %}
+                            <i class="fas fa-check-circle"></i> No alerts
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Warnings -->
+        {% if rooms_over_limit %}
+        <div class="warning-card">
+            <h2><i class="fas fa-exclamation-triangle"></i> Rooms Exceeding Limit</h2>
+            
+            {% for room in rooms_over_limit %}
+            <div class="warning-item">
+                <i class="fas fa-door-open"></i>
+                <strong>{{ room.name }}</strong>: {{ room.usage|floatformat:1 }} kWh / {{ room.limit }} kWh limit
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div style="text-align: center; margin-top: 30px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'system_settings' %}" class="btn">
+                <i class="fas fa-cog"></i> Go to Settings
+            </a>
+            <a href="{% url 'monitoring_dashboard' %}" class="btn">
+                <i class="fas fa-chart-line"></i> Go to Monitoring
+            </a>
+        </div>
+    </div>
+</body>
+</html>
