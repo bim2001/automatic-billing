@@ -234,3 +234,13 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'userprofile'):
         instance.userprofile.save()
+
+class APIToken(models.Model):
+    name = models.CharField(max_length=100)
+    token = models.CharField(max_length=64, unique=True)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.name} - {self.room.name if self.room else 'All'}"
