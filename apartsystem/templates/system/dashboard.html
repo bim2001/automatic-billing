@@ -367,7 +367,9 @@
         .room-delete {
             font-size: 12px;
             color: #dc3545;
-            text-decoration: none;
+            background: none;
+            border: none;
+            cursor: pointer;
         }
         
         .room-delete i {
@@ -392,10 +394,6 @@
             background: #f0f7ff;
         }
         
-        .unread-alert {
-            background: #f0f7ff;
-        }
-        
         /* Tenant Assignment Stats */
         .stats-bar {
             background: white;
@@ -409,7 +407,7 @@
         
         .stats-bar div {
             flex: 1;
-            min-width: 200px;
+            min-width: 150px;
         }
         
         .stats-bar i {
@@ -478,28 +476,32 @@
             margin-bottom: 15px;
         }
         
-        /* MODAL STYLES */
+        /* MODAL STYLES - Unified */
         .modal {
             display: none;
             position: fixed;
-            z-index: 9999;
+            z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(3px);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
         }
         
         .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 0;
-            border-radius: 20px;
-            width: 90%;
+            background: white;
+            border-radius: 16px;
             max-width: 450px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 90%;
             animation: modalSlideIn 0.3s ease;
+            overflow: hidden;
         }
         
         @keyframes modalSlideIn {
@@ -514,71 +516,93 @@
         }
         
         .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             padding: 20px 25px;
-            border-radius: 20px 20px 0 0;
+            border-bottom: 1px solid #e0e0e0;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 12px;
-        }
-        
-        .modal-header i {
-            font-size: 28px;
+            background: white;
         }
         
         .modal-header h3 {
-            margin: 0;
+            color: #dc3545;
             font-size: 20px;
-            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0;
+        }
+        
+        .modal-header i {
+            font-size: 24px;
+        }
+        
+        .modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.3s;
+        }
+        
+        .modal-close:hover {
+            color: #333;
         }
         
         .modal-body {
             padding: 25px;
         }
         
-        .modal-body p {
-            color: #4a5568;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        
-        .modal-body .room-info {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-left: 4px solid #dc3545;
-        }
-        
-        .modal-body .room-info i {
-            font-size: 20px;
+        .warning-icon-small {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 15px;
             color: #dc3545;
         }
         
-        .modal-body .room-info strong {
-            color: #2d3748;
+        .modal-room-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .modal-room-details p {
+            margin: 5px 0;
         }
         
         .modal-footer {
             padding: 20px 25px;
-            border-top: 1px solid #ecf0f1;
+            border-top: 1px solid #e0e0e0;
             display: flex;
-            gap: 12px;
+            gap: 15px;
             justify-content: flex-end;
         }
         
         .modal-btn {
             padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
             border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .modal-btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .modal-btn-secondary:hover {
+            background: #5a6268;
         }
         
         .modal-btn-cancel {
@@ -598,137 +622,24 @@
         .modal-btn-confirm:hover {
             background: #c82333;
         }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            max-width: 450px;
-            width: 90%;
-            animation: modalSlideIn 0.3s ease;
-        }
-
-            @keyframes modalSlideIn {
-        from {
-            transform: translateY(-50px);
-            opacity: 0;
-             }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-           }
-        }
-
-        .modal-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h3 {
-            color: #dc3545;
-            font-size: 20px;
+        
+        .room-info {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin: 15px 0;
             display: flex;
             align-items: center;
             gap: 10px;
-            margin: 0;
+            border-left: 4px solid #dc3545;
         }
- 
-        .modal-close {
-            font-size: 28px;
-            cursor: pointer;
-            color: #999;
-            transition: color 0.3s;
-        }
-
-        .modal-close:hover {
-            color: #333;
-        }
-
-        .modal-body {
-            padding: 25px;
-        }
-
-        .warning-icon-small {
-            font-size: 48px;
-            text-align: center;
-            margin-bottom: 15px;
-            color: #dc3545;
-        }
-
-        .modal-room-details {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-        }
-
-        .modal-room-details p {
-            margin: 5px 0;
-        }
-
-        .modal-footer {
-            padding: 20px 25px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 15px;
-            justify-content: flex-end;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .modal-btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .modal-btn-danger:hover {
-            background: #c82333;
-        }
-
-        .modal-btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .modal-btn-secondary:hover {
-            background: #5a6268;
-        }
-
-            @media (max-width: 480px) {
-        .modal-footer {
-            flex-direction: column;
+        
+        @media (max-width: 480px) {
+            .modal-footer {
+                flex-direction: column;
             }
-    
-        .modal-btn {
-            width: 100%;
+            .modal-btn {
+                width: 100%;
             }
         }
     </style>
@@ -893,9 +804,7 @@
                 <i class="fas fa-users"></i> <strong>Occupied Rooms:</strong> {{ stats.occupied_rooms }}
             </div>
             <div>
-                <div>
                 <i class="fas fa-key"></i> <strong>Available Rooms:</strong> {{ stats.available_rooms }}
-           </div>
             </div>
             <div>
                 <a href="{% url 'tenant_list' %}" class="manage-link"><i class="fas fa-user-friends"></i> Manage Tenants →</a>
@@ -929,8 +838,8 @@
                             </div>
                             <div class="room-actions" style="margin-top: 8px;">
                                 <a href="{% url 'edit_room' room.id %}" class="room-edit"><i class="fas fa-edit"></i> Edit</a>
-                                <button onclick="showDeleteModal('{{ room.id }}', '{{ room.name }}', '{{ room.usage }}', '{{ room.limit }}')" class="room-delete" style="background: none; border: none; cursor: pointer; color: #dc3545;">
-                                <i class="fas fa-trash-alt"></i> Delete
+                                <button onclick="showDeleteModal('{{ room.id }}', '{{ room.name }}', '{{ room.usage }}', '{{ room.limit }}')" class="room-delete">
+                                    <i class="fas fa-trash-alt"></i> Delete
                                 </button>
                             </div>
                         </td>
@@ -959,14 +868,15 @@
                                 </div>
                             {% else %}
                                 {% if available_tenants %}
-                                <form method="post" action="{% url 'assign_tenant' room.id %}" style="display: flex; gap: 5px;">
+                                <form method="post" action="{% url 'assign_tenant' room.id %}" style="display: flex; gap: 5px; flex-wrap: wrap;">
                                     {% csrf_token %}
-                                    <select name="tenant_id" required style="flex: 1; padding: 5px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px;">
+                                    <select name="tenant_id" required style="flex: 1; padding: 5px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px; min-width: 120px;">
                                         <option value="">Select tenant...</option>
                                         {% for tenant in available_tenants %}
                                         <option value="{{ tenant.id }}">{{ tenant.user.get_full_name|default:tenant.user.username }}</option>
                                         {% endfor %}
                                     </select>
+                                    <input type="date" name="move_in_date" value="{{ today|date:'Y-m-d' }}" style="padding: 5px; border-radius: 5px; border: 1px solid #ddd; font-size: 12px;">
                                     <button type="submit" class="action-btn btn-on" style="padding: 5px 10px; font-size: 12px;"><i class="fas fa-user-plus"></i> Assign</button>
                                 </form>
                                 {% else %}
@@ -1051,6 +961,7 @@
             <div class="modal-header">
                 <i class="fas fa-exclamation-triangle"></i>
                 <h3>Remove Tenant</h3>
+                <span class="modal-close" onclick="closeRemoveModal()">&times;</span>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to remove this tenant from the room?</p>
@@ -1066,149 +977,150 @@
                 <button type="button" class="modal-btn modal-btn-cancel" onclick="closeRemoveModal()">
                     <i class="fas fa-times"></i> Cancel
                 </button>
-                <a href="#" id="confirmRemoveBtn" class="modal-btn modal-btn-confirm" style="text-decoration: none; display: inline-block;">
+                <a href="#" id="confirmRemoveBtn" class="modal-btn modal-btn-confirm">
                     <i class="fas fa-trash-alt"></i> Remove Tenant
                 </a>
             </div>
         </div>
     </div>
 
-    <script>
-    // Add event listeners to all remove tenant buttons
-    document.querySelectorAll('.remove-tenant-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const roomId = this.getAttribute('data-room-id');
-            const roomName = this.getAttribute('data-room-name');
-            const tenantName = this.getAttribute('data-tenant-name');
-            openRemoveModal(roomId, roomName, tenantName);
-        });
-    });
-
-    // Variables for modal
-    let currentRoomId = null;
-    let currentRoomName = null;
-    let currentTenantName = null;
-
-    // Function to open modal
-    function openRemoveModal(roomId, roomName, tenantName) {
-        currentRoomId = roomId;
-        currentRoomName = roomName;
-        currentTenantName = tenantName;
-        
-        // Update modal content
-        document.getElementById('modalRoomInfo').innerHTML = `
-            <i class="fas fa-door-open"></i>
-            <span><strong>${roomName}</strong> - Tenant: <strong>${tenantName}</strong></span>
-        `;
-        
-        // Update confirm button link
-        const confirmBtn = document.getElementById('confirmRemoveBtn');
-        confirmBtn.href = `/room/${roomId}/remove-tenant/`;
-        
-        // Show modal
-        document.getElementById('removeTenantModal').style.display = 'block';
-    }
-
-    // Function to close modal
-    function closeRemoveModal() {
-        document.getElementById('removeTenantModal').style.display = 'none';
-        currentRoomId = null;
-        currentRoomName = null;
-        currentTenantName = null;
-    }
-
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        const modal = document.getElementById('removeTenantModal');
-        if (event.target === modal) {
-            closeRemoveModal();
-        }
-    }
-
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeRemoveModal();
-        }
-    });
-</script>
-<!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-exclamation-triangle"></i> Delete Room</h3>
-            <span class="modal-close" onclick="closeModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="warning-icon-small">
-                <i class="fas fa-trash-alt"></i>
+    <!-- DELETE ROOM MODAL -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Delete Room</h3>
+                <span class="modal-close" onclick="closeModal()">&times;</span>
             </div>
-            <p style="text-align: center; margin-bottom: 15px;">
-                Are you sure you want to delete <strong id="modalRoomName"></strong>?
-            </p>
-            <div class="modal-room-details">
-                <p><i class="fas fa-chart-line"></i> <strong>Current Usage:</strong> <span id="modalRoomUsage"></span> kWh</p>
-                <p><i class="fas fa-tachometer-alt"></i> <strong>Monthly Limit:</strong> <span id="modalRoomLimit"></span> kWh</p>
+            <div class="modal-body">
+                <div class="warning-icon-small">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <p style="text-align: center; margin-bottom: 15px;">
+                    Are you sure you want to delete <strong id="modalRoomName"></strong>?
+                </p>
+                <div class="modal-room-details">
+                    <p><i class="fas fa-chart-line"></i> <strong>Current Usage:</strong> <span id="modalRoomUsage"></span> kWh</p>
+                    <p><i class="fas fa-tachometer-alt"></i> <strong>Monthly Limit:</strong> <span id="modalRoomLimit"></span> kWh</p>
+                </div>
+                <p style="font-size: 13px; color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px;">
+                    <i class="fas fa-exclamation-circle"></i> This action cannot be undone. All billing records and alerts for this room will be deleted.
+                </p>
             </div>
-            <p style="font-size: 13px; color: #856404; background: #fff3cd; padding: 10px; border-radius: 6px;">
-                <i class="fas fa-exclamation-circle"></i> This action cannot be undone. All billing records and alerts for this room will be deleted.
-            </p>
-        </div>
-        <div class="modal-footer">
-            <button class="modal-btn modal-btn-secondary" onclick="closeModal()">
-                <i class="fas fa-times"></i> Cancel
-            </button>
-            <form id="deleteForm" method="post" style="margin: 0;">
-                {% csrf_token %}
-                <button type="submit" class="modal-btn modal-btn-danger">
-                    <i class="fas fa-trash-alt"></i> Yes, Delete
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closeModal()">
+                    <i class="fas fa-times"></i> Cancel
                 </button>
-            </form>
+                <form id="deleteForm" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="modal-btn modal-btn-danger">
+                        <i class="fas fa-trash-alt"></i> Yes, Delete
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    // Function to show modal
-    function showDeleteModal(roomId, roomName, roomUsage, roomLimit) {
-        const modal = document.getElementById('deleteModal');
-        const modalRoomName = document.getElementById('modalRoomName');
-        const modalRoomUsage = document.getElementById('modalRoomUsage');
-        const modalRoomLimit = document.getElementById('modalRoomLimit');
-        const deleteForm = document.getElementById('deleteForm');
-        
-        // Set modal content
-        modalRoomName.textContent = roomName;
-        modalRoomUsage.textContent = roomUsage;
-        modalRoomLimit.textContent = roomLimit;
-        
-        // Set form action
-        deleteForm.action = `/room/${roomId}/delete/`;
-        
-        // Show modal
-        modal.classList.add('show');
-    }
-    
-    // Function to close modal
-    function closeModal() {
-        const modal = document.getElementById('deleteModal');
-        modal.classList.remove('show');
-    }
-    
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        const modal = document.getElementById('deleteModal');
-        if (event.target === modal) {
-            closeModal();
+    <script>
+        // ========== DELETE ROOM MODAL ==========
+        function showDeleteModal(roomId, roomName, roomUsage, roomLimit) {
+            const modal = document.getElementById('deleteModal');
+            const modalRoomName = document.getElementById('modalRoomName');
+            const modalRoomUsage = document.getElementById('modalRoomUsage');
+            const modalRoomLimit = document.getElementById('modalRoomLimit');
+            const deleteForm = document.getElementById('deleteForm');
+            
+            modalRoomName.textContent = roomName;
+            modalRoomUsage.textContent = roomUsage;
+            modalRoomLimit.textContent = roomLimit;
+            deleteForm.action = `/room/delete/${roomId}/`;
+            
+            modal.classList.add('show');
         }
-    }
-    
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeModal();
+        
+        function closeModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('show');
         }
-    });
-</script>
+        
+        // ========== REMOVE TENANT MODAL ==========
+        let currentRoomId = null;
+        let currentRoomName = null;
+        let currentTenantName = null;
+        
+        function openRemoveModal(roomId, roomName, tenantName) {
+            currentRoomId = roomId;
+            currentRoomName = roomName;
+            currentTenantName = tenantName;
+            
+            const modalRoomInfo = document.getElementById('modalRoomInfo');
+            if (modalRoomInfo) {
+                modalRoomInfo.innerHTML = `
+                    <i class="fas fa-door-open"></i>
+                    <span><strong>${roomName}</strong> - Tenant: <strong>${tenantName}</strong></span>
+                `;
+            }
+            
+            const confirmBtn = document.getElementById('confirmRemoveBtn');
+            if (confirmBtn) {
+                confirmBtn.href = `/room/${roomId}/remove-tenant/`;
+            }
+            
+            const modal = document.getElementById('removeTenantModal');
+            if (modal) {
+                modal.classList.add('show');
+            }
+        }
+        
+        function closeRemoveModal() {
+            const modal = document.getElementById('removeTenantModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            currentRoomId = null;
+            currentRoomName = null;
+            currentTenantName = null;
+        }
+        
+        // ========== ADD EVENT LISTENERS TO REMOVE BUTTONS ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.remove-tenant-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const roomId = this.getAttribute('data-room-id');
+                    const roomName = this.getAttribute('data-room-name');
+                    const tenantName = this.getAttribute('data-tenant-name');
+                    openRemoveModal(roomId, roomName, tenantName);
+                });
+            });
+        });
+        
+        // ========== CLOSE MODALS WHEN CLICKING OUTSIDE ==========
+        window.onclick = function(event) {
+            const deleteModal = document.getElementById('deleteModal');
+            if (event.target === deleteModal) {
+                closeModal();
+            }
+            
+            const removeModal = document.getElementById('removeTenantModal');
+            if (event.target === removeModal) {
+                closeRemoveModal();
+            }
+        }
+        
+        // ========== CLOSE WITH ESCAPE KEY ==========
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const deleteModal = document.getElementById('deleteModal');
+                if (deleteModal && deleteModal.classList.contains('show')) {
+                    closeModal();
+                }
+                
+                const removeModal = document.getElementById('removeTenantModal');
+                if (removeModal && removeModal.classList.contains('show')) {
+                    closeRemoveModal();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,28 +1,29 @@
-from django.db import models 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import datetime, date, timedelta
 import calendar
 from django.db.models import Sum, Q
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.models import User
-from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.conf import settings
+import logging
+from django.db import models 
+# Import models
+from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, TenantAssignment
+
+logger = logging.getLogger(__name__)
 
 # ============== HELPER FUNCTIONS ==============
 def get_settings():
-    """Helper function to get system settings"""
     return SystemSettings.get_settings()
 
 def get_last_day_of_month(year, month):
-    """Return the last day of the given month"""
     return calendar.monthrange(year, month)[1]
 
 
@@ -167,55 +168,85 @@ def get_room_usage_data(request):
 
 # ============== BILLING FUNCTIONS ==============
 def generate_monthly_bills(year=None, month=None):
-    """
-    Generate bills for all rooms for a specific month.
-    If year/month not provided, use current month.
-    """
-    settings = get_settings()
+    """Generate prorated bills for all tenants based on their move-in/move-out dates"""
     
-    # Use current month if not specified
+    from .models import SystemSettings, TenantAssignment, Billing, EnergyUsage
+    from django.db.models import Q, Sum
+    from datetime import date, datetime
+    import calendar
+    
+    def get_last_day_of_month(year, month):
+        """Return the last day of the given month"""
+        return calendar.monthrange(year, month)[1]
+    
+    # Get electricity rate from settings
+    settings = SystemSettings.get_settings()
+    electricity_rate = settings.electricity_rate
+    
     if year is None or month is None:
         today = datetime.now()
         year = today.year
         month = today.month
     
-    # Create month name (e.g., "March 2026")
     month_name = datetime(year, month, 1).strftime("%B %Y")
+    month_start = date(year, month, 1)
+    month_end = date(year, month, get_last_day_of_month(year, month))
     
-    print(f"\n📊 Generating bills for {month_name}...")
-    print("-" * 50)
+    print(f"\n📊 Generating prorated bills for {month_name}...")
+    print("=" * 60)
     
-    # Kunin lahat ng rooms
-    rooms = Room.objects.all()
+    # Get all active tenant assignments for this month
+    assignments = TenantAssignment.objects.filter(
+        move_in_date__lte=month_end,
+        is_active=True
+    ).filter(
+        Q(move_out_date__isnull=True) | Q(move_out_date__gte=month_start)
+    )
     
     bills_created = 0
     bills_updated = 0
     
-    for room in rooms:
-        # Kunin ang total kWh usage for the month from EnergyUsage
+    for assignment in assignments:
+        room = assignment.room
+        tenant = assignment.tenant
+        
+        # Calculate days occupied this month
+        days_occupied = assignment.days_occupied_in_month(year, month)
+        
+        if days_occupied == 0:
+            continue
+        
+        # Get total kWh for the room this month
         total_kwh = EnergyUsage.objects.filter(
             room=room,
             timestamp__year=year,
             timestamp__month=month
         ).aggregate(total=Sum('kwh'))['total'] or 0
         
-        # Compute cost using settings rate
-        cost = total_kwh * settings.electricity_rate
+        # Prorate based on days occupied
+        total_days_in_month = get_last_day_of_month(year, month)
         
-        # Set due date (last day of month)
-        last_day = get_last_day_of_month(year, month)
-        due_date = datetime(year, month, last_day).date()
+        # Avoid division by zero
+        if total_days_in_month > 0:
+            prorated_kwh = (total_kwh / total_days_in_month) * days_occupied
+        else:
+            prorated_kwh = 0
+            
+        prorated_cost = prorated_kwh * electricity_rate
+        due_date = month_end
         
-        # Check if bill already exists
+        # Check if bill already exists for this assignment
         bill, created = Billing.objects.update_or_create(
             room=room,
             billing_month=month_name,
+            tenant_assignment=assignment,
             defaults={
-                'kwh': total_kwh,
-                'cost': cost,
+                'kwh': round(prorated_kwh, 2),
+                'cost': round(prorated_cost, 2),
+                'is_paid': False,
                 'due_date': due_date,
-                'is_paid': False,  # Reset paid status for new month
-                'reminder_sent': False
+                'reminder_sent': False,
+                'days_occupied': days_occupied
             }
         )
         
@@ -226,9 +257,13 @@ def generate_monthly_bills(year=None, month=None):
             bills_updated += 1
             status = "🔄 UPDATED"
         
-        print(f"{status}: {room.name} - {total_kwh:.2f} kWh = ₱{cost:.2f}")
+        print(f"{status}: {room.name} - {tenant.user.username}")
+        print(f"   Days occupied: {days_occupied}/{total_days_in_month} days")
+        print(f"   Total kWh: {total_kwh:.2f} → Prorated: {prorated_kwh:.2f} kWh")
+        print(f"   Amount: ₱{prorated_cost:.2f}")
+        print("-" * 40)
     
-    print("-" * 50)
+    print("=" * 60)
     print(f"✅ Done! Created: {bills_created}, Updated: {bills_updated}")
     
     return bills_created, bills_updated
@@ -861,7 +896,6 @@ def toggle_power(request, room_id):
         message=message
     )
     
-    messages.success(request, f"Power for {room.name} has been turned {'OFF' if old_status else 'ON'}.")
     return redirect('dashboard')
 
 
@@ -895,7 +929,6 @@ def add_room(request):
             room=room
         )
         
-        messages.success(request, f"Room '{name}' added successfully!")
         return redirect('dashboard')
     
     # Get unread alerts count
@@ -925,8 +958,7 @@ def edit_room(request, room_id):
             message=f"Room {room.name} updated",
             room=room
         )
-        
-        messages.success(request, f"Room '{room.name}' updated successfully!")
+
         return redirect('dashboard')
     
     # Get unread alerts count
@@ -958,7 +990,6 @@ def delete_room(request, room_id):
     )
     
     room.delete()
-    messages.success(request, f"Room '{room_name}' deleted successfully!")
     return redirect('dashboard')
 
 
@@ -971,36 +1002,37 @@ def assign_tenant(request, room_id):
     
     if request.method == 'POST':
         tenant_id = request.POST.get('tenant_id')
+        move_in_date = request.POST.get('move_in_date')  # <--- Add this
         room = get_object_or_404(Room, id=room_id)
         
         if tenant_id:
-            # Assign specific tenant
             tenant_profile = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant')
             
-            # Remove any existing tenant from this room
-            UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
+            # Deactivate previous assignment for this room
+            TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             
-            # Assign new tenant
+            # Create new assignment
+            assignment = TenantAssignment.objects.create(
+                tenant=tenant_profile,
+                room=room,
+                move_in_date=move_in_date or date.today(),
+                is_active=True
+            )
+            
+            # Assign room to tenant profile
             tenant_profile.room = room
             tenant_profile.save()
-            
-            messages.success(request, f"Tenant {tenant_profile.user.get_full_name() or tenant_profile.user.username} assigned to {room.name}.")
             
             Alert.objects.create(
                 room=room,
                 alert_type='tenant_assigned',
-                message=f"Tenant {tenant_profile.user.get_full_name() or tenant_profile.user.username} assigned to room {room.name}"
+                message=f"Tenant {tenant_profile.user.username} assigned to room {room.name} starting {assignment.move_in_date}"
             )
         else:
-            # Remove tenant from room
+            # Remove tenant
+            TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
             messages.success(request, f"Tenant removed from {room.name}.")
-            
-            Alert.objects.create(
-                room=room,
-                alert_type='tenant_removed',
-                message=f"Tenant removed from room {room.name}"
-            )
     
     return redirect('dashboard')
 
@@ -1019,8 +1051,7 @@ def remove_tenant(request, room_id):
         tenant_name = tenant_profile.user.get_full_name() or tenant_profile.user.username
         tenant_profile.room = None
         tenant_profile.save()
-        
-        messages.success(request, f"Tenant {tenant_name} removed from {room.name}.")
+    
         
         Alert.objects.create(
             room=room,
@@ -1341,6 +1372,7 @@ def system_settings(request):
         'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })
 
+@login_required
 @login_required
 def system_health(request):
     """System health check for owner"""
