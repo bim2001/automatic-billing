@@ -14,6 +14,7 @@ urlpatterns = [
     path('dashboard', views.dashboard, name='dashboard'),  # Without slash (backward compat)
     path('tenant/', views.tenant_dashboard, name='tenant_dashboard'),
     path('tenant/notifications/', views.tenant_notifications, name='tenant_notifications'),
+    path('edit-profile/', views.edit_profile, name='edit_profile'),
     
     # ==================== ROOM MANAGEMENT ====================
     path('room/add/', views.add_room, name='add_room'),

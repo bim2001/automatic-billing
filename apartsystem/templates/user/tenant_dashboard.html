@@ -520,6 +520,9 @@
     </div>
     <div class="navbar-user">
         <span><i class="fas fa-user"></i> Welcome, <strong>{{ username }}</strong></span>
+        <a href="{% url 'edit_profile' %}" class="logout-btn" style="margin-right: 10px;">
+    <i class="fas fa-user-edit"></i> Edit Profile
+</a>
         <a href="{% url 'logout_view' %}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 </div>

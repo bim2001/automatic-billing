@@ -30,7 +30,7 @@ class AlertAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'user_type', 'room']
     list_filter = ['user_type']
-    search_fields = ['user__username', 'user__email']
+    search_fields = ['user__username', 'user__email', 'phone_number']
     raw_id_fields = ['user', 'room']
 
 @admin.register(SystemSettings)

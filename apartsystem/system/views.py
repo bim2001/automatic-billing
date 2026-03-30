@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.conf import settings
+from django.conf import settings as django_settings
 import logging
 from django.db import models 
 # Import models
@@ -269,17 +269,13 @@ def generate_monthly_bills(year=None, month=None):
     return bills_created, bills_updated
 
 
-def send_payment_reminders(days_before_due=None, test_mode=False):
+from django.conf import settings as django_settings  # I-add ito sa taas
+
+def send_payment_reminders(days_before_due=3, test_mode=False):
     """
     Send payment reminders for bills due in X days
     Returns: dict with counts of emails sent
     """
-    settings = get_settings()
-    
-    # Use settings value if days_before_due not provided
-    if days_before_due is None:
-        days_before_due = settings.reminder_days_before
-    
     today = timezone.now().date()
     reminder_date = today + timedelta(days=days_before_due)
     
@@ -321,7 +317,7 @@ def send_payment_reminders(days_before_due=None, test_mode=False):
             # Compute days remaining
             days_remaining = (bill.due_date - today).days
             
-            # Create email content with system name from settings
+            # Create email content
             subject = f"🧾 Bill Reminder: {bill.billing_month} due in {days_remaining} days"
             
             message = f"""
@@ -337,12 +333,12 @@ Due Date: {bill.due_date}
 Days Remaining: {days_remaining}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-Please settle your payment before the due date to avoid late payment penalties (₱{settings.late_penalty_amount}).
+Please settle your payment before the due date to avoid late payment penalties.
 
 If you have already paid, please ignore this message.
 
 Thank you,
-{settings.system_name}
+Smart Energy Monitor System
             """
             
             if test_mode:
@@ -351,11 +347,11 @@ Thank you,
                 print(f"   Message: {message[:100]}...")
                 sent_count += 1
             else:
-                # ACTUAL SENDING
+                # ACTUAL SENDING - use django_settings, not the system settings
                 send_mail(
                     subject=subject,
                     message=message,
-                    from_email=settings.EMAIL_HOST_USER,
+                    from_email=django_settings.EMAIL_HOST_USER,  # <--- ITO ANG BAGO
                     recipient_list=[tenant_email],
                     fail_silently=False,
                 )
@@ -906,7 +902,7 @@ def add_room(request):
     
     if request.method == 'POST':
         name = request.POST.get('name')
-        limit = float(request.POST.get('limit', 50))
+        limit = float(request.POST.get('limit', 200))
         usage = float(request.POST.get('usage', 0))
         
         # Validate
@@ -923,12 +919,14 @@ def add_room(request):
         )
         
         # Create alert for new room
-        Alert.objects.create(
-            alert_type='power_on',
-            message=f"New room added: {name}",
-            room=room
-        )
+        #Alert.objects.create(
+        #    alert_type='power_on',
+        #    message=f"New room added: {name}",
+        #    room=room
+        #)
         
+        messages.success(request, f"Room '{name}' added successfully!")
+
         return redirect('dashboard')
     
     # Get unread alerts count
@@ -949,7 +947,7 @@ def edit_room(request, room_id):
     
     if request.method == 'POST':
         room.name = request.POST.get('name')
-        room.limit = float(request.POST.get('limit', 50))
+        room.limit = float(request.POST.get('limit', 200))
         room.usage = float(request.POST.get('usage', room.usage))
         room.save()
         
@@ -1111,26 +1109,37 @@ def billing_view(request):
     
     rooms = Room.objects.all()
     for room in rooms:
-        bill, created = Billing.objects.get_or_create(
-            room=room,
-            billing_month=current_month,
-            defaults={
-                'kwh': room.usage,
-                'cost': room.usage * settings.electricity_rate,
-                'is_paid': False,
-                'due_date': due_date,
-                'reminder_sent': False
-            }
-        )
+        # Check if room has an active tenant
+        has_tenant = UserProfile.objects.filter(room=room, user_type='tenant').exists()
         
-        if not created:
-            bill.kwh = room.usage
-            bill.cost = room.usage * settings.electricity_rate
-            bill.save()
+        if has_tenant:
+            bill, created = Billing.objects.get_or_create(
+                room=room,
+                billing_month=current_month,
+                defaults={
+                    'kwh': room.usage,
+                    'cost': room.usage * settings.electricity_rate,
+                    'is_paid': False,
+                    'due_date': due_date,
+                    'reminder_sent': False
+                }
+            )
+            
+            if not created:
+                bill.kwh = room.usage
+                bill.cost = room.usage * settings.electricity_rate
+                bill.save()
+        else:
+            # If no tenant, delete any existing bill for this month
+            Billing.objects.filter(room=room, billing_month=current_month).delete()
     
-    # ... rest of code
+    # Filter: Only show bills for rooms with tenants
+    bills = Billing.objects.filter(
+        billing_month=current_month,
+        room__userprofile__user_type='tenant',  # May tenant ang room
+        room__userprofile__isnull=False
+    ).select_related('room').distinct()
     
-    bills = Billing.objects.filter(billing_month=current_month).select_related('room')
     total_kwh = sum(bill.kwh for bill in bills)
     total_cost = sum(bill.cost for bill in bills)
     paid_count = sum(1 for bill in bills if bill.is_paid)
@@ -1149,19 +1158,26 @@ def billing_view(request):
         'unread_alerts_count': unread_alerts_count
     })
 
-
 @login_required
 def mark_as_paid(request, bill_id):
     if request.user.userprofile.user_type != 'owner':
         return redirect('tenant_dashboard')
     
     bill = get_object_or_404(Billing, id=bill_id)
+    
+    # Check if room has a tenant before allowing to mark as paid
+    has_tenant = UserProfile.objects.filter(room=bill.room, user_type='tenant').exists()
+    
+    if not has_tenant:
+        messages.error(request, f"Cannot mark bill for {bill.room.name} as paid - no tenant assigned to this room.")
+        next_url = request.GET.get('next', 'billing_view')
+        return redirect(next_url)
+    
     bill.is_paid = not bill.is_paid
     bill.save()
     
     messages.success(request, f"Payment status updated for {bill.room.name}.")
     
-    # Redirect back to the same page with filters preserved
     next_url = request.GET.get('next', 'billing_view')
     return redirect(next_url)
 
@@ -1180,8 +1196,10 @@ def billing_history(request):
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
     
-    # Base query
-    bills_query = Billing.objects.all().select_related('room')
+    # Base query - ONLY rooms with tenants (added filter)
+    bills_query = Billing.objects.filter(
+        room__userprofile__user_type='tenant'  # May tenant ang room
+    ).select_related('room').distinct()
     
     # Apply Room Name filter (case-insensitive search)
     if room_name:
@@ -1217,8 +1235,10 @@ def billing_history(request):
     # Order results
     all_bills = bills_query.order_by('-billing_month', 'room__name')
     
-    # Get unique months for dropdown
-    available_months = Billing.objects.values_list('billing_month', flat=True).distinct().order_by('-billing_month')
+    # Get unique months for dropdown - ONLY rooms with tenants
+    available_months = Billing.objects.filter(
+        room__userprofile__user_type='tenant'
+    ).values_list('billing_month', flat=True).distinct().order_by('-billing_month')
     
     # Group bills by month for display
     bills_by_month = {}
@@ -1484,4 +1504,66 @@ def health_dashboard(request):
         'last_alert': last_alert,
         'rooms_over_limit': rooms_over_limit,
         'unread_alerts_count': unread_alerts,
+    })
+
+@login_required
+def edit_profile(request):
+    """Allow tenants to edit their profile information"""
+    from django.contrib import messages
+    from django.contrib.auth.models import User
+    
+    profile = request.user.userprofile
+    
+    # Only tenants can access this
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+    
+    if request.method == 'POST':
+        # Get form data
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone_number = request.POST.get('phone_number', '').strip()
+        
+        # Validate
+        errors = []
+        
+        if not email:
+            errors.append("Email is required.")
+        elif User.objects.filter(email=email).exclude(id=request.user.id).exists():
+            errors.append("Email already used by another account.")
+        
+        if errors:
+            return render(request, 'user/edit_profile.html', {
+                'profile': profile,
+                'errors': errors,
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': email,
+                'phone_number': phone_number,
+                'username': request.user.username,
+            })
+        
+        # Update user info
+        user = request.user
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+        
+        # Update profile info
+        profile.phone_number = phone_number
+        profile.save()
+        
+        messages.success(request, "✅ Profile updated successfully!")
+        return redirect('tenant_dashboard')
+    
+    # GET request - show form with current data
+    return render(request, 'user/edit_profile.html', {
+        'profile': profile,
+        'first_name': request.user.first_name,
+        'last_name': request.user.last_name,
+        'email': request.user.email,
+        'phone_number': profile.phone_number or '',
+        'username': request.user.username,
     })
