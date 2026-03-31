@@ -10,12 +10,13 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from .paymongo import get_paymongo
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 import logging
 from django.db import models 
 # Import models
-from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, TenantAssignment
+from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment
 
 logger = logging.getLogger(__name__)
 
@@ -774,6 +775,28 @@ def tenant_dashboard(request):
     current_month = timezone.now().strftime("%B %Y")
     current_bill = bills.filter(billing_month=current_month).first()
 
+    # ==================== PAYMENT SECTION ====================
+    from .models import Payment
+    
+    pending_payment = None
+    reference_number = ''
+    
+    if current_bill:
+        # Get existing pending payment
+        pending_payment = Payment.objects.filter(
+            bill=current_bill,
+            status='pending'
+        ).first()
+        
+        # If no pending payment exists and bill is not paid, create one
+        if not pending_payment and not current_bill.is_paid:
+            pending_payment = create_payment_record(current_bill, profile, 'cash')  # Default to cash
+        
+        # Generate reference number for display
+        if pending_payment:
+            reference_number = pending_payment.reference_number
+    # ==========================================================
+
     # Tenant alert types
     tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing', 'late_payment', 'abnormal_usage', 'high_consumption']
     
@@ -824,8 +847,10 @@ def tenant_dashboard(request):
         'avg_daily_usage': avg_daily_usage,
         'total_kwh': total_kwh,
         'total_paid': total_paid,
+        # Payment-related context
+        'pending_payment': pending_payment,
+        'reference_number': reference_number,
     })
-
 
 @login_required
 def tenant_notifications(request):
@@ -1565,5 +1590,210 @@ def edit_profile(request):
         'last_name': request.user.last_name,
         'email': request.user.email,
         'phone_number': profile.phone_number or '',
+        'username': request.user.username,
+    })
+
+import secrets
+import hashlib
+from datetime import datetime
+
+def generate_reference_number(bill):
+    """Generate unique reference number for payment"""
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    room_code = bill.room.name.replace(' ', '').upper()
+    amount_hash = hashlib.md5(str(bill.cost).encode()).hexdigest()[:6]
+    return f"PAY-{room_code}-{timestamp}-{amount_hash}"
+
+def create_payment_record(bill, tenant, payment_method):
+    """Create a payment record"""
+    from .models import Payment
+    
+    reference = generate_reference_number(bill)
+    
+    payment = Payment.objects.create(
+        bill=bill,
+        tenant=tenant,
+        amount=bill.cost,
+        payment_method=payment_method,
+        reference_number=reference,
+        status='pending'
+    )
+    
+    return payment
+
+def mark_payment_as_paid(payment, transaction_id=None):
+    """Mark payment as paid and update bill status"""
+    from django.utils import timezone
+    
+    payment.status = 'paid'
+    payment.paid_at = timezone.now()
+    if transaction_id:
+        payment.transaction_id = transaction_id
+    payment.save()
+    
+    # Update the bill status
+    bill = payment.bill
+    bill.is_paid = True
+    bill.save()
+    
+    # Create alert
+    Alert.objects.create(
+        room=bill.room,
+        alert_type='billing',
+        message=f"Payment received for {bill.billing_month} via {payment.get_payment_method_display()}. Reference: {payment.reference_number}"
+    )
+    
+    return payment
+
+@login_required
+def create_gcash_payment(request, bill_id):
+    """Create GCash payment via PayMongo"""
+    profile = request.user.userprofile
+    
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+    
+    bill = get_object_or_404(Billing, id=bill_id, room=profile.room)
+    
+    if bill.is_paid:
+        messages.warning(request, "This bill is already paid.")
+        return redirect('tenant_dashboard')
+    
+    # Create or get pending payment
+    payment = Payment.objects.filter(bill=bill, status='pending').first()
+    if not payment:
+        payment = create_payment_record(bill, profile, 'gcash')
+    
+    # Get PayMongo instance
+    paymongo = get_paymongo()
+    
+    # Create checkout session
+    success_url = request.build_absolute_uri(f'/payment/success/{payment.reference_number}/')
+    cancel_url = request.build_absolute_uri('/tenant/')
+    
+    result = paymongo.create_checkout_session(
+        amount=bill.cost,
+        description=f"Electricity Bill - {bill.room.name} - {bill.billing_month}",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        reference=payment.reference_number
+    )
+    
+    if result.get('status') == 'success':
+        checkout_url = result['data']['attributes']['checkout_url']
+        return redirect(checkout_url)
+    else:
+        messages.error(request, "Failed to create payment. Please try again.")
+        return redirect('tenant_dashboard')
+
+
+@login_required
+def payment_success(request, reference_number):
+    """Handle successful payment callback"""
+    payment = get_object_or_404(Payment, reference_number=reference_number)
+    
+    # Verify payment with PayMongo
+    paymongo = get_paymongo()
+    
+    # In simulation, this would verify
+    # In live, you'd use the transaction ID
+    
+    # Mark as paid
+    mark_payment_as_paid(payment, transaction_id=reference_number)
+    
+    messages.success(request, f"✅ Payment of ₱{payment.amount} for {payment.bill.billing_month} has been received!")
+    
+    return redirect('tenant_dashboard')
+
+
+@login_required
+def manual_paid_confirmation(request, bill_id):
+    """Tenant confirms cash payment (notifies owner)"""
+    profile = request.user.userprofile
+    
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+    
+    bill = get_object_or_404(Billing, id=bill_id, room=profile.room)
+    
+    if request.method == 'POST':
+        # Import Payment here or make sure it's imported at top
+        payment = Payment.objects.filter(bill=bill, status='pending').first()
+        if not payment:
+            payment = create_payment_record(bill, profile, 'cash')
+        
+        # Update payment with note
+        payment.notes = request.POST.get('notes', '')
+        payment.save()
+        
+        # Create alert for owner
+        Alert.objects.create(
+            room=bill.room,
+            alert_type='billing',
+            message=f"Tenant {profile.user.username} has paid ₱{bill.cost} for {bill.billing_month} via CASH. Please verify and mark as paid."
+        )
+        
+        messages.info(request, f"Your payment for {bill.billing_month} has been recorded. The owner will verify and update your bill status.")
+        return redirect('tenant_dashboard')
+    
+    return render(request, 'user/cash_payment_confirmation.html', {
+        'bill': bill,
+        'reference_number': f"PAY-{bill.room.name}-{bill.billing_month.replace(' ', '')}",
+        'username': request.user.username,
+    })
+
+@login_required
+def payment_method(request):
+    """Display payment options for tenant"""
+    profile = request.user.userprofile
+    
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+    
+    room = profile.room
+    if not room:
+        return redirect('tenant_dashboard')
+    
+    # Get current bill
+    current_month = timezone.now().strftime("%B %Y")
+    current_bill = Billing.objects.filter(room=room, billing_month=current_month).first()
+    
+    if not current_bill:
+        messages.info(request, "No bill available for this month.")
+        return redirect('tenant_dashboard')
+    
+    # Get or create pending payment
+    from .models import Payment
+    pending_payment = Payment.objects.filter(bill=current_bill, status='pending').first()
+    
+    if not pending_payment and not current_bill.is_paid:
+        pending_payment = create_payment_record(current_bill, profile, 'cash')
+    
+    return render(request, 'user/payment_method.html', {
+        'bill': current_bill,
+        'pending_payment': pending_payment,
+        'room': room,
+        'username': request.user.username,
+        'electricity_rate': get_settings().electricity_rate,
+    })
+
+@login_required
+def payment_checkout_simulation(request, reference):
+    """Simulate PayMongo checkout page"""
+    from .models import Payment
+    
+    payment = get_object_or_404(Payment, reference_number=reference)
+    bill = payment.bill
+    
+    if request.method == 'POST':
+        # Simulate successful payment
+        mark_payment_as_paid(payment, transaction_id=f"SIM_{reference}")
+        messages.success(request, f"✅ Payment of ₱{payment.amount} for {bill.billing_month} has been received!")
+        return redirect('tenant_dashboard')
+    
+    return render(request, 'user/payment_checkout.html', {
+        'payment': payment,
+        'bill': bill,
+        'reference': reference,
         'username': request.user.username,
     })

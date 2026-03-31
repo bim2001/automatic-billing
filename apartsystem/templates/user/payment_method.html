@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Method - Smart Energy</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .payment-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .payment-option {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .payment-option:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .payment-option.selected {
+            border-color: #667eea;
+            background: #f0f7ff;
+        }
+
+        .payment-icon {
+            font-size: 56px;
+            margin-bottom: 15px;
+        }
+
+        .payment-option h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .payment-option p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .bill-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .bill-summary h3 {
+            margin-bottom: 15px;
+        }
+
+        .bill-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .bill-detail {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .bill-detail-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .bill-detail-value {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .amount-due {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+
+        .amount-due .label {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .amount-due .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 15px;
+        }
+
+        .pending-status {
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            margin-top: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        @media (max-width: 600px) {
+            .payment-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .bill-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div><i class="fas fa-credit-card"></i> Payment Method</div>
+        <div>
+            <span>Welcome, <strong>{{ username }}</strong></span>
+            <a href="{% url 'tenant_dashboard' %}" style="color: white; margin-left: 20px;"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="payment-card">
+            <h1><i class="fas fa-wallet"></i> Select Payment Method</h1>
+            <div class="subtitle">Choose how you want to pay your electricity bill</div>
+
+            <!-- Bill Summary -->
+            <div class="bill-summary">
+                <h3><i class="fas fa-receipt"></i> Bill Summary</h3>
+                <div class="bill-details">
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Room</div>
+                        <div class="bill-detail-value">{{ room.name }}</div>
+                    </div>
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Billing Month</div>
+                        <div class="bill-detail-value">{{ bill.billing_month }}</div>
+                    </div>
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Due Date</div>
+                        <div class="bill-detail-value">{{ bill.due_date|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Electricity Rate</div>
+                        <div class="bill-detail-value">₱{{ electricity_rate }}/kWh</div>
+                    </div>
+                </div>
+                <div class="amount-due">
+                    <div class="label">Total Amount Due</div>
+                    <div class="value">₱{{ bill.cost|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            <!-- Payment Options -->
+            <div class="payment-options">
+                <div class="payment-option" onclick="selectPayment('gcash')" id="option-gcash">
+                    <div class="payment-icon">
+                        <i class="fab fa-gcash" style="color: #00B4D8;"></i>
+                    </div>
+                    <h3>GCash</h3>
+                    <p>Pay via GCash QR Code or PayMongo</p>
+                </div>
+
+                <div class="payment-option" onclick="selectPayment('cash')" id="option-cash">
+                    <div class="payment-icon">
+                        <i class="fas fa-money-bill-wave" style="color: #28a745;"></i>
+                    </div>
+                    <h3>Cash</h3>
+                    <p>Pay directly to the owner</p>
+                </div>
+            </div>
+
+            <!-- Hidden forms (will be shown based on selection) -->
+            <div id="gcash-form" style="display: none;">
+                <form method="post" action="{% url 'create_gcash_payment' bill.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">
+                        <i class="fab fa-gcash"></i> Pay with GCash via PayMongo
+                    </button>
+                </form>
+                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                    <p><i class="fas fa-qrcode"></i> <strong>Or scan GCash QR Code:</strong></p>
+                    <div style="background: white; padding: 20px; text-align: center; border-radius: 10px; margin-top: 10px;">
+                        <i class="fas fa-qrcode" style="font-size: 100px; color: #00B4D8;"></i>
+                        <p style="margin-top: 10px;">Scan to pay ₱{{ bill.cost|floatformat:2 }}</p>
+                        <p style="font-size: 12px; color: #666;">Reference: BILL-{{ bill.room.name }}-{{ bill.billing_month|cut:" " }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cash-form" style="display: none;">
+                <form method="post" action="{% url 'manual_paid_confirmation' bill.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">
+                        <i class="fas fa-money-bill-wave"></i> Confirm Cash Payment
+                    </button>
+                </form>
+                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                    <p><i class="fas fa-info-circle"></i> <strong>Instructions:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 10px; color: #666;">
+                        <li>Pay the exact amount of <strong>₱{{ bill.cost|floatformat:2 }}</strong> to the owner</li>
+                        <li>Reference Number: <strong>PAY-{{ bill.room.name }}-{{ bill.billing_month|cut:" " }}</strong></li>
+                        <li>After payment, the owner will mark your bill as paid</li>
+                    </ul>
+                </div>
+            </div>
+
+            {% if pending_payment and pending_payment.status == 'pending' %}
+            <div class="pending-status">
+                <i class="fas fa-hourglass-half"></i>
+                <span>You have a pending payment. Reference: {{ pending_payment.reference_number }}</span>
+            </div>
+            {% endif %}
+
+            <a href="{% url 'tenant_dashboard' %}" class="btn btn-secondary" style="display: block; text-align: center;">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function selectPayment(method) {
+            // Remove selected class from both
+            document.getElementById('option-gcash').classList.remove('selected');
+            document.getElementById('option-cash').classList.remove('selected');
+            
+            // Hide both forms
+            document.getElementById('gcash-form').style.display = 'none';
+            document.getElementById('cash-form').style.display = 'none';
+            
+            if (method === 'gcash') {
+                document.getElementById('option-gcash').classList.add('selected');
+                document.getElementById('gcash-form').style.display = 'block';
+            } else {
+                document.getElementById('option-cash').classList.add('selected');
+                document.getElementById('cash-form').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

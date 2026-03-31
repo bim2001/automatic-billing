@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cash Payment Confirmation - Smart Energy</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .payment-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 64px;
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .amount {
+            font-size: 36px;
+            font-weight: bold;
+            color: #28a745;
+            margin: 20px 0;
+        }
+
+        .reference {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 18px;
+        }
+
+        .note {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div><i class="fas fa-money-bill-wave"></i> Cash Payment</div>
+        <div>
+            <span>Welcome, <strong>{{ username }}</strong></span>
+            <a href="{% url 'tenant_dashboard' %}" style="color: white; margin-left: 20px;"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="payment-card">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            
+            <h1>Confirm Cash Payment</h1>
+            <p style="color: #666;">You're about to pay via CASH</p>
+            
+            <div class="amount">
+                ₱{{ bill.cost|floatformat:2 }}
+            </div>
+            
+            <div class="reference">
+                <i class="fas fa-qrcode"></i> Reference: {{ reference_number }}
+            </div>
+            
+            <div class="note">
+                <i class="fas fa-info-circle"></i> <strong>Instructions:</strong><br><br>
+                1. Pay the exact amount of <strong>₱{{ bill.cost|floatformat:2 }}</strong> to the owner<br>
+                2. Show this reference number: <strong>{{ reference_number }}</strong><br>
+                3. After payment, the owner will mark your bill as PAID<br>
+                4. You will receive a notification once confirmed
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn">
+                    <i class="fas fa-check"></i> I have paid
+                </button>
+            </form>
+            
+            <a href="{% url 'tenant_dashboard' %}" style="display: block; margin-top: 15px; color: #666;">
+                Cancel
+            </a>
+        </div>
+    </div>
+</body>
+</html>

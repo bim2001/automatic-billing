@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment Checkout - Smart Energy</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .checkout-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .gcash-icon {
+            font-size: 80px;
+            color: #00B4D8;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .amount {
+            font-size: 48px;
+            font-weight: bold;
+            color: #28a745;
+            margin: 20px 0;
+        }
+
+        .reference {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .simulation-note {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #856404;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        .btn-gcash {
+            background: #00B4D8;
+        }
+
+        .btn-gcash:hover {
+            background: #0099bb;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: #666;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div><i class="fab fa-gcash"></i> GCash Checkout</div>
+        <div>
+            <span>Welcome, <strong>{{ username }}</strong></span>
+            <a href="{% url 'tenant_dashboard' %}" style="color: white; margin-left: 20px;"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="checkout-card">
+            <div class="gcash-icon">
+                <i class="fab fa-gcash"></i>
+            </div>
+            
+            <h1>Pay with GCash</h1>
+            <p style="color: #666;">Scan QR code or pay via PayMongo</p>
+            
+            <div class="amount">
+                ₱{{ bill.cost|floatformat:2 }}
+            </div>
+            
+            <div class="reference">
+                <i class="fas fa-qrcode"></i> Reference: {{ reference }}
+            </div>
+            
+            <div class="simulation-note">
+                <i class="fas fa-flask"></i> <strong>SIMULATION MODE</strong><br>
+                This is a simulated payment. No actual money will be transferred.
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-gcash">
+                    <i class="fab fa-gcash"></i> Confirm Payment (Simulate)
+                </button>
+            </form>
+            
+            <a href="{% url 'payment_method' %}" class="back-link">
+                <i class="fas fa-arrow-left"></i> Cancel and go back
+            </a>
+        </div>
+    </div>
+</body>
+</html>

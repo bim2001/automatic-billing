@@ -394,7 +394,6 @@
             align-items: center;
         }
 
-        /* Original alert types (keep these) */
         .alert-item.over_limit {
             border-left-color: #dc3545;
         }
@@ -411,7 +410,6 @@
             border-left-color: #17a2b8;
         }
 
-        /* NEW Smart Features Alert Types */
         .alert-item.abnormal_usage {
             border-left-color: #dc3545;
         }
@@ -424,7 +422,6 @@
             border-left-color: #fd7e14;
         }
 
-        /* Alert message */
         .alert-message {
             color: #333;
             font-weight: 600;
@@ -435,7 +432,6 @@
             font-size: 12px;
         }
 
-        /* New badge */
         .badge-new {
             background: #28a745;
             color: white;
@@ -521,9 +517,14 @@
     <div class="navbar-user">
         <span><i class="fas fa-user"></i> Welcome, <strong>{{ username }}</strong></span>
         <a href="{% url 'edit_profile' %}" class="logout-btn" style="margin-right: 10px;">
-    <i class="fas fa-user-edit"></i> Edit Profile
-</a>
-        <a href="{% url 'logout_view' %}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <i class="fas fa-user-edit"></i> Edit Profile
+        </a>
+        <a href="{% url 'payment_method' %}" class="logout-btn" style="margin-right: 10px;">
+            <i class="fas fa-credit-card"></i> Payment
+        </a>
+        <a href="{% url 'logout_view' %}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
     </div>
 </div>
 
@@ -580,7 +581,6 @@
 
     <!-- Quick Stats -->
     <div class="stats-grid">
-        <!-- Current Usage Card -->
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-bolt"></i></div>
             <div class="stat-value">{{ room.usage|floatformat:1 }}</div>
@@ -591,7 +591,6 @@
             {% endif %}
         </div>
 
-        <!-- Current Bill Card -->
         <div class="stat-card {% if current_bill and not current_bill.is_paid %}warning{% endif %}">
             <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
             <div class="stat-value">
@@ -612,7 +611,6 @@
             {% endif %}
         </div>
 
-        <!-- Average Daily Card -->
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
             <div class="stat-value">{{ avg_daily_usage|floatformat:1 }}</div>
@@ -620,7 +618,6 @@
             <div class="stat-sub">Last 30 days</div>
         </div>
 
-        <!-- Power Status Card -->
         <div class="stat-card">
             <div class="stat-icon"><i class="fas fa-plug"></i></div>
             <div class="stat-value">
@@ -712,62 +709,6 @@
         </div>
     </div>
 
-    <!-- Current Bill Card -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-file-invoice-dollar"></i> Current Bill - {{ current_month }}</h2>
-            {% if current_bill %}
-                <span class="badge {% if current_bill.is_paid %}badge-success{% else %}badge-warning{% endif %}">
-                    {% if current_bill.is_paid %}<i class="fas fa-check-circle"></i> Paid{% else %}<i class="fas fa-clock"></i> Unpaid{% endif %}
-                </span>
-            {% endif %}
-        </div>
-
-        {% if current_bill %}
-            <div class="current-bill">
-                <div style="font-size: 16px; opacity: 0.9;"><i class="fas fa-receipt"></i> Total Amount Due</div>
-                <div class="bill-amount">₱{{ current_bill.cost|floatformat:2 }}</div>
-                
-                <div class="bill-details">
-                    <div class="bill-detail-item">
-                        <div class="bill-detail-label"><i class="fas fa-bolt"></i> kWh Used</div>
-                        <div class="bill-detail-value">{{ current_bill.kwh }}</div>
-                    </div>
-                    <div class="bill-detail-item">
-                        <div class="bill-detail-label"><i class="fas fa-coins"></i> Rate</div>
-                        <div class="bill-detail-value">₱{{ electricity_rate }}</div>
-                    </div>
-                    <div class="bill-detail-item">
-                        <div class="bill-detail-label"><i class="fas fa-calendar-alt"></i> Due Date</div>
-                        <div class="bill-detail-value">{{ due_date|date:"M d, Y" }}</div>
-                    </div>
-                </div>
-            </div>
-
-            {% if current_bill and current_bill.days_occupied > 0 %}
-               <div class="bill-detail-item">
-                       <div class="bill-detail-label">Days Occupied</div>
-                       <div class="bill-detail-value">{{ current_bill.days_occupied }} days</div>
-            </div>
-            {% endif %}
-
-            {% if not current_bill.is_paid %}
-            <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-top: 15px;">
-                <strong><i class="fas fa-info-circle"></i> Payment Instructions:</strong>
-                <p style="margin-top: 10px; color: #856404;">
-                    Please settle your payment before the due date to avoid service interruption.
-                    Contact the administrator for payment options.
-                </p>
-            </div>
-            {% endif %}
-        {% else %}
-            <div style="text-align: center; padding: 40px; color: #666;">
-                <p style="font-size: 18px; margin-bottom: 10px;"><i class="fas fa-folder-open"></i> No billing record yet for this month</p>
-                <p>Your bill will appear here once the administrator generates it.</p>
-            </div>
-        {% endif %}
-    </div>
-
     <!-- Recent Alerts -->
     {% if recent_alerts %}
     <div class="card">
@@ -819,7 +760,7 @@
             </div>
             {% endfor %}
             
-            {% if alerts_count > 2 %}
+            {% if alerts_count > 5 %}
             <div style="text-align: center; padding: 15px; border-top: 1px solid #f0f0f0;">
                 <a href="{% url 'tenant_notifications' %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
                     <i class="fas fa-bell"></i> View all {{ alerts_count }} notifications →
@@ -838,58 +779,58 @@
         </div>
 
         {% if bills %}
-            <table>
-                <thead>
-                    <tr>
-                        <th><i class="fas fa-calendar-alt"></i> Billing Month</th>
-                        <th><i class="fas fa-bolt"></i> kWh Used</th>
-                        <th><i class="fas fa-coins"></i> Rate</th>
-                        <th><i class="fas fa-money-bill-wave"></i> Amount</th>
-                        <th><i class="fas fa-check-circle"></i> Status</th>
-                        <th><i class="fas fa-calendar-day"></i> Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for bill in bills %}
-                    <tr>
-                        <td><strong>{{ bill.billing_month }}</strong></td>
-                        <td>{{ bill.kwh }}</td>
-                        <td>₱{{ electricity_rate }}</td>
-                        <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
-                        <td>
-                            <span class="payment-status {% if bill.is_paid %}paid{% else %}unpaid{% endif %}">
-                                {% if bill.is_paid %}<i class="fas fa-check-circle"></i> PAID{% else %}<i class="fas fa-hourglass-half"></i> UNPAID{% endif %}
-                            </span>
-                        </td>
-                        <td>{{ bill.created_at|date:"M d, Y" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <table>
+            <thead>
+                <tr>
+                    <th><i class="fas fa-calendar-alt"></i> Billing Month</th>
+                    <th><i class="fas fa-bolt"></i> kWh Used</th>
+                    <th><i class="fas fa-coins"></i> Rate</th>
+                    <th><i class="fas fa-money-bill-wave"></i> Amount</th>
+                    <th><i class="fas fa-check-circle"></i> Status</th>
+                    <th><i class="fas fa-calendar-day"></i> Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr>
+                    <td><strong>{{ bill.billing_month }}</strong></td>
+                    <td>{{ bill.kwh }}</td>
+                    <td>₱{{ electricity_rate }}</td>
+                    <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
+                    <td>
+                        <span class="payment-status {% if bill.is_paid %}paid{% else %}unpaid{% endif %}">
+                            {% if bill.is_paid %}<i class="fas fa-check-circle"></i> PAID{% else %}<i class="fas fa-hourglass-half"></i> UNPAID{% endif %}
+                        </span>
+                    </td>
+                    <td>{{ bill.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-            <!-- Summary Statistics -->
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
-                    <div>
-                        <div style="color: #666; font-size: 14px;"><i class="fas fa-receipt"></i> Total Bills</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #333;">{{ bills|length }}</div>
-                    </div>
-                    <div>
-                        <div style="color: #666; font-size: 14px;"><i class="fas fa-bolt"></i> Total kWh Used</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #333;">{{ total_kwh|floatformat:1 }}</div>
-                    </div>
-                    <div>
-                        <div style="color: #666; font-size: 14px;"><i class="fas fa-check-circle"></i> Total Amount Paid</div>
-                        <div style="font-size: 24px; font-weight: bold; color: #28a745;">₱{{ total_paid|floatformat:2 }}</div>
-                    </div>
+        <!-- Summary Statistics -->
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f0f0f0;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+                <div>
+                    <div style="color: #666; font-size: 14px;"><i class="fas fa-receipt"></i> Total Bills</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #333;">{{ bills|length }}</div>
+                </div>
+                <div>
+                    <div style="color: #666; font-size: 14px;"><i class="fas fa-bolt"></i> Total kWh Used</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #333;">{{ total_kwh|floatformat:1 }}</div>
+                </div>
+                <div>
+                    <div style="color: #666; font-size: 14px;"><i class="fas fa-check-circle"></i> Total Amount Paid</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #28a745;">₱{{ total_paid|floatformat:2 }}</div>
                 </div>
             </div>
+        </div>
         {% else %}
-            <div style="text-align: center; padding: 60px 20px; color: #666;">
-                <div style="font-size: 48px; margin-bottom: 20px;"><i class="fas fa-folder-open"></i></div>
-                <p style="font-size: 18px;">No billing history available</p>
-                <p style="color: #999; margin-top: 10px;">Your past bills will appear here once available.</p>
-            </div>
+        <div style="text-align: center; padding: 60px 20px; color: #666;">
+            <div style="font-size: 48px; margin-bottom: 20px;"><i class="fas fa-folder-open"></i></div>
+            <p style="font-size: 18px;">No billing history available</p>
+            <p style="color: #999; margin-top: 10px;">Your past bills will appear here once available.</p>
+        </div>
         {% endif %}
     </div>
 
@@ -945,11 +886,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (data.comparison > 0) {
                 change.textContent = `+${data.comparison}`;
-                change.style.color = '#dc3545';  // red for increase
+                change.style.color = '#dc3545';
                 changeLabel.innerHTML = '<i class="fas fa-arrow-up"></i> more than last month';
             } else if (data.comparison < 0) {
                 change.textContent = `${data.comparison}`;
-                change.style.color = '#28a745';  // green for decrease
+                change.style.color = '#28a745';
                 changeLabel.innerHTML = '<i class="fas fa-arrow-down"></i> less than last month';
             } else {
                 change.textContent = '0';
