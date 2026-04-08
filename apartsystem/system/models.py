@@ -274,3 +274,32 @@ class Payment(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+
+    
+class ActivityLog(models.Model):
+    ACTION_TYPES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('assign', 'Assign'),
+        ('remove', 'Remove'),
+        ('payment', 'Payment'),
+        ('toggle', 'Toggle Power'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user_type = models.CharField(max_length=20, choices=UserProfile.USER_TYPES, default='tenant')
+    action = models.CharField(max_length=20, choices=ACTION_TYPES)
+    description = models.TextField()
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Activity Log'
+        verbose_name_plural = 'Activity Logs'
+    
+    def __str__(self):
+        return f"{self.user} - {self.action} - {self.created_at}"

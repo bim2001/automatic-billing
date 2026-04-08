@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Billing Report - Smart Energy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 40px;
+        }
+        
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        /* Header */
+        .report-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .report-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .report-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        /* Summary Cards */
+        .summary-section {
+            padding: 30px 40px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .summary-card .label {
+            color: #666;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .summary-card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .summary-card .value.paid { color: #28a745; }
+        .summary-card .value.unpaid { color: #dc3545; }
+        .summary-card .value.rate { color: #667eea; }
+        
+        /* Table */
+        .table-section {
+            padding: 0 40px 40px 40px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            color: #555;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-paid {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .status-unpaid {
+            color: #dc3545;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .report-footer {
+            padding: 20px 40px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+            
+            .report-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .summary-card {
+                break-inside: avoid;
+            }
+            
+            tr:hover {
+                background: white;
+            }
+        }
+        
+        /* Buttons */
+        .no-print {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        
+        .btn-print {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-close {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+        <button class="btn btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> 🖨️ Print / Save as PDF
+        </button>
+        <button class="btn btn-close" onclick="goBack()">
+            <i class="fas fa-arrow-left"></i> Go Back
+        </button>
+    </div>
+    
+    <div class="report-container">
+        <!-- Header -->
+        <div class="report-header">
+            <h1>⚡ SMART ENERGY MONITORING SYSTEM</h1>
+            <h2>BILLING REPORT</h2>
+            <p>Generated: {% now "F d, Y h:i A" %}</p>
+            <p>Filter: {{ filter_text }}</p>
+        </div>
+        
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <h3 style="margin-bottom: 15px;">📊 Summary Statistics</h3>
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="label">Total Bills</div>
+                    <div class="value">{{ total_bills }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Total Revenue</div>
+                    <div class="value">₱{{ total_amount|floatformat:2 }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Paid Bills</div>
+                    <div class="value paid">{{ paid_bills }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Unpaid Bills</div>
+                    <div class="value unpaid">{{ unpaid_bills }}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Collection Rate</div>
+                    <div class="value rate">{{ collection_rate|floatformat:1 }}%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table Section -->
+        <div class="table-section">
+            <h3 style="margin-bottom: 20px;">📋 Billing Details</h3>
+            
+            {% if bills %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>Tenant</th>
+                        <th>Billing Month</th>
+                        <th>kWh</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Due Date</th>
+                        <th>Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in bills %}
+                    <tr>
+                        <td>{{ bill.room.name }}</td>
+                        <td>
+                            {% for profile in bill.room.userprofile_set.all %}
+                                {% if profile.user_type == 'tenant' %}
+                                    {{ profile.user.get_full_name|default:profile.user.username }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ bill.billing_month }}</td>
+                        <td>{{ bill.kwh }}</td>
+                        <td>₱23</td>
+                        <td>₱{{ bill.cost|floatformat:2 }}</td>
+                        <td>
+                            {% if bill.is_paid %}
+                                <span class="status-paid">✓ PAID</span>
+                            {% else %}
+                                <span class="status-unpaid">⏳ UNPAID</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ bill.due_date|date:"Y-m-d" }}</td>
+                        <td>{{ bill.days_occupied|default:"0" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <p>No billing records found for the selected filters.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="report-footer">
+            <p>Smart Energy Monitoring System — End of Report ({{ total_bills }} record(s))</p>
+            <p>This is a system-generated report. For inquiries, please contact the administrator.</p>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            // Try to go back to previous page
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = "{% url 'billing_history' %}";
+            }
+        }
+    </script>
+</body>
+</html>

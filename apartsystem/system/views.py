@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.utils.timezone import now
 from datetime import datetime, date, timedelta
 import calendar
 from django.db.models import Sum, Q
@@ -15,8 +16,11 @@ from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 import logging
 from django.db import models 
-# Import models
 from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment
+from django.http import HttpResponse
+import csv
+from .models import ActivityLog
+
 
 logger = logging.getLogger(__name__)
 
@@ -439,28 +443,41 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        user = authenticate(request, username=username, password=password)
-        
-        if user is not None:
-            login(request, user)
-            
-            try:
-                profile = user.userprofile
-            except UserProfile.DoesNotExist:
-                user_type = 'owner' if user.is_staff or user.is_superuser else 'tenant'
-                profile = UserProfile.objects.create(user=user, user_type=user_type)
-            
-            if profile.user_type == 'tenant':
-                return redirect('tenant_dashboard')
-            else:
-                return redirect('dashboard')
+        # Check if username and password are provided
+        if not username or not password:
+            error = "Username and password are required."
         else:
-            error = "Invalid username or password. Please try again."
+            user = authenticate(request, username=username, password=password)
+            
+            if user is not None:
+                login(request, user)
+                
+                # Log login activity
+                log_activity(user, 'login', f"User {username} logged in")
+                
+                # Ensure profile exists
+                try:
+                    profile = user.userprofile
+                except UserProfile.DoesNotExist:
+                    # Auto-detect user type
+                    user_type = 'owner' if user.is_staff or user.is_superuser else 'tenant'
+                    profile = UserProfile.objects.create(user=user, user_type=user_type)
+                
+                # Redirect based on user type
+                if profile.user_type == 'tenant':
+                    return redirect('tenant_dashboard')
+                else:
+                    return redirect('dashboard')
+            else:
+                error = "Invalid username or password. Please try again."
     
-    return render(request, 'system/login.html', {'login_error': error})
-
+    return render(request, 'system/login.html', {'error': error, 'login_error': error})
 
 def logout_view(request):
+    # Log logout activity
+    if request.user.is_authenticated:
+        log_activity(request.user, 'logout', f"User {request.user.username} logged out")
+    
     logout(request)
     return redirect('login_view')
 
@@ -927,8 +944,9 @@ def add_room(request):
     
     if request.method == 'POST':
         name = request.POST.get('name')
-        limit = float(request.POST.get('limit', 200))
+        limit = float(request.POST.get('limit', 200))  # Default 200 kwh (mas realistic)
         usage = float(request.POST.get('usage', 0))
+        power_status = request.POST.get('power_status') == 'on'
         
         # Validate
         if not name:
@@ -940,18 +958,20 @@ def add_room(request):
             name=name,
             usage=usage,
             limit=limit,
-            power_status=True  # Default to ON
+            power_status=power_status
         )
         
-        # Create alert for new room
-        #Alert.objects.create(
-        #    alert_type='power_on',
-        #    message=f"New room added: {name}",
-        #    room=room
-        #)
+        # Log activity (from pinapa-add na code)
+        log_activity(request.user, 'create', f"Created new room: {name}")
+        
+        # Create alert for new room (from pinapa-add na code - enabled)
+        Alert.objects.create(
+            alert_type='power_on',
+            message=f"New room added: {name}",
+            room=room
+        )
         
         messages.success(request, f"Room '{name}' added successfully!")
-
         return redirect('dashboard')
     
     # Get unread alerts count
@@ -969,19 +989,25 @@ def edit_room(request, room_id):
         return redirect('tenant_dashboard')
     
     room = get_object_or_404(Room, id=room_id)
+    old_name = room.name  # Save old name for logging
     
     if request.method == 'POST':
         room.name = request.POST.get('name')
-        room.limit = float(request.POST.get('limit', 200))
+        room.limit = float(request.POST.get('limit', 200))  # Default 200 (original)
         room.usage = float(request.POST.get('usage', room.usage))
         room.save()
         
+        # Log activity (from pinapa-add)
+        log_activity(request.user, 'update', f"Updated room: {old_name} → {room.name}")
+        
+        # Create alert
         Alert.objects.create(
             alert_type='billing',
             message=f"Room {room.name} updated",
             room=room
         )
-
+        
+        messages.success(request, f"Room '{room.name}' updated successfully!")
         return redirect('dashboard')
     
     # Get unread alerts count
@@ -1002,6 +1028,9 @@ def delete_room(request, room_id):
     room = get_object_or_404(Room, id=room_id)
     room_name = room.name
     
+    # Log activity before deleting (from pinapa-add)
+    log_activity(request.user, 'delete', f"Deleted room: {room_name}")
+    
     # Remove any tenants from this room
     UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
     
@@ -1013,6 +1042,7 @@ def delete_room(request, room_id):
     )
     
     room.delete()
+    messages.success(request, f"Room '{room_name}' deleted successfully!")
     return redirect('dashboard')
 
 
@@ -1025,7 +1055,7 @@ def assign_tenant(request, room_id):
     
     if request.method == 'POST':
         tenant_id = request.POST.get('tenant_id')
-        move_in_date = request.POST.get('move_in_date')  # <--- Add this
+        move_in_date = request.POST.get('move_in_date')
         room = get_object_or_404(Room, id=room_id)
         
         if tenant_id:
@@ -1046,15 +1076,25 @@ def assign_tenant(request, room_id):
             tenant_profile.room = room
             tenant_profile.save()
             
+            # Log activity (from pinapa-add)
+            log_activity(request.user, 'assign', f"Assigned {tenant_profile.user.username} to room {room.name}")
+            
+            # Create alert
             Alert.objects.create(
                 room=room,
                 alert_type='tenant_assigned',
                 message=f"Tenant {tenant_profile.user.username} assigned to room {room.name} starting {assignment.move_in_date}"
             )
+            
+            messages.success(request, f"Tenant {tenant_profile.user.username} assigned to {room.name}")
         else:
             # Remove tenant
             TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
+            
+            # Log activity (from pinapa-add)
+            log_activity(request.user, 'remove', f"Removed tenant from room {room.name}")
+            
             messages.success(request, f"Tenant removed from {room.name}.")
     
     return redirect('dashboard')
@@ -1796,4 +1836,280 @@ def payment_checkout_simulation(request, reference):
         'bill': bill,
         'reference': reference,
         'username': request.user.username,
+    })
+
+@login_required
+def export_billing_csv(request):
+    """Export billing history as formatted CSV file"""
+    profile = request.user.userprofile
+    
+    if profile.user_type != 'owner':
+        return redirect('dashboard')
+    
+    # Get filter parameters
+    room_name = request.GET.get('room_name', '').strip()
+    month_filter = request.GET.get('month', '')
+    status_filter = request.GET.get('status', '')
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
+    
+    # Base query
+    bills_query = Billing.objects.filter(
+        room__userprofile__user_type='tenant'
+    ).select_related('room').distinct()
+    
+    # Apply filters
+    if room_name:
+        bills_query = bills_query.filter(room__name__icontains=room_name)
+    if month_filter:
+        bills_query = bills_query.filter(billing_month=month_filter)
+    if status_filter == 'paid':
+        bills_query = bills_query.filter(is_paid=True)
+    elif status_filter == 'unpaid':
+        bills_query = bills_query.filter(is_paid=False)
+    if start_date:
+        try:
+            from datetime import datetime
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+            bills_query = bills_query.filter(created_at__date__gte=start_datetime)
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            from datetime import datetime
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+            bills_query = bills_query.filter(created_at__date__lte=end_datetime)
+        except ValueError:
+            pass
+    
+    bills = bills_query.order_by('-billing_month', 'room__name')
+    
+    # Calculate summary
+    total_bills = bills.count()
+    total_amount = sum(bill.cost for bill in bills)
+    paid_bills = sum(1 for bill in bills if bill.is_paid)
+    unpaid_bills = total_bills - paid_bills
+    collection_rate = (paid_bills / total_bills * 100) if total_bills > 0 else 0
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="billing_report_{now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    
+    writer = csv.writer(response)
+    
+    # ============ HEADER SECTION ============
+    writer.writerow(['=' * 80])
+    writer.writerow(['SMART ENERGY MONITORING SYSTEM'])
+    writer.writerow(['BILLING REPORT'])
+    writer.writerow([f'Generated: {now().strftime("%B %d, %Y %I:%M %p")}'])
+    
+    # Filter info
+    filters = []
+    if room_name: filters.append(f'Room: {room_name}')
+    if month_filter: filters.append(f'Month: {month_filter}')
+    if status_filter: filters.append(f'Status: {status_filter.upper()}')
+    if start_date: filters.append(f'From: {start_date}')
+    if end_date: filters.append(f'To: {end_date}')
+    
+    writer.writerow([f'Filter: {", ".join(filters) if filters else "All Records"}'])
+    writer.writerow(['=' * 80])
+    writer.writerow([])
+    
+    # ============ SUMMARY SECTION ============
+    writer.writerow(['SUMMARY STATISTICS'])
+    writer.writerow(['-' * 40])
+    writer.writerow([f'Total Bills:,{total_bills}'])
+    writer.writerow([f'Total Revenue:,₱{total_amount:,.2f}'])
+    writer.writerow([f'Paid Bills:,{paid_bills}'])
+    writer.writerow([f'Unpaid Bills:,{unpaid_bills}'])
+    writer.writerow([f'Collection Rate:,{collection_rate:.1f}%'])
+    writer.writerow([])
+    writer.writerow(['=' * 80])
+    writer.writerow([])
+    
+    # ============ DETAILS SECTION ============
+    writer.writerow(['BILLING DETAILS'])
+    writer.writerow(['-' * 100])
+    writer.writerow([
+        'Room', 'Tenant', 'Billing Month', 'kWh', 'Rate', 'Amount', 'Status', 'Due Date', 'Days'
+    ])
+    writer.writerow(['-' * 100])
+    
+    # Write data rows
+    for bill in bills:
+        tenant_name = 'N/A'
+        try:
+            tenant_profile = UserProfile.objects.get(room=bill.room, user_type='tenant')
+            tenant_name = tenant_profile.user.get_full_name() or tenant_profile.user.username
+        except:
+            pass
+        
+        writer.writerow([
+            bill.room.name,
+            tenant_name,
+            bill.billing_month,
+            bill.kwh,
+            f'₱23',
+            f'₱{bill.cost:,.2f}',
+            'PAID' if bill.is_paid else 'UNPAID',
+            bill.due_date.strftime('%Y-%m-%d') if bill.due_date else '',
+            bill.days_occupied if hasattr(bill, 'days_occupied') else '0'
+        ])
+    
+    writer.writerow(['-' * 100])
+    writer.writerow([f'End of Report - {total_bills} record(s)'])
+    
+    return response
+
+@login_required
+def billing_report_html(request):
+    """Display printable HTML billing report"""
+    profile = request.user.userprofile
+    
+    if profile.user_type != 'owner':
+        return redirect('dashboard')
+    
+    # Same filters as CSV
+    room_name = request.GET.get('room_name', '').strip()
+    month_filter = request.GET.get('month', '')
+    status_filter = request.GET.get('status', '')
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
+    
+    # Base query
+    bills_query = Billing.objects.filter(
+        room__userprofile__user_type='tenant'
+    ).select_related('room').distinct()
+    
+    # Apply filters
+    if room_name:
+        bills_query = bills_query.filter(room__name__icontains=room_name)
+    if month_filter:
+        bills_query = bills_query.filter(billing_month=month_filter)
+    if status_filter == 'paid':
+        bills_query = bills_query.filter(is_paid=True)
+    elif status_filter == 'unpaid':
+        bills_query = bills_query.filter(is_paid=False)
+    if start_date:
+        try:
+            from datetime import datetime
+            start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+            bills_query = bills_query.filter(created_at__date__gte=start_datetime)
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            from datetime import datetime
+            end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+            bills_query = bills_query.filter(created_at__date__lte=end_datetime)
+        except ValueError:
+            pass
+    
+    bills = bills_query.order_by('-billing_month', 'room__name')
+    
+    # Calculate summary
+    total_bills = bills.count()
+    total_amount = sum(bill.cost for bill in bills)
+    paid_bills = sum(1 for bill in bills if bill.is_paid)
+    unpaid_bills = total_bills - paid_bills
+    collection_rate = (paid_bills / total_bills * 100) if total_bills > 0 else 0
+    
+    # Prepare filter display
+    filter_text = "All Records"
+    if room_name or month_filter or status_filter or start_date or end_date:
+        filters = []
+        if room_name: filters.append(f"Room: {room_name}")
+        if month_filter: filters.append(f"Month: {month_filter}")
+        if status_filter: filters.append(f"Status: {status_filter.upper()}")
+        if start_date: filters.append(f"From: {start_date}")
+        if end_date: filters.append(f"To: {end_date}")
+        filter_text = ", ".join(filters)
+    
+    return render(request, 'system/billing_report.html', {
+        'bills': bills,
+        'total_bills': total_bills,
+        'total_amount': total_amount,
+        'paid_bills': paid_bills,
+        'unpaid_bills': unpaid_bills,
+        'collection_rate': collection_rate,
+        'filter_text': filter_text,
+        'room_name': room_name,
+        'month_filter': month_filter,
+        'status_filter': status_filter,
+        'start_date': start_date,
+        'end_date': end_date,
+        'username': request.user.username,
+    })
+
+def log_activity(user, action, description, ip_address=None):
+    """Helper function to log user activities"""
+    if not ip_address:
+        import socket
+        try:
+            ip_address = socket.gethostbyname(socket.gethostname())
+        except:
+            ip_address = '127.0.0.1'
+    
+    user_type = 'tenant'
+    if hasattr(user, 'userprofile'):
+        user_type = user.userprofile.user_type
+    
+    ActivityLog.objects.create(
+        user=user,
+        user_type=user_type,
+        action=action,
+        description=description,
+        ip_address=ip_address
+    )
+
+@login_required
+def activity_log(request):
+    """View for owner to see all system activities"""
+    profile = request.user.userprofile
+    
+    if profile.user_type != 'owner':
+        return redirect('dashboard')
+    
+    # Get all logs with pagination
+    logs = ActivityLog.objects.all()
+    
+    # Filter by action type
+    action_filter = request.GET.get('action', '')
+    if action_filter:
+        logs = logs.filter(action=action_filter)
+    
+    # Filter by user type
+    user_type_filter = request.GET.get('user_type', '')
+    if user_type_filter:
+        logs = logs.filter(user_type=user_type_filter)
+    
+    # Search by username
+    search = request.GET.get('search', '')
+    if search:
+        logs = logs.filter(user__username__icontains=search)
+    
+    from django.core.paginator import Paginator
+    paginator = Paginator(logs, 50)
+    page_number = request.GET.get('page')
+    logs_page = paginator.get_page(page_number)
+    
+    # Get statistics
+    total_actions = ActivityLog.objects.count()
+    recent_24h = ActivityLog.objects.filter(created_at__gte=timezone.now() - timezone.timedelta(hours=24)).count()
+    
+    # Group by action type
+    action_counts = {}
+    for action in dict(ActivityLog.ACTION_TYPES).keys():
+        action_counts[action] = ActivityLog.objects.filter(action=action).count()
+    
+    return render(request, 'system/activity_log.html', {
+        'logs': logs_page,
+        'total_actions': total_actions,
+        'recent_24h': recent_24h,
+        'action_counts': action_counts,
+        'current_filter': action_filter,
+        'user_type_filter': user_type_filter,
+        'search': search,
+        'username': request.user.username,
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })

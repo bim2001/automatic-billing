@@ -33,6 +33,8 @@ urlpatterns = [
     path('billing/history/', views.billing_history, name='billing_history'),
     path('billing/mark-paid/<int:bill_id>/', views.mark_as_paid, name='mark_as_paid'),
     path('billing/<int:bill_id>/mark-paid/', views.mark_as_paid, name='mark_as_paid'),  # Alternative
+    path('billing/export/', views.export_billing_csv, name='export_billing_csv'),
+    path('billing/report/', views.billing_report_html, name='billing_report_html'),
     
     # ==================== ALERTS ====================
     path('alerts/', views.alerts_view, name='alerts_view'),
@@ -61,4 +63,6 @@ urlpatterns = [
 
     # Payment Checkout Simulation (for PayMongo)
     path('payment/checkout/<str:reference>/', views.payment_checkout_simulation, name='payment_checkout_simulation'),
+
+    path('activity-log/', views.activity_log, name='activity_log'),
 ]
