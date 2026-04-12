@@ -298,8 +298,6 @@
             </div>
         </nav>
         
-        <!-- NO MESSAGES SECTION - REMOVED -->
-        
         <!-- Header Card -->
         <div class="header-card">
             <h2><i class="fas fa-chart-pie"></i> Tenant Overview</h2>
@@ -381,19 +379,22 @@
                     {% endif %}
                 </div>
                 
+                <!-- STATUS DISPLAY (FIXED) -->
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     {% if tenant.room %}
-                    <a href="{% url 'remove_tenant' tenant.room.id %}" class="btn btn-secondary" style="flex: 1; text-align: center;" onclick="return confirm('Remove {{ tenant.user.username }} from {{ tenant.room.name }}?')">
-                        <i class="fas fa-user-minus"></i> Remove from Room
-                    </a>
+                    <div style="flex: 1; text-align: center; padding: 8px; background: #e8f4fd; border-radius: 8px; font-size: 12px;">
+                        <i class="fas fa-check-circle" style="color: #28a745;"></i> Assigned to {{ tenant.room.name }}
+                    </div>
+                    {% else %}
+                    <div style="flex: 1; text-align: center; padding: 8px; background: #fff3cd; border-radius: 8px; font-size: 12px;">
+                        <i class="fas fa-clock"></i> No room assigned
+                    </div>
                     {% endif %}
-                    <a href="#" class="btn btn-primary" style="flex: 1; text-align: center;" onclick="alert('Edit functionality coming soon!')">
-                        <i class="fas fa-edit"></i> Edit Details
-                    </a>
                 </div>
             </div>
             {% endfor %}
         </div>
+        
         {% else %}
         <div class="empty-state">
             <i class="fas fa-users-slash"></i>
