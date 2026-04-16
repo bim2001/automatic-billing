@@ -54,12 +54,14 @@ urlpatterns = [
     path('api/building-stats/', views.get_building_stats, name='building_stats_api'),
     path('api/run-smart-features/', views.run_smart_features_api, name='run_smart_features_api'),
     path('api/system-health/', views.system_health, name='system_health'),
+    path('api/paymongo-webhook/', views.paymongo_webhook, name='paymongo_webhook'),  # Remove trailing slash?
 
     # Payment URLs
     path('payment/gcash/<int:bill_id>/', views.create_gcash_payment, name='create_gcash_payment'),
     path('payment/success/<str:reference_number>/', views.payment_success, name='payment_success'),
     path('payment/cash/<int:bill_id>/', views.manual_paid_confirmation, name='manual_paid_confirmation'),
     path('payment/', views.payment_method, name='payment_method'),
+ 
 
     # Payment Checkout Simulation (for PayMongo)
     path('payment/checkout/<str:reference>/', views.payment_checkout_simulation, name='payment_checkout_simulation'),

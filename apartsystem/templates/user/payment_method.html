@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -259,20 +260,17 @@
             </div>
 
             <!-- Hidden forms (will be shown based on selection) -->
-            <div id="gcash-form" style="display: none;">
-                <form method="post" action="{% url 'create_gcash_payment' bill.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn">
-                        <i class="fab fa-gcash"></i> Pay with GCash via PayMongo
-                    </button>
-                </form>
-                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                    <p><i class="fas fa-qrcode"></i> <strong>Or scan GCash QR Code:</strong></p>
-                    <div style="background: white; padding: 20px; text-align: center; border-radius: 10px; margin-top: 10px;">
-                        <i class="fas fa-qrcode" style="font-size: 100px; color: #00B4D8;"></i>
-                        <p style="margin-top: 10px;">Scan to pay ₱{{ bill.cost|floatformat:2 }}</p>
-                        <p style="font-size: 12px; color: #666;">Reference: BILL-{{ bill.room.name }}-{{ bill.billing_month|cut:" " }}</p>
-                    </div>
+<div id="gcash-form" style="display: none;">
+    <form method="post" action="{% url 'create_gcash_payment' bill.id %}" id="gcashForm">
+        {% csrf_token %}
+        <button type="submit" class="btn" id="gcashPayBtn">
+            <i class="fab fa-gcash"></i> Pay with GCash via PayMongo
+        </button>
+    </form>
+    <div id="gcashLoading" style="display: none; text-align: center; padding: 20px;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 30px;"></i>
+        <p>Redirecting to PayMongo checkout...</p>
+    </div>
                 </div>
             </div>
 
@@ -320,6 +318,11 @@
                 document.getElementById('cash-form').style.display = 'block';
             }
         }
+            document.getElementById('gcashForm')?.addEventListener('submit', function(e) {
+            document.getElementById('gcashPayBtn').style.display = 'none';
+            document.getElementById('gcashLoading').style.display = 'block';
+            }
+        );
     </script>
 </body>
 </html>

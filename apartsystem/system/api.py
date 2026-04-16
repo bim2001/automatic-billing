@@ -325,3 +325,83 @@ def create_api_token(request):
             'created_at': token.created_at
         }
     })
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from django.utils import timezone
+import json
+import hmac
+import hashlib
+
+@csrf_exempt
+@require_POST
+def paymongo_webhook(request):
+    """
+    PayMongo webhook endpoint for payment updates
+    This is called by PayMongo when payment status changes
+    """
+    try:
+        # Get the raw request body
+        payload = request.body
+        signature = request.headers.get('Paymongo-Signature', '')
+        
+        print(f"📡 Webhook received!")
+        print(f"   Signature: {signature[:50] if signature else 'None'}...")
+        
+        # Parse the webhook data
+        data = json.loads(payload)
+        
+        # Get event type
+        event_data = data.get('data', {})
+        event_attributes = event_data.get('attributes', {})
+        event_type = event_attributes.get('type')
+        
+        print(f"   Event type: {event_type}")
+        
+        # Handle checkout_session.payment.paid event
+        if event_type == 'checkout_session.payment.paid':
+            checkout_data = event_attributes.get('data', {})
+            checkout_id = checkout_data.get('id')
+            
+            print(f"   Checkout ID: {checkout_id}")
+            
+            if checkout_id:
+                # Find the payment record
+                from .models import Payment, Alert
+                payment = Payment.objects.filter(
+                    checkout_session_id=checkout_id, 
+                    status='pending'
+                ).first()
+                
+                if payment:
+                    print(f"✅ Payment found: {payment.reference_number}")
+                    
+                    # Mark as paid
+                    payment.status = 'paid'
+                    payment.webhook_received = True
+                    payment.webhook_data = data
+                    payment.paid_at = timezone.now()
+                    payment.save()
+                    
+                    # Update the bill
+                    bill = payment.bill
+                    bill.is_paid = True
+                    bill.save()
+                    
+                    # Create alert
+                    Alert.objects.create(
+                        room=bill.room,
+                        alert_type='billing',
+                        message=f"✅ Payment received for {bill.billing_month} via GCash. Reference: {payment.reference_number}"
+                    )
+                    
+                    print(f"✅ Payment confirmed for {payment.reference_number}")
+                else:
+                    print(f"⚠️ No pending payment found for checkout_id: {checkout_id}")
+        
+        return JsonResponse({'status': 'success'}, status=200)
+        
+    except Exception as e:
+        print(f"❌ Webhook error: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

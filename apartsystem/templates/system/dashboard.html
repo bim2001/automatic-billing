@@ -1,1034 +1,374 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <title>Smart Energy System - Owner Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-        
-        body {
-            background-color: #f5f7fa;
-            color: #333;
-        }
-
-        /* Navigation Bar - modern sleek design + compact hamburger */
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .nav-icon {
-            font-size: 32px;
-            background: rgba(255,255,255,0.2);
-            padding: 10px;
-            border-radius: 10px;
-        }
-        
-        .nav-title h1 {
-            font-size: 22px;
-            margin: 0;
-        }
-        
-        .nav-title p {
-            font-size: 13px;
-            opacity: 0.9;
-            margin: 3px 0 0 0;
-        }
-        
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .username {
-            font-size: 15px;
-        }
-        
-        /* Desktop nav links */
-        .nav-links {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .logout-btn {
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            background: rgba(255,255,255,0.2);
-            padding: 6px 18px;
-            border-radius: 20px;
-            transition: background 0.3s, transform 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-        }
-        
-        /* ========== COMPACT HAMBURGER MENU (does NOT cover full page) ========== */
-        .hamburger-compact {
-            display: none;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.4);
-            border-radius: 40px;
-            width: 48px;
-            height: 48px;
-            cursor: pointer;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        }
-        
-        .hamburger-compact:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.02);
-        }
-        
-        .hamburger-compact span {
-            display: block;
-            width: 24px;
-            height: 2.5px;
-            background-color: white;
-            border-radius: 4px;
-            transition: 0.25s ease;
-        }
-        
-        /* Compact Overlay Menu - slides from right */
-        .compact-menu-overlay {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(3px);
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0.2s, opacity 0.2s ease;
-            z-index: 1000;
-            display: flex;
-            justify-content: flex-end;
-            align-items: flex-start;
-        }
-        
-        .compact-menu-overlay.active {
-            visibility: visible;
-            opacity: 1;
-        }
-        
-        .compact-menu-panel {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(12px);
-            width: 300px;
-            max-width: 85vw;
-            position: absolute;          /* important: use absolute inside fixed overlay */
-            top: 80px;                  /* adjust based on your navbar height */
-            right: 20px;                /* always 20px from right edge */
-            margin: 0;                  /* remove margin para hindi gumalaw */
-            border-radius: 28px;
-            box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.3);
-            padding: 1.4rem 0.8rem;
-            transform: translateX(30px);
-            opacity: 0;
-            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.2s ease;
-            pointer-events: none;
-        }
-        
-        .compact-menu-overlay.active .compact-menu-panel {
-            transform: translateX(0);
-            opacity: 1;
-            pointer-events: auto;
-        }
-        
-        .compact-menu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 0.8rem 1rem 1rem;
-            border-bottom: 1px solid #e2edf3;
-            margin-bottom: 1rem;
-        }
-        
-        .compact-menu-header span {
-            font-weight: 700;
-            font-size: 1.25rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        .compact-close-btn {
-            background: #f0f2f8;
-            border: none;
-            font-size: 1.5rem;
-            width: 32px;
-            height: 32px;
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #5a6e8a;
-            transition: all 0.2s;
-        }
-        
-        .compact-close-btn:hover {
-            background: #e2e8f0;
-            color: #dc3545;
-        }
-        
-        .compact-menu-links {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-        }
-        
-        .compact-menu-links a {
-            text-decoration: none;
-            font-size: 1.05rem;
-            font-weight: 500;
-            padding: 0.7rem 1.2rem;
-            border-radius: 40px;
-            color: #2c3e50;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-        
-        .compact-menu-links a i {
-            width: 24px;
-            font-size: 1.2rem;
-            color: #667eea;
-        }
-        
-        .compact-menu-links a:hover {
-            background: #f0f4fc;
-            color: #4a3b7c;
-            transform: translateX(4px);
-        }
-        
-        .compact-badge {
-            background: #dc3545;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 11px;
-            margin-left: 8px;
-        }
-        
-        /* Main Container */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-        
-        /* Page Header */
-        .page-header {
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .page-header h1 {
-            color: #2c3e50;
-            font-size: 32px;
-            margin-bottom: 10px;
-        }
-        
-        .page-header h1 i {
-            color: #667eea;
-            margin-right: 10px;
-        }
-        
-        .page-subtitle {
-            color: #7f8c8d;
-            font-size: 16px;
-        }
-        
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            text-align: center;
-            transition: transform 0.3s;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-icon {
-            font-size: 36px;
-            margin-bottom: 15px;
-            color: #667eea;
-        }
-        
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #2c3e50;
-            margin: 10px 0;
-        }
-        
-        .stat-label {
-            color: #7f8c8d;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        /* Rooms Table Container - with both horizontal and vertical scroll on mobile */
-        .rooms-table-wrapper {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
-            overflow: auto;
-            max-height: 500px;
-            overflow-y: auto;
-            overflow-x: auto;
-        }
-        
-        /* Custom scrollbar for better UX */
-        .rooms-table-wrapper::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        .rooms-table-wrapper::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        .rooms-table-wrapper::-webkit-scrollbar-thumb {
-            background: #a6b5f6;
-            border-radius: 10px;
-        }
-        
-        .rooms-table-wrapper::-webkit-scrollbar-thumb:hover {
-            background: #5a67d8;
-        }
-        
-        .rooms-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-        }
-        
-        thead {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        
-        th {
-            padding: 18px 15px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        td {
-            padding: 18px 15px;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 15px;
-        }
-        
-        tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        /* Limit table rows to show max 5 visible at a time on mobile via height */
-        @media (max-width: 768px) {
-            .rooms-table-wrapper {
-                max-height: 420px;
-                overflow-y: auto;
-                overflow-x: auto;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .rooms-table-wrapper {
-                max-height: 380px;
-            }
-        }
-        
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        
-        .status-on {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status-off {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .action-btn {
-            padding: 8px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .btn-on {
-            background-color: #28a745;
-            color: white;
-        }
-        
-        .btn-on:hover {
-            background-color: #218838;
-            transform: translateY(-2px);
-        }
-        
-        .btn-off {
-            background-color: #dc3545;
-            color: white;
-        }
-        
-        .btn-off:hover {
-            background-color: #c82333;
-            transform: translateY(-2px);
-        }
-        
-        .over-limit-row {
-            background-color: #fff3cd !important;
-            border-left: 4px solid #ffc107;
-        }
-        
-        /* Features Box */
-        .features-box {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            margin-top: 40px;
-        }
-        
-        .features-title {
-            color: #2c3e50;
-            font-size: 20px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .feature-item {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .feature-icon {
-            font-size: 24px;
-            color: #667eea;
-        }
-        
-        .feature-text {
-            flex: 1;
-        }
-        
-        .feature-text h4 {
-            margin: 0 0 5px 0;
-            color: #2c3e50;
-        }
-        
-        .feature-text p {
-            margin: 0;
-            color: #7f8c8d;
-            font-size: 14px;
-        }
-        
-        .caps-b-note {
-            background: #e8f4fc;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border-left: 4px solid #3498db;
-        }
-        
-        /* Stats Bar */
-        .stats-bar {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .stats-bar div {
-            flex: 1;
-            min-width: 150px;
-        }
-        
-        .stats-bar i {
-            margin-right: 5px;
-            color: #667eea;
-        }
-        
-        .manage-link {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .tenant-badge {
-            background: #e8f4fd;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .alert-header-link {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            text-decoration: none;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .alert-badge {
-            background: #dc3545;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            margin-left: 8px;
-        }
-        
-        .alert-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-        
-        .alert-item {
-            padding: 15px 20px;
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-            transition: background 0.3s;
-            border-bottom: 1px solid #ecf0f1;
-            flex-wrap: wrap;
-        }
-        
-        .alert-item.border-bottom {
-            border-bottom: 1px solid #ecf0f1;
-        }
-        
-        .alert-item.unread {
-            background: #f0f7ff;
-        }
-        
-        .alert-empty {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal.show {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            max-width: 450px;
-            width: 90%;
-            animation: modalSlideIn 0.3s ease;
-            overflow: hidden;
-        }
-        
-        @keyframes modalSlideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-        
-        .modal-header {
-            padding: 20px 25px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: white;
-        }
-        
-        .modal-header h3 {
-            color: #dc3545;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0;
-        }
-        
-        .modal-close {
-            font-size: 28px;
-            cursor: pointer;
-            color: #999;
-            transition: color 0.3s;
-        }
-        
-        .modal-close:hover {
-            color: #333;
-        }
-        
-        .modal-body {
-            padding: 25px;
-        }
-        
-        .room-info {
-            background: #f8f9fa;
-            padding: 12px 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-left: 4px solid #dc3545;
-        }
-        
-        .modal-footer {
-            padding: 20px 25px;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 15px;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-        }
-        
-        .modal-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .modal-btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .modal-btn-danger:hover {
-            background: #c82333;
-        }
-        
-        .modal-btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .modal-btn-cancel {
-            background: #e9ecef;
-            color: #495057;
-        }
-        
-        .modal-btn-confirm {
-            background: #dc3545;
-            color: white;
-        }
-        
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #7f8c8d;
-            font-size: 14px;
-            margin-top: 40px;
-            border-top: 1px solid #ecf0f1;
-        }
-        
-        .system-version {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        
-        .room-actions {
-            margin-top: 8px;
-        }
-        
-        .room-edit {
-            font-size: 12px;
-            color: #667eea;
-            margin-right: 10px;
-            text-decoration: none;
-        }
-        
-        .room-delete {
-            font-size: 12px;
-            color: #dc3545;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .warning-icon-small {
-            font-size: 48px;
-            text-align: center;
-            margin-bottom: 15px;
-            color: #dc3545;
-        }
-        
-        /* Section title responsive */
-        .section-title {
-            color: #2c3e50;
-            font-size: 22px;
-            margin: 40px 0 20px 0;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #ecf0f1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .section-title i {
-            margin-right: 10px;
-            color: #667eea;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 992px) {
-            .nav-links {
-                display: none;
-            }
-            .hamburger-compact {
-                display: flex;
-            }
-            .navbar {
-                padding: 10px 20px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 16px;
-            }
-            .stats-grid {
-                gap: 12px;
-            }
-            .stat-card {
-                padding: 18px;
-            }
-            .stat-value {
-                font-size: 26px;
-            }
-            .section-title {
-                font-size: 20px;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            .section-title a {
-                float: none;
-                display: inline-block;
-                margin-top: 8px;
-            }
-            .compact-menu-panel {
-                margin: 0.8rem 1rem 0 0;
-                width: 270px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .navbar {
-                padding: 10px 16px;
-            }
-            .nav-right {
-                gap: 8px;
-            }
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-            .modal-footer {
-                flex-direction: column;
-            }
-            .modal-btn {
-                width: 100%;
-                text-align: center;
-            }
-            .alert-item {
-                flex-direction: column;
-            }
-        }
-    </style>
 </head>
 <body>
-    <!-- Navigation Bar with COMPACT HAMBURGER MENU -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <div class="nav-icon"><i class="fas fa-bolt"></i></div>
-            <div class="nav-title">
-                <h1>Smart Energy System</h1>
-                <p>Owner Dashboard • Real-time Monitoring</p>
+
+    <!-- SIDEBAR NAVIGATION -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+                <span>Smart Energy</span>
             </div>
+            <div class="version">Owner Dashboard v2.0</div>
         </div>
-        
-        <div class="nav-right">
-            <div class="username">Welcome, <strong>{{ username }}</strong></div>
-            
-            <!-- Desktop nav links -->
-            <div class="nav-links">
-                <a href="{% url 'monitoring_dashboard' %}" class="logout-btn"><i class="fas fa-chart-line"></i> Monitoring</a>
-                <a href="{% url 'billing_view' %}" class="logout-btn"><i class="fas fa-money-bill-wave"></i> Billing</a>
-                <a href="{% url 'billing_history' %}" class="logout-btn"><i class="fas fa-history"></i> History</a>
-                <a href="{% url 'system_settings' %}" class="logout-btn"><i class="fas fa-cog"></i> Settings</a>
-                <a href="{% url 'system_health_dashboard' %}" class="logout-btn"><i class="fas fa-heartbeat"></i> Health</a>
-                <a href="{% url 'activity_log' %}" class="logout-btn"><i class="fas fa-history"></i> Activity Log</a>
-                <a href="{% url 'alerts_view' %}" class="logout-btn"><i class="fas fa-bell"></i> Alerts
+
+        <div class="nav-menu">
+            <div class="nav-item">
+                <a href="{% url 'dashboard' %}" class="nav-link active">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'monitoring_dashboard' %}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Monitoring</span>
+                </a>
+            </div>
+            <div class="nav-divider"></div>
+            <div class="nav-item">
+                <a href="{% url 'add_room' %}" class="nav-link">
+                    <i class="fas fa-door-open"></i>
+                    <span>Rooms</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'tenant_list' %}" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    <span>Tenants</span>
+                </a>
+            </div>
+            <div class="nav-divider"></div>
+            <div class="nav-item">
+                <a href="{% url 'billing_view' %}" class="nav-link">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Billing</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'billing_history' %}" class="nav-link">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
+                </a>
+            </div>
+            <div class="nav-divider"></div>
+            <div class="nav-item">
+                <a href="{% url 'alerts_view' %}" class="nav-link">
+                    <i class="fas fa-bell"></i>
+                    <span>Alerts</span>
                     {% if unread_alerts_count > 0 %}
-                    <span style="background: #dc3545; color: white; padding: 1px 6px; border-radius: 10px; font-size: 11px; margin-left: 5px;">{{ unread_alerts_count }}</span>
+                    <span style="background: #dc3545; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: auto;">
+                        {{ unread_alerts_count }}
+                    </span>
                     {% endif %}
                 </a>
-                <a href="{% url 'logout_view' %}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
-            
-            <!-- COMPACT HAMBURGER BUTTON -->
-            <div class="hamburger-compact" id="compactHamburgerBtn">
-                <span></span>
-                <span></span>
-                <span></span>
+            <div class="nav-divider"></div>
+            <div class="nav-item">
+                <a href="{% url 'system_settings' %}" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{% url 'system_health_dashboard' %}" class="nav-link">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>Health</span>
+                </a>
             </div>
         </div>
-    </nav>
 
-    <!-- COMPACT OVERLAY MENU (non-full-page) -->
-    <div id="compactMenuOverlay" class="compact-menu-overlay">
-        <div class="compact-menu-panel">
-            <div class="compact-menu-header">
-                <span><i class="fas fa-bolt"></i> Menu</span>
-                <button class="compact-close-btn" id="compactCloseBtn">✕</button>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <div class="user-name">{{ username }}</div>
+                    <div class="user-role">System Owner</div>
+                </div>
             </div>
-            <div class="compact-menu-links">
-                <a href="{% url 'monitoring_dashboard' %}"><i class="fas fa-chart-line"></i> Monitoring</a>
-                <a href="{% url 'billing_view' %}"><i class="fas fa-money-bill-wave"></i> Billing</a>
-                <a href="{% url 'billing_history' %}"><i class="fas fa-history"></i> History</a>
-                <a href="{% url 'system_settings' %}"><i class="fas fa-cog"></i> Settings</a>
-                <a href="{% url 'system_health_dashboard' %}"><i class="fas fa-heartbeat"></i> Health</a>
-                <a href="{% url 'activity_log' %}"><i class="fas fa-history"></i> Activity Log</a>
-                <a href="{% url 'alerts_view' %}"><i class="fas fa-bell"></i> Alerts
-                    {% if unread_alerts_count > 0 %}<span class="compact-badge">{{ unread_alerts_count }}</span>{% endif %}
-                </a>
-                <a href="{% url 'logout_view' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            </div>
-            <div style="margin-top: 1.5rem; padding-left: 1rem; font-size: 0.7rem; color: #94a3b8;"><i class="fas fa-shield-alt"></i> Secure access</div>
+            <a href="{% url 'logout_view' %}" class="nav-link" style="padding-left: 0;">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
         </div>
     </div>
-    
-    <!-- Main Content -->
-    <div class="container">
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Page Header -->
         <div class="page-header">
-            <h1><i class="fas fa-building"></i> Apartment Energy Dashboard</h1>
-            <p class="page-subtitle"><i class="fas fa-chart-simple"></i> Monitor and manage electricity consumption in real-time</p>
+            <h1><i class="fas fa-home"></i> Apartment Energy Dashboard</h1>
+            <p>Monitor and manage electricity consumption in real-time</p>
         </div>
-        
+
         <!-- Stats Cards -->
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-icon"><i class="fas fa-home"></i></div><div class="stat-value">{{ stats.total_rooms }}</div><div class="stat-label">Total Rooms</div></div>
-            <div class="stat-card"><div class="stat-icon"><i class="fas fa-bolt"></i></div><div class="stat-value">{{ stats.total_kwh|floatformat:2 }}</div><div class="stat-label">Total kWh Used</div></div>
-            <div class="stat-card"><div class="stat-icon"><i class="fas fa-coins"></i></div><div class="stat-value">₱{{ stats.total_cost|floatformat:2 }}</div><div class="stat-label">Total Cost</div></div>
-            <div class="stat-card"><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-value">{{ stats.over_limit_count }}</div><div class="stat-label">Over Limit</div></div>
-        </div>
-        
-        <!-- Alerts Section -->
-        <div style="margin-bottom: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h2 style="color: #2c3e50; font-size: 22px; margin: 0;"><i class="fas fa-bell"></i> Recent Alerts</h2>
-                <a href="{% url 'alerts_view' %}" class="alert-header-link"><i class="fas fa-eye"></i> View all alerts {% if unread_alerts_count > 0 %}<span class="alert-badge">{{ unread_alerts_count }} new</span>{% endif %}</a>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-value">{{ stats.total_rooms }}</div>
+                <div class="stat-label">Total Rooms</div>
             </div>
-            {% if recent_alerts %}
-            <div class="alert-card">{% for alert in recent_alerts|slice:":2" %}<div class="alert-item {% if not forloop.last %}border-bottom{% endif %} {% if not alert.is_read %}unread{% endif %}"><div style="font-size: 24px; min-width: 40px;">{% if alert.alert_type == 'over_limit' %}<i class="fas fa-exclamation-circle" style="color: #dc3545;"></i>{% elif alert.alert_type == 'power_off' %}<i class="fas fa-power-off" style="color: #ffc107;"></i>{% elif alert.alert_type == 'power_on' %}<i class="fas fa-plug" style="color: #28a745;"></i>{% elif alert.alert_type == 'billing' %}<i class="fas fa-file-invoice-dollar" style="color: #17a2b8;"></i>{% elif alert.alert_type == 'tenant_assigned' %}<i class="fas fa-user-plus" style="color: #667eea;"></i>{% elif alert.alert_type == 'tenant_removed' %}<i class="fas fa-user-minus" style="color: #dc3545;"></i>{% else %}<i class="fas fa-bell"></i>{% endif %}</div><div style="flex:1;"><div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px; flex-wrap: wrap;"><span style="font-weight: 600;">{{ alert.get_alert_type_display }}</span>{% if alert.room %}<span style="background:#e9ecef; padding:3px 10px; border-radius:20px; font-size:12px;">{{ alert.room.name }}</span>{% endif %}{% if not alert.is_read %}<span style="background:#28a745; color:white; padding:3px 10px; border-radius:20px; font-size:11px;"><i class="fas fa-star"></i> NEW</span>{% endif %}</div><div style="color:#4a5568; font-size:14px;">{{ alert.message }}</div><div style="color:#718096; font-size:12px;"><i class="far fa-clock"></i> {{ alert.created_at|timesince }} ago</div></div>{% if not alert.is_read %}<a href="{% url 'mark_alert_read' alert.id %}" style="color:#667eea; text-decoration:none; font-size:13px; border:1px solid #667eea; padding:5px 10px; border-radius:15px;"><i class="fas fa-check"></i> Mark read</a>{% endif %}</div>{% endfor %}{% if recent_alerts|length > 5 %}<div style="padding:15px; text-align:center;"><a href="{% url 'alerts_view' %}" style="color:#667eea;">Show all {{ recent_alerts|length }} alerts <i class="fas fa-arrow-right"></i></a></div>{% endif %}</div>
-            {% else %}<div class="alert-empty"><i class="fas fa-bell-slash"></i><div style="font-size:18px;">No recent alerts</div><div style="color:#718096;">System is running normally.</div></div>{% endif %}
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-bolt"></i></div>
+                <div class="stat-value">{{ stats.total_kwh|floatformat:2 }}</div>
+                <div class="stat-label">Total kWh Used</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                <div class="stat-value">₱{{ stats.total_cost|floatformat:2 }}</div>
+                <div class="stat-label">Total Cost</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-value">{{ stats.over_limit_count }}</div>
+                <div class="stat-label">Over Limit</div>
+            </div>
         </div>
-        
-        <!-- Rooms Management Section with SCROLLABLE TABLE (Horizontal + Vertical) -->
-        <h2 class="section-title"><i class="fas fa-door-open"></i> Room Management <a href="{% url 'add_room' %}" class="action-btn" style="font-size:14px; background: #667eea; color: white; padding: 8px 20px; border-radius: 6px; text-decoration: none; display: inline-block;"><i class="fas fa-plus" style="color: white;"></i></i> Add New Room</a></h2>
-        <div class="stats-bar"><div><i class="fas fa-door-open"></i> <strong>Total Rooms:</strong> {{ stats.total_rooms }}</div><div><i class="fas fa-users"></i> <strong>Occupied:</strong> {{ stats.occupied_rooms }}</div><div><i class="fas fa-key"></i> <strong>Available:</strong> {{ stats.available_rooms }}</div><div><a href="{% url 'tenant_list' %}" class="manage-link"><i class="fas fa-user-friends"></i> Manage Tenants →</a></div></div>
-        
-        <!-- Scrollable wrapper for rooms table: allows both horizontal and vertical scroll, max-height limits rows visible -->
-        <div class="rooms-table-wrapper">
-            <table class="rooms-table">
-                <thead>
-                    <tr><th><i class="fas fa-door-open"></i> Room / Tenant</th><th><i class="fas fa-chart-line"></i> Usage (kWh)</th><th><i class="fas fa-tachometer-alt"></i> Limit (kWh)</th><th><i class="fas fa-power-off"></i> Power Status</th><th><i class="fas fa-coins"></i> Cost (PHP)</th><th><i class="fas fa-user-tie"></i> Tenant Assignment</th><th><i class="fas fa-cog"></i> Actions</th></tr>
-                </thead>
-                <tbody>
-                    {% for room in rooms %}
-                    <tr class="{% if room.over_limit %}over-limit-row{% endif %}">
-                        <td><strong>{{ room.name }}</strong><div style="font-size:12px; margin-top:5px;">{% if room.is_occupied %}<i class="fas fa-user"></i> {{ room.get_tenant_name }}{% else %}<span style="color:#999;"><i class="fas fa-user-slash"></i> No tenant</span>{% endif %}</div><div class="room-actions"><a href="{% url 'edit_room' room.id %}" class="room-edit"><i class="fas fa-edit"></i> Edit</a> <button onclick="showDeleteModal('{{ room.id }}', '{{ room.name }}', '{{ room.usage }}', '{{ room.limit }}')" class="room-delete"><i class="fas fa-trash-alt"></i> Delete</button></div></td>
-                        <td>{{ room.usage }}</td>
-                        <td>{{ room.limit }}</td>
-                        <td><span class="status-badge {% if room.power_status %}status-on{% else %}status-off{% endif %}">{% if room.power_status %}<i class="fas fa-check-circle"></i> POWER ON{% else %}<i class="fas fa-times-circle"></i> POWER OFF{% endif %}</span></td>
-                        <td><strong>₱{{ room.cost }}</strong></td>
-                        <td>{% if room.is_occupied %}<div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;"><span class="tenant-badge"><i class="fas fa-user"></i> {{ room.get_tenant_name }}</span><button type="button" class="action-btn btn-off remove-tenant-btn" style="padding:5px 10px; font-size:12px;" data-room-id="{{ room.id }}" data-room-name="{{ room.name|escapejs }}" data-tenant-name="{{ room.get_tenant_name|escapejs }}"><i class="fas fa-user-minus"></i> Remove</button></div>{% else %}{% if available_tenants %}<form method="post" action="{% url 'assign_tenant' room.id %}" style="display:flex; gap:5px; flex-wrap:wrap;">{% csrf_token %}<select name="tenant_id" required style="flex:1; padding:5px; border-radius:5px; border:1px solid #ddd;"><option value="">Select tenant...</option>{% for tenant in available_tenants %}<option value="{{ tenant.id }}">{{ tenant.user.get_full_name|default:tenant.user.username }}</option>{% endfor %}</select><input type="date" name="move_in_date" value="{{ today|date:'Y-m-d' }}" style="padding:5px;"><button type="submit" class="action-btn btn-on" style="padding:5px 10px;"><i class="fas fa-user-plus"></i> Assign</button></form>{% else %}<span style="color:#999;">No available tenants</span><a href="{% url 'register_tenant' %}" style="color:#667eea; display:block; margin-top:5px;"><i class="fas fa-user-plus"></i> Register</a>{% endif %}{% endif %}</td>
-                        <td><a href="{% url 'toggle_power' room.id %}" class="action-btn {% if room.power_status %}btn-off{% else %}btn-on{% endif %}">{% if room.power_status %}<i class="fas fa-power-off"></i> TURN OFF{% else %}<i class="fas fa-plug"></i> TURN ON{% endif %}</a></td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="7" style="text-align:center; padding:30px;"><i class="fas fa-door-closed"></i> No rooms added. <a href="{% url 'add_room' %}" style="color:#667eea;">Add your first room</a></td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        <!-- Tenant Assignment Stats -->
+        <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
+            <div><i class="fas fa-door-open"></i> <strong>Total Rooms:</strong> {{ stats.total_rooms }}</div>
+            <div><i class="fas fa-users"></i> <strong>Occupied:</strong> {{ stats.occupied_rooms }}</div>
+            <div><i class="fas fa-key"></i> <strong>Available:</strong> {{ stats.total_rooms|add:"-stats.occupied_rooms" }}</div>
         </div>
-        
-        <div class="features-box"><h2 class="features-title"><i class="fas fa-crown"></i> System Features</h2><div class="features-grid"><div class="feature-item"><div class="feature-icon"><i class="fas fa-chart-line"></i></div><div class="feature-text"><h4>Real-time Monitoring</h4><p>Track electricity usage per room</p></div></div><div class="feature-item"><div class="feature-icon"><i class="fas fa-microchip"></i></div><div class="feature-text"><h4>Auto Power Control</h4><p>Auto-OFF when exceeding limits</p></div></div><div class="feature-item"><div class="feature-icon"><i class="fas fa-calculator"></i></div><div class="feature-text"><h4>Billing Computation</h4><p>₱{{ electricity_rate|default:"23" }}/kWh</p></div></div><div class="feature-item"><div class="feature-icon"><i class="fas fa-shield-alt"></i></div><div class="feature-text"><h4>Secure Access</h4><p>Owner-only authentication</p></div></div></div><div class="caps-b-note"><h4><i class="fas fa-rocket"></i> Other Features (Coming Soon)</h4><p>• Hardware integration • Advanced analytics</p></div></div>
-        <div class="footer"><i class="fas fa-bolt"></i> Smart Energy Monitoring System <span class="system-version"><i class="fas fa-tag"></i> v1.2</span><br><small>Electricity rate: ₱{{ electricity_rate|default:"23" }} per kWh</small></div>
+
+        <!-- ROOMS AS CARDS -->
+        <div class="section-title">
+            <span style="color: #667eea;"><i class="fas fa-door-open"></i> Room Management</span>
+            <a href="{% url 'add_room' %}" class="action-btn" style="font-size: 13px; background: #667eea; color: white; padding: 6px 15px; border-radius: 6px; text-decoration: none; display: inline-block;">
+                <i class="fas fa-plus" style="color: white;"></i> Add Room
+            </a>
+        </div>
+
+        <div class="rooms-grid" id="roomsGrid">
+            {% for room in rooms %}
+            <div class="room-card" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}" data-room-usage="{{ room.usage }}" data-room-limit="{{ room.limit }}" data-room-power="{{ room.power_status }}" data-room-cost="{{ room.cost }}" data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}">
+                <div class="room-card-header">
+                    <span class="room-name"><i class="fas fa-door-open"></i> {{ room.name }}</span>
+                    <span class="room-status {% if room.power_status %}on{% else %}off{% endif %}">
+                        {% if room.power_status %}POWER ON{% else %}POWER OFF{% endif %}
+                    </span>
+                </div>
+                <div class="room-usage">
+                    <span class="usage-value">{{ room.usage|floatformat:1 }}</span>
+                    <span class="usage-unit">kWh</span>
+                    <div class="usage-limit">Limit: {{ room.limit }} kWh</div>
+                    <div class="progress-bar-container">
+                        {% with percentage=room.usage|floatformat:0 %}
+                        <div class="progress-fill-card 
+                            {% if room.usage > room.limit %}danger
+                            {% elif room.usage > room.limit|add:'-10' %}warning
+                            {% endif %}" 
+                            style="width: {% widthratio room.usage room.limit 100 %}%;">
+                        </div>
+                        {% endwith %}
+                    </div>
+                </div>
+                <div class="room-tenant">
+                    <i class="fas fa-user"></i>
+                    {% if room.is_occupied %}
+                        {{ room.get_tenant_name }}
+                    {% else %}
+                        <span style="color: #999;">No tenant assigned</span>
+                    {% endif %}
+                </div>
+                <div class="room-actions-card">
+                    <button class="btn-view" onclick="openRoomModal({{ room.id }})">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 40px;">No rooms added yet. <a href="{% url 'add_room' %}">Add your first room</a></div>
+            {% endfor %}
+        </div>
+
+        <!-- Recent Alerts -->
+        {% if recent_alerts %}
+        <div class="alert-card">
+            <div class="alert-header">
+                <h3><i class="fas fa-bell"></i> Recent Alerts</h3>
+                <a href="{% url 'alerts_view' %}" style="color: #667eea;">View all →</a>
+            </div>
+            {% for alert in recent_alerts|slice:":3" %}
+            <div class="alert-item" style="border-left-color: #667eea;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>{{ alert.message|truncatechars:80 }}</span>
+                    <small style="color: #999;">{{ alert.created_at|timesince }} ago</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Modals -->
-    <div id="removeTenantModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-user-minus"></i> Remove Tenant</h3><span class="modal-close" onclick="closeRemoveModal()">&times;</span></div><div class="modal-body"><p>Remove tenant from this room?</p><div class="room-info" id="modalRoomInfo"><i class="fas fa-door-open"></i><span>Loading...</span></div><p style="color:#dc3545; font-size:14px;"><i class="fas fa-info-circle"></i> This will unassign the tenant.</p></div><div class="modal-footer"><button class="modal-btn modal-btn-cancel" onclick="closeRemoveModal()">Cancel</button><a href="#" id="confirmRemoveBtn" class="modal-btn modal-btn-confirm">Remove Tenant</a></div></div></div>
-    <div id="deleteModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-exclamation-triangle"></i> Delete Room</h3><span class="modal-close" onclick="closeModal()">&times;</span></div><div class="modal-body"><div class="warning-icon-small"><i class="fas fa-trash-alt"></i></div><p style="text-align:center;">Delete <strong id="modalRoomName"></strong>?</p><div class="modal-room-details" style="background:#f8f9fa; padding:15px; border-radius:8px;"><p><i class="fas fa-chart-line"></i> Usage: <span id="modalRoomUsage"></span> kWh</p><p><i class="fas fa-tachometer-alt"></i> Limit: <span id="modalRoomLimit"></span> kWh</p></div><p style="font-size:13px; background:#fff3cd; padding:10px; border-radius:6px;"><i class="fas fa-exclamation-circle"></i> This action cannot be undone.</p></div><div class="modal-footer"><button class="modal-btn modal-btn-secondary" onclick="closeModal()">Cancel</button><form id="deleteForm" method="post" style="margin:0;">{% csrf_token %}<button type="submit" class="modal-btn modal-btn-danger">Yes, Delete</button></form></div></div></div>
+<!-- MODAL FOR ROOM DETAILS -->
+<div id="roomModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-door-open"></i> <span id="modalRoomName">Room</span></h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- Room Details Section -->
+            <div class="modal-section">
+                <h4><i class="fas fa-chart-line"></i> Room Details</h4>
+                <div class="info-row">
+                    <span class="info-label">Current Usage:</span>
+                    <span class="info-value"><span id="modalUsage"></span> kWh</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Monthly Limit:</span>
+                    <span class="info-value"><span id="modalLimit"></span> kWh</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Used:</span>
+                    <span class="info-value"><span id="modalPercentage"></span>%</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Power Status:</span>
+                    <span class="info-value"><span id="modalPower"></span></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Current Cost:</span>
+                    <span class="info-value">₱<span id="modalCost"></span></span>
+                </div>
+            </div>
+
+            <!-- Tenant Assignment Section -->
+            <div class="modal-section" id="tenantSection">
+                <h4><i class="fas fa-user-friends"></i> Tenant</h4>
+                <div id="tenantInfo">
+                    <!-- Will be filled by JS -->
+                </div>
+            </div>
+
+            <!-- Actions Section -->
+            <div class="modal-section">
+                <h4><i class="fas fa-cog"></i> Actions</h4>
+                <div class="modal-actions">
+                    <a href="#" id="editRoomBtn" class="modal-btn modal-btn-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="#" id="togglePowerBtn" class="modal-btn modal-btn-primary">
+                        <i class="fas fa-power-off"></i> Power
+                    </a>
+                    <a href="#" id="deleteRoomBtn" class="modal-btn modal-btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
     <script>
-        function showDeleteModal(roomId, roomName, roomUsage, roomLimit) {
-            document.getElementById('modalRoomName').textContent = roomName;
-            document.getElementById('modalRoomUsage').textContent = roomUsage;
-            document.getElementById('modalRoomLimit').textContent = roomLimit;
-            document.getElementById('deleteForm').action = `/room/delete/${roomId}/`;
-            document.getElementById('deleteModal').classList.add('show');
+        let currentRoomId = null;
+
+        function openRoomModal(roomId) {
+            // Find the room card
+            const card = document.querySelector(`.room-card[data-room-id="${roomId}"]`);
+            if (!card) return;
+            
+            currentRoomId = roomId;
+            
+            // Get data from card
+            const roomName = card.dataset.roomName;
+            const usage = parseFloat(card.dataset.roomUsage).toFixed(1);
+            const limit = parseFloat(card.dataset.roomLimit);
+            const powerStatus = card.dataset.roomPower === 'True';
+            const cost = parseFloat(card.dataset.roomCost).toFixed(2);
+            const isOccupied = card.dataset.roomOccupied === 'True';
+            const tenantName = card.dataset.roomTenant;
+            
+            // Update modal content
+            document.getElementById('modalRoomName').innerHTML = `<i class="fas fa-door-open"></i> ${roomName}`;
+            document.getElementById('modalUsage').textContent = usage;
+            document.getElementById('modalLimit').textContent = limit;
+            
+            const percentage = (usage / limit * 100).toFixed(1);
+            document.getElementById('modalPercentage').textContent = percentage;
+            document.getElementById('modalPower').innerHTML = powerStatus ? '<span style="color: #28a745;"><i class="fas fa-toggle-on"></i> POWER ON</span>' : '<span style="color: #dc3545;"><i class="fas fa-toggle-off"></i> POWER OFF</span>';
+            document.getElementById('modalCost').textContent = cost;
+            
+            // Update tenant section
+            const tenantSection = document.getElementById('tenantInfo');
+            if (isOccupied) {
+                tenantSection.innerHTML = `
+                    <div class="tenant-badge">
+                        <div class="info-row">
+                            <span class="info-label">Current Tenant:</span>
+                            <span class="info-value"><i class="fas fa-user"></i> ${tenantName}</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <a href="/room/${roomId}/remove-tenant/" class="modal-btn modal-btn-danger" style="display: block; text-align: center; text-decoration: none;" onclick="return confirm('Remove tenant from this room?')">
+                                <i class="fas fa-user-minus"></i> Remove Tenant
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Show assign tenant form
+                tenantSection.innerHTML = `
+                    <form method="post" action="/room/${roomId}/assign-tenant/">
+                        {% csrf_token %}
+                        <div class="modal-form-group">
+                            <label><i class="fas fa-user"></i> Select Tenant:</label>
+                            <select name="tenant_id" required class="form-control">
+                                <option value="">-- Select Tenant --</option>
+                                {% for tenant in available_tenants %}
+                                <option value="{{ tenant.id }}">{{ tenant.user.get_full_name|default:tenant.user.username }} ({{ tenant.user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="modal-form-group">
+                            <label><i class="fas fa-calendar"></i> Move-in Date:</label>
+                            <input type="date" name="move_in_date" value="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+                        <button type="submit" class="modal-btn modal-btn-primary" style="width: 100%;">
+                            <i class="fas fa-user-plus"></i> Assign Tenant
+                        </button>
+                    </form>
+                `;
+            }
+            
+            // Update action buttons
+            document.getElementById('editRoomBtn').href = `/room/edit/${roomId}/`;
+            document.getElementById('togglePowerBtn').href = `/toggle_power/${roomId}/`;
+            document.getElementById('deleteRoomBtn').href = `/room/delete/${roomId}/`;
+            
+            // Show modal
+            document.getElementById('roomModal').classList.add('show');
         }
-        function closeModal() { document.getElementById('deleteModal').classList.remove('show'); }
-        let currentRoomId, currentRoomName, currentTenantName;
-        function openRemoveModal(roomId, roomName, tenantName) {
-            currentRoomId = roomId; currentRoomName = roomName; currentTenantName = tenantName;
-            document.getElementById('modalRoomInfo').innerHTML = `<i class="fas fa-door-open"></i><span><strong>${roomName}</strong> - Tenant: <strong>${tenantName}</strong></span>`;
-            document.getElementById('confirmRemoveBtn').href = `/room/${roomId}/remove-tenant/`;
-            document.getElementById('removeTenantModal').classList.add('show');
+        
+        function closeModal() {
+            document.getElementById('roomModal').classList.remove('show');
+            currentRoomId = null;
         }
-        function closeRemoveModal() { document.getElementById('removeTenantModal').classList.remove('show'); }
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.remove-tenant-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openRemoveModal(this.dataset.roomId, this.dataset.roomName, this.dataset.tenantName);
-                });
-            });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('roomModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
         });
-        window.onclick = function(e) {
-            if (e.target === document.getElementById('deleteModal')) closeModal();
-            if (e.target === document.getElementById('removeTenantModal')) closeRemoveModal();
-        };
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') { closeModal(); closeRemoveModal(); closeCompactMenu(); }
-        });
-        // Compact menu JS
-        const compactHamburger = document.getElementById('compactHamburgerBtn');
-        const compactOverlay = document.getElementById('compactMenuOverlay');
-        const compactClose = document.getElementById('compactCloseBtn');
-        function openCompactMenu() { if(compactOverlay){ compactOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; } }
-        function closeCompactMenu() { if(compactOverlay){ compactOverlay.classList.remove('active'); document.body.style.overflow = ''; } }
-        if(compactHamburger) compactHamburger.addEventListener('click', (e) => { e.stopPropagation(); compactOverlay.classList.contains('active') ? closeCompactMenu() : openCompactMenu(); });
-        if(compactClose) compactClose.addEventListener('click', (e) => { e.stopPropagation(); closeCompactMenu(); });
-        if(compactOverlay) compactOverlay.addEventListener('click', (e) => { if(e.target === compactOverlay) closeCompactMenu(); });
-        document.querySelectorAll('.compact-menu-links a').forEach(link => link.addEventListener('click', () => closeCompactMenu()));
-        window.addEventListener('resize', () => { if(window.innerWidth > 992 && compactOverlay && compactOverlay.classList.contains('active')) closeCompactMenu(); if(!compactOverlay || !compactOverlay.classList.contains('active')) document.body.style.overflow = ''; });
     </script>
+
 </body>
 </html>

@@ -1,20 +1,26 @@
 """
 Django settings for apartment project.
 """
-
+from dotenv import load_dotenv
 from pathlib import Path
 import os
 
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-print(f"BASE_DIR: {BASE_DIR}")
+BASE_DIR = Path(__file__).resolve().parent  # ← ITO ANG BINAGO (isang parent lang)
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'django-insecure-your-secret-key-here'
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*', '.ngrok-free.dev', '127.0.0.1', 'localhost']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.dev',
+    'http://*.ngrok-free.dev',
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -24,7 +30,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'system',  # Your app
+    'system',
 ]
 
 MIDDLEWARE = [
@@ -42,9 +48,7 @@ ROOT_URLCONF = 'urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [
-            'C:/Users/User/Desktop_Local/appartment/apartsystem/templates',
-        ],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -59,7 +63,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wsgi.application'
 
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -67,46 +70,36 @@ DATABASES = {
     }
 }
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email settings (update with your email)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'divinabim2001@gmail.com'
-EMAIL_HOST_PASSWORD = 'jazd qiqh xisf sevf'  # Palitan ito
+EMAIL_HOST_PASSWORD = 'jazd qiqh xisf sevf'
 
-import os
-print(f"Current directory: {os.getcwd()}")
-print(f"Templates absolute path: {os.path.abspath('templates')}")
-print(f"Login.html exists: {os.path.exists('templates/system/login.html')}")
+# PayMongo Settings
+PAYMONGO_SECRET_KEY = os.getenv('PAYMONGO_SECRET_KEY')
+PAYMONGO_PUBLIC_KEY = os.getenv('PAYMONGO_PUBLIC_KEY')
+PAYMONGO_WEBHOOK_SECRET = os.getenv('PAYMONGO_WEBHOOK_SECRET')
+PAYMONGO_MODE = os.getenv('PAYMONGO_MODE', 'test')
+PAYMONGO_WEBHOOK_URL = os.getenv('PAYMONGO_WEBHOOK_URL')

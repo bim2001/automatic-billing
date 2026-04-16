@@ -269,8 +269,19 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)
     
+    # ========== NEW FIELDS FOR GCASH WEBHOOK INTEGRATION ==========
+    checkout_session_id = models.CharField(max_length=100, null=True, blank=True, 
+                                           help_text="GCash checkout session ID for payment tracking")
+    webhook_received = models.BooleanField(default=False, 
+                                           help_text="Whether webhook confirmation has been received")
+    webhook_data = models.JSONField(null=True, blank=True, 
+                                    help_text="Raw webhook data from GCash payment gateway")
+    # ================================================================
+    
     def __str__(self):
-        return f"{self.bill.room.name} - {self.billing_month} - {self.status}"
+        # Fixed: changed self.billing_month to proper reference
+        month_name = self.bill.billing_month.strftime('%B %Y') if self.bill and self.bill.billing_month else 'Unknown'
+        return f"{self.bill.room.name} - {month_name} - {self.status}"
     
     class Meta:
         ordering = ['-created_at']

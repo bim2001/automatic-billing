@@ -11,16 +11,25 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
-from .paymongo import get_paymongo
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 import logging
+import json
+import secrets
+import hashlib
 from django.db import models 
 from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment
 from django.http import HttpResponse
 import csv
 from .models import ActivityLog
 
+# Try to import paymongo (optional - for GCash)
+try:
+    from .paymongo import get_paymongo
+    PAYMONGO_AVAILABLE = True
+except ImportError:
+    PAYMONGO_AVAILABLE = False
+    print("⚠️ paymongo.py not found. GCash payments will be disabled.")
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +40,146 @@ def get_settings():
 def get_last_day_of_month(year, month):
     return calendar.monthrange(year, month)[1]
 
+def generate_reference_number(bill):
+    """Generate unique reference number for payment"""
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    room_code = bill.room.name.replace(' ', '').upper()[:10]
+    amount_hash = hashlib.md5(str(bill.cost).encode()).hexdigest()[:6]
+    return f"PAY-{room_code}-{timestamp}-{amount_hash}"
+
+def create_payment_record(bill, tenant, payment_method):
+    """Create a payment record"""
+    reference = generate_reference_number(bill)
+    
+    payment = Payment.objects.create(
+        bill=bill,
+        tenant=tenant,
+        amount=bill.cost,
+        payment_method=payment_method,
+        reference_number=reference,
+        status='pending'
+    )
+    
+    return payment
+
+def mark_payment_as_paid(payment, transaction_id=None):
+    """Mark payment as paid and update bill status"""
+    payment.status = 'paid'
+    payment.paid_at = timezone.now()
+    if transaction_id:
+        payment.transaction_id = transaction_id
+    payment.save()
+    
+    # Update the bill status
+    bill = payment.bill
+    bill.is_paid = True
+    bill.save()
+    
+    # Create alert
+    Alert.objects.create(
+        room=bill.room,
+        alert_type='billing',
+        message=f"✅ Payment received for {bill.billing_month} via {payment.get_payment_method_display()}. Reference: {payment.reference_number}"
+    )
+    
+    return payment
+
+def log_activity(user, action, description, ip_address=None):
+    """Helper function to log user activities"""
+    if not ip_address:
+        try:
+            import socket
+            ip_address = socket.gethostbyname(socket.gethostname())
+        except:
+            ip_address = '127.0.0.1'
+    
+    user_type = 'tenant'
+    if hasattr(user, 'userprofile'):
+        user_type = user.userprofile.user_type
+    
+    ActivityLog.objects.create(
+        user=user,
+        user_type=user_type,
+        action=action,
+        description=description,
+        ip_address=ip_address
+    )
+
+# ============== PAYMONGO WEBHOOK (NEW - ITO ANG KULANG MO!) ==============
+@csrf_exempt
+def paymongo_webhook(request):
+    """Handle PayMongo webhook callbacks for payment status updates"""
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        payload = json.loads(request.body)
+        
+        print(f"\n{'='*60}")
+        print(f"📢 WEBHOOK RECEIVED:")
+        print(f"{json.dumps(payload, indent=2)}")
+        print(f"{'='*60}\n")
+        
+        event_type = payload.get('data', {}).get('attributes', {}).get('type', '')
+        payment_attrs = payload.get('data', {}).get('attributes', {}).get('data', {}).get('attributes', {})
+        payment_id = payload.get('data', {}).get('attributes', {}).get('data', {}).get('id', '')
+        status = payment_attrs.get('status', '')
+        description = payment_attrs.get('description', '')
+        
+        print(f"📊 Event: {event_type}")
+        print(f"📊 Payment ID: {payment_id}")
+        print(f"📊 Status: {status}")
+        print(f"📊 Description: {description}")
+        
+        # ✅ Kunin ang reference_number mula sa description
+        reference_number = None
+        if description:
+            import re
+            # Hanapin ang pattern: Ref: PAY-XXXX-XXXX-XXXX
+            match = re.search(r'Ref:\s*(PAY-[A-Z0-9]+-\d+-[a-f0-9]+)', description)
+            if match:
+                reference_number = match.group(1)
+                print(f"✅ Extracted reference_number from description: {reference_number}")
+        
+        if event_type == 'payment.paid' or status == 'paid':
+            if not reference_number:
+                print("⚠️ No reference_number found in webhook payload")
+                return JsonResponse({"status": "ignored", "reason": "no reference_number"}, status=200)
+            
+            try:
+                payment = Payment.objects.get(reference_number=reference_number)
+                
+                print(f"✅ Found payment: ID={payment.id}, Bill={payment.bill.id}")
+                
+                payment.status = 'paid'
+                payment.paid_at = timezone.now()
+                payment.transaction_id = payment_id
+                payment.webhook_received = True
+                payment.webhook_data = payload
+                payment.save()
+                
+                bill = payment.bill
+                bill.is_paid = True
+                bill.save()
+                
+                Alert.objects.create(
+                    room=bill.room,
+                    alert_type='billing',
+                    message=f"✅ Payment of ₱{payment.amount} for {bill.billing_month} has been confirmed via GCash Webhook."
+                )
+                
+                print(f"✅ Payment {reference_number} marked as paid via WEBHOOK!")
+                
+            except Payment.DoesNotExist:
+                print(f"⚠️ Payment not found for reference: {reference_number}")
+        
+        return JsonResponse({"status": "success", "event": event_type}, status=200)
+        
+    except Exception as e:
+        print(f"❌ Webhook error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": "Internal server error"}, status=500)
 
 def get_building_stats(request):
     """API endpoint para sa building-wide statistics"""
@@ -170,7 +319,6 @@ def get_room_usage_data(request):
     })
 
 
-
 # ============== BILLING FUNCTIONS ==============
 def generate_monthly_bills(year=None, month=None):
     """Generate prorated bills for all tenants based on their move-in/move-out dates"""
@@ -274,8 +422,6 @@ def generate_monthly_bills(year=None, month=None):
     return bills_created, bills_updated
 
 
-from django.conf import settings as django_settings  # I-add ito sa taas
-
 def send_payment_reminders(days_before_due=3, test_mode=False):
     """
     Send payment reminders for bills due in X days
@@ -356,7 +502,7 @@ Smart Energy Monitor System
                 send_mail(
                     subject=subject,
                     message=message,
-                    from_email=django_settings.EMAIL_HOST_USER,  # <--- ITO ANG BAGO
+                    from_email=django_settings.EMAIL_HOST_USER,
                     recipient_list=[tenant_email],
                     fail_silently=False,
                 )
@@ -443,7 +589,6 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         
-        # Check if username and password are provided
         if not username or not password:
             error = "Username and password are required."
         else:
@@ -451,19 +596,14 @@ def login_view(request):
             
             if user is not None:
                 login(request, user)
-                
-                # Log login activity
                 log_activity(user, 'login', f"User {username} logged in")
                 
-                # Ensure profile exists
                 try:
                     profile = user.userprofile
                 except UserProfile.DoesNotExist:
-                    # Auto-detect user type
                     user_type = 'owner' if user.is_staff or user.is_superuser else 'tenant'
                     profile = UserProfile.objects.create(user=user, user_type=user_type)
                 
-                # Redirect based on user type
                 if profile.user_type == 'tenant':
                     return redirect('tenant_dashboard')
                 else:
@@ -474,218 +614,11 @@ def login_view(request):
     return render(request, 'system/login.html', {'error': error, 'login_error': error})
 
 def logout_view(request):
-    # Log logout activity
     if request.user.is_authenticated:
         log_activity(request.user, 'logout', f"User {request.user.username} logged out")
     
     logout(request)
     return redirect('login_view')
-
-# ============== SMART FEATURES ==============
-
-def detect_abnormal_usage():
-    """
-    Detect abnormal electricity usage patterns
-    Run this daily to check for anomalies
-    """
-    settings = get_settings()
-    
-    print("\n🔍 Checking for abnormal usage patterns...")
-    print("-" * 50)
-    
-    today = datetime.now().date()
-    yesterday = today - timedelta(days=1)
-    
-    # Kunin lahat ng rooms
-    rooms = Room.objects.all()
-    alerts_created = 0
-    
-    for room in rooms:
-        # Kunin ang historical data (last 30 days, excluding yesterday)
-        thirty_days_ago = today - timedelta(days=30)
-        historical_data = EnergyUsage.objects.filter(
-            room=room,
-            timestamp__date__gte=thirty_days_ago,
-            timestamp__date__lt=yesterday
-        ).values_list('kwh', flat=True)
-        
-        # Kunin ang yesterday's usage
-        yesterday_usage = EnergyUsage.objects.filter(
-            room=room,
-            timestamp__date=yesterday
-        ).aggregate(total=Sum('kwh'))['total'] or 0
-        
-        # Kailangan ng at least 7 days of data para mag-compare
-        if len(historical_data) < 7:
-            continue
-        
-        # Compute average and standard deviation
-        avg_usage = sum(historical_data) / len(historical_data)
-        
-        # Calculate standard deviation
-        if len(historical_data) > 1:
-            variance = sum((x - avg_usage) ** 2 for x in historical_data) / len(historical_data)
-            std_dev = variance ** 0.5
-        else:
-            std_dev = avg_usage * 0.3  # Fallback
-        
-        # Check for abnormalities using threshold from settings
-        threshold = settings.abnormal_threshold
-        
-        if yesterday_usage > 0:
-            # Rule 1: More than threshold standard deviations from average
-            if yesterday_usage > avg_usage + (threshold * std_dev):
-                percent_increase = ((yesterday_usage - avg_usage) / avg_usage) * 100
-                
-                Alert.objects.create(
-                    room=room,
-                    alert_type='abnormal_usage',
-                    message=f"⚠️ Abnormal usage detected! Yesterday's consumption ({yesterday_usage:.2f} kWh) is {percent_increase:.1f}% higher than your average ({avg_usage:.2f} kWh)."
-                )
-                alerts_created += 1
-                print(f"  ⚠️ {room.name}: {percent_increase:.1f}% increase")
-            
-            # Rule 2: Sudden spike (more than 3x average)
-            elif yesterday_usage > avg_usage * 3:
-                Alert.objects.create(
-                    room=room,
-                    alert_type='abnormal_usage',
-                    message=f"🚨 Sudden spike detected! Yesterday's usage ({yesterday_usage:.2f} kWh) is 3x your normal consumption."
-                )
-                alerts_created += 1
-                print(f"  🚨 {room.name}: 3x spike detected")
-    
-    print("-" * 50)
-    print(f"✅ Created {alerts_created} abnormal usage alerts")
-    return alerts_created
-
-
-def check_high_consumption():
-    """
-    Check for rooms approaching or exceeding their limit
-    """
-    print("\n📊 Checking for high consumption...")
-    print("-" * 50)
-    
-    today = datetime.now()
-    current_month = today.month
-    current_year = today.year
-    
-    rooms = Room.objects.all()
-    alerts_created = 0
-    
-    for room in rooms:
-        # Kunin ang total usage for current month
-        total_usage = EnergyUsage.objects.filter(
-            room=room,
-            timestamp__year=current_year,
-            timestamp__month=current_month
-        ).aggregate(total=Sum('kwh'))['total'] or 0
-        
-        # Calculate percentage of limit used
-        if room.limit > 0:
-            percentage = (total_usage / room.limit) * 100
-            
-            # Alert at different thresholds
-            if percentage >= 90 and percentage < 100:
-                Alert.objects.create(
-                    room=room,
-                    alert_type='high_consumption',
-                    message=f"⚠️ You've used {percentage:.1f}% of your monthly limit ({total_usage:.1f}/{room.limit} kWh). Consider reducing consumption."
-                )
-                alerts_created += 1
-                print(f"  ⚠️ {room.name}: {percentage:.1f}% of limit")
-            
-            elif percentage >= 100:
-                Alert.objects.create(
-                    room=room,
-                    alert_type='over_limit',
-                    message=f"🚨 You've EXCEEDED your monthly limit! Current: {total_usage:.1f} kWh, Limit: {room.limit} kWh"
-                )
-                alerts_created += 1
-                print(f"  🚨 {room.name}: EXCEEDED limit!")
-    
-    print("-" * 50)
-    print(f"✅ Created {alerts_created} consumption alerts")
-    return alerts_created
-
-
-def apply_late_payment_penalty(penalty_amount=None):
-    """
-    Apply late payment penalty to overdue bills
-    Run this daily
-    """
-    settings = get_settings()
-    
-    # Use settings value if penalty_amount not provided
-    if penalty_amount is None:
-        penalty_amount = settings.late_penalty_amount
-    
-    print("\n💰 Checking for late payments...")
-    print("-" * 50)
-    
-    today = datetime.now().date()
-    
-    # Kunin ang unpaid bills na overdue na
-    overdue_bills = Billing.objects.filter(
-        is_paid=False,
-        due_date__lt=today
-    )
-    
-    penalties_applied = 0
-    
-    for bill in overdue_bills:
-        # Check if penalty already applied (you might want to add a field for this)
-        # For now, we'll just add an alert
-        
-        # Create alert for late payment
-        days_late = (today - bill.due_date).days
-        
-        Alert.objects.create(
-            room=bill.room,
-            alert_type='late_payment',
-            message=f"⚠️ Your bill for {bill.billing_month} is {days_late} days late. A penalty of ₱{penalty_amount} will be applied to your next bill."
-        )
-        
-        # Optional: I-add ang penalty sa next bill
-        # You can implement this logic later
-        
-        penalties_applied += 1
-        print(f"  ⚠️ {bill.room.name}: {bill.billing_month} - {days_late} days late")
-    
-    print("-" * 50)
-    print(f"✅ Created {penalties_applied} late payment alerts")
-    return penalties_applied
-
-
-def run_smart_features_daily():
-    """
-    Run all smart features in one go
-    This can be scheduled daily
-    """
-    print("\n" + "="*60)
-    print("🤖 RUNNING SMART FEATURES")
-    print("="*60)
-    
-    # 1. Check for abnormal usage
-    abnormal = detect_abnormal_usage()
-    
-    # 2. Check high consumption
-    high_cons = check_high_consumption()
-    
-    # 3. Apply late payment penalties
-    late = apply_late_payment_penalty()
-    
-    print("\n" + "="*60)
-    print(f"📊 SUMMARY: {abnormal} abnormal, {high_cons} high consumption, {late} late payments")
-    print("="*60)
-    
-    return {
-        'abnormal': abnormal,
-        'high_consumption': high_cons,
-        'late_payments': late
-    }
-
 
 # ============== OWNER DASHBOARD ==============
 @login_required
@@ -793,8 +726,6 @@ def tenant_dashboard(request):
     current_bill = bills.filter(billing_month=current_month).first()
 
     # ==================== PAYMENT SECTION ====================
-    from .models import Payment
-    
     pending_payment = None
     reference_number = ''
     
@@ -944,16 +875,14 @@ def add_room(request):
     
     if request.method == 'POST':
         name = request.POST.get('name')
-        limit = float(request.POST.get('limit', 200))  # Default 200 kwh (mas realistic)
+        limit = float(request.POST.get('limit', 200))
         usage = float(request.POST.get('usage', 0))
         power_status = request.POST.get('power_status') == 'on'
         
-        # Validate
         if not name:
             messages.error(request, "Room name is required.")
             return render(request, 'system/add_room.html')
         
-        # Create new room
         room = Room.objects.create(
             name=name,
             usage=usage,
@@ -961,10 +890,8 @@ def add_room(request):
             power_status=power_status
         )
         
-        # Log activity (from pinapa-add na code)
         log_activity(request.user, 'create', f"Created new room: {name}")
         
-        # Create alert for new room (from pinapa-add na code - enabled)
         Alert.objects.create(
             alert_type='power_on',
             message=f"New room added: {name}",
@@ -974,7 +901,6 @@ def add_room(request):
         messages.success(request, f"Room '{name}' added successfully!")
         return redirect('dashboard')
     
-    # Get unread alerts count
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
     return render(request, 'system/add_room.html', {
@@ -989,18 +915,16 @@ def edit_room(request, room_id):
         return redirect('tenant_dashboard')
     
     room = get_object_or_404(Room, id=room_id)
-    old_name = room.name  # Save old name for logging
+    old_name = room.name
     
     if request.method == 'POST':
         room.name = request.POST.get('name')
-        room.limit = float(request.POST.get('limit', 200))  # Default 200 (original)
+        room.limit = float(request.POST.get('limit', 200))
         room.usage = float(request.POST.get('usage', room.usage))
         room.save()
         
-        # Log activity (from pinapa-add)
         log_activity(request.user, 'update', f"Updated room: {old_name} → {room.name}")
         
-        # Create alert
         Alert.objects.create(
             alert_type='billing',
             message=f"Room {room.name} updated",
@@ -1010,7 +934,6 @@ def edit_room(request, room_id):
         messages.success(request, f"Room '{room.name}' updated successfully!")
         return redirect('dashboard')
     
-    # Get unread alerts count
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
     return render(request, 'system/edit_room.html', {
@@ -1028,17 +951,14 @@ def delete_room(request, room_id):
     room = get_object_or_404(Room, id=room_id)
     room_name = room.name
     
-    # Log activity before deleting (from pinapa-add)
     log_activity(request.user, 'delete', f"Deleted room: {room_name}")
     
-    # Remove any tenants from this room
     UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
     
-    # Create alert before deleting
     Alert.objects.create(
         alert_type='power_off',
         message=f"Room deleted: {room_name}",
-        room=None  # No room since it's being deleted
+        room=None
     )
     
     room.delete()
@@ -1061,10 +981,8 @@ def assign_tenant(request, room_id):
         if tenant_id:
             tenant_profile = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant')
             
-            # Deactivate previous assignment for this room
             TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             
-            # Create new assignment
             assignment = TenantAssignment.objects.create(
                 tenant=tenant_profile,
                 room=room,
@@ -1072,14 +990,11 @@ def assign_tenant(request, room_id):
                 is_active=True
             )
             
-            # Assign room to tenant profile
             tenant_profile.room = room
             tenant_profile.save()
             
-            # Log activity (from pinapa-add)
             log_activity(request.user, 'assign', f"Assigned {tenant_profile.user.username} to room {room.name}")
             
-            # Create alert
             Alert.objects.create(
                 room=room,
                 alert_type='tenant_assigned',
@@ -1088,11 +1003,9 @@ def assign_tenant(request, room_id):
             
             messages.success(request, f"Tenant {tenant_profile.user.username} assigned to {room.name}")
         else:
-            # Remove tenant
             TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
             
-            # Log activity (from pinapa-add)
             log_activity(request.user, 'remove', f"Removed tenant from room {room.name}")
             
             messages.success(request, f"Tenant removed from {room.name}.")
@@ -1108,14 +1021,12 @@ def remove_tenant(request, room_id):
     
     room = get_object_or_404(Room, id=room_id)
     
-    # Find and remove tenant
     tenant_profile = UserProfile.objects.filter(room=room, user_type='tenant').first()
     if tenant_profile:
         tenant_name = tenant_profile.user.get_full_name() or tenant_profile.user.username
         tenant_profile.room = None
         tenant_profile.save()
     
-        
         Alert.objects.create(
             room=room,
             alert_type='tenant_removed',
@@ -1138,15 +1049,11 @@ def tenant_list(request):
     with_room = tenants.filter(room__isnull=False).count()
     without_room = tenants.filter(room__isnull=True).count()
     
-    # Remove unread_alerts_count if not needed
-    # unread_alerts_count = Alert.objects.filter(is_read=False).count()
-    
     return render(request, 'system/tenant_list.html', {
         'tenants': tenants,
         'total_tenants': total_tenants,
         'with_room': with_room,
         'without_room': without_room,
-        # 'unread_alerts_count': unread_alerts_count,  # Tinanggal
         'username': request.user.username,
     })
 
@@ -1161,20 +1068,14 @@ def billing_view(request):
     
     current_month = timezone.now().strftime("%B %Y")
     
-    # Compute due date
     from datetime import date
     import calendar
     today = date.today()
     last_day = calendar.monthrange(today.year, today.month)[1]
     due_date = date(today.year, today.month, last_day)
     
-    # Debug: I-print para makita
-    print(f"Current month: {current_month}")
-    print(f"Due date: {due_date}")
-    
     rooms = Room.objects.all()
     for room in rooms:
-        # Check if room has an active tenant
         has_tenant = UserProfile.objects.filter(room=room, user_type='tenant').exists()
         
         if has_tenant:
@@ -1195,13 +1096,11 @@ def billing_view(request):
                 bill.cost = room.usage * settings.electricity_rate
                 bill.save()
         else:
-            # If no tenant, delete any existing bill for this month
             Billing.objects.filter(room=room, billing_month=current_month).delete()
     
-    # Filter: Only show bills for rooms with tenants
     bills = Billing.objects.filter(
         billing_month=current_month,
-        room__userprofile__user_type='tenant',  # May tenant ang room
+        room__userprofile__user_type='tenant',
         room__userprofile__isnull=False
     ).select_related('room').distinct()
     
@@ -1209,7 +1108,6 @@ def billing_view(request):
     total_cost = sum(bill.cost for bill in bills)
     paid_count = sum(1 for bill in bills if bill.is_paid)
     
-    # Get unread alerts count
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
     return render(request, 'system/billing.html', {
@@ -1230,7 +1128,6 @@ def mark_as_paid(request, bill_id):
     
     bill = get_object_or_404(Billing, id=bill_id)
     
-    # Check if room has a tenant before allowing to mark as paid
     has_tenant = UserProfile.objects.filter(room=bill.room, user_type='tenant').exists()
     
     if not has_tenant:
@@ -1254,42 +1151,30 @@ def billing_history(request):
     if request.user.userprofile.user_type != 'owner':
         return redirect('tenant_dashboard')
     
-    # Get all search parameters
     room_name = request.GET.get('room_name', '').strip()
     month_filter = request.GET.get('month', '')
     status_filter = request.GET.get('status', '')
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
     
-    # Base query - ONLY rooms with tenants (added filter)
     bills_query = Billing.objects.filter(
-        room__userprofile__user_type='tenant'  # May tenant ang room
+        room__userprofile__user_type='tenant'
     ).select_related('room').distinct()
     
-    # Apply Room Name filter (case-insensitive search)
     if room_name:
-        bills_query = bills_query.filter(
-            Q(room__name__icontains=room_name)
-        )
-    
-    # Apply Month filter
+        bills_query = bills_query.filter(room__name__icontains=room_name)
     if month_filter:
         bills_query = bills_query.filter(billing_month=month_filter)
-    
-    # Apply Status filter
     if status_filter == 'paid':
         bills_query = bills_query.filter(is_paid=True)
     elif status_filter == 'unpaid':
         bills_query = bills_query.filter(is_paid=False)
-    
-    # Apply Date Range filter
     if start_date:
         try:
             start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
             bills_query = bills_query.filter(created_at__date__gte=start_datetime)
         except ValueError:
             pass
-    
     if end_date:
         try:
             end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
@@ -1297,15 +1182,12 @@ def billing_history(request):
         except ValueError:
             pass
     
-    # Order results
     all_bills = bills_query.order_by('-billing_month', 'room__name')
     
-    # Get unique months for dropdown - ONLY rooms with tenants
     available_months = Billing.objects.filter(
         room__userprofile__user_type='tenant'
     ).values_list('billing_month', flat=True).distinct().order_by('-billing_month')
     
-    # Group bills by month for display
     bills_by_month = {}
     for bill in all_bills:
         month_str = bill.billing_month
@@ -1327,10 +1209,8 @@ def billing_history(request):
         if bill.is_paid:
             bills_by_month[month_str]['paid_count'] += 1
     
-    # Sort months in descending order
     def month_sort_key(month_str):
         try:
-            # Try to parse as date for proper sorting
             return datetime.strptime(month_str, "%B %Y")
         except:
             return datetime.min
@@ -1341,7 +1221,6 @@ def billing_history(request):
         reverse=True
     ))
     
-    # Prepare search params for template
     search_params = {
         'room_name': room_name,
         'month': month_filter,
@@ -1364,10 +1243,8 @@ def billing_history(request):
 # ============== ALERTS VIEWS ==============
 @login_required
 def alerts_view(request):
-    # Full alerts list (for alerts page)
     all_alerts = Alert.objects.order_by('-created_at')
 
-    # Mark all as read
     if request.method == 'POST' and 'mark_all_read' in request.POST:
         Alert.objects.filter(is_read=False).update(is_read=True)
         messages.success(request, "All alerts marked as read.")
@@ -1416,7 +1293,6 @@ def run_smart_features_api(request):
     """API endpoint to manually run smart features"""
     profile = request.user.userprofile
     
-    # Only owners can run this
     if profile.user_type != 'owner':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
@@ -1429,7 +1305,6 @@ def system_settings(request):
     """System settings page for owner"""
     profile = request.user.userprofile
     
-    # Only owners can access
     if profile.user_type != 'owner':
         return redirect('dashboard')
     
@@ -1437,7 +1312,6 @@ def system_settings(request):
     settings = SystemSettings.get_settings()
     
     if request.method == 'POST':
-        # Update settings
         settings.electricity_rate = float(request.POST.get('electricity_rate', 23))
         settings.late_penalty_amount = float(request.POST.get('late_penalty_amount', 50))
         settings.reminder_days_before = int(request.POST.get('reminder_days_before', 3))
@@ -1447,7 +1321,6 @@ def system_settings(request):
         settings.contact_phone = request.POST.get('contact_phone', '+63 XXX XXX XXXX')
         settings.save()
         
-        # ADD extra_tags para mafilter sa template
         messages.success(request, "✅ System settings updated successfully!", extra_tags='settings')
         return redirect('system_settings')
     
@@ -1457,23 +1330,21 @@ def system_settings(request):
         'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })
 
-@login_required
+
 @login_required
 def system_health(request):
-    """System health check for owner"""
+    """System health check for owner (FIXED: removed duplicate decorator)"""
     profile = request.user.userprofile
     
     if profile.user_type != 'owner':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
-    # Check database
     rooms_count = Room.objects.count()
     tenants_count = UserProfile.objects.filter(user_type='tenant').count()
     bills_count = Billing.objects.count()
     readings_count = EnergyUsage.objects.count()
     alerts_count = Alert.objects.filter(is_read=False).count()
     
-    # Check upcoming bills
     today = timezone.now().date()
     upcoming_bills = Billing.objects.filter(
         is_paid=False,
@@ -1485,7 +1356,6 @@ def system_health(request):
         due_date__lt=today
     ).count()
     
-    # Check recent activity
     last_reading = EnergyUsage.objects.order_by('-timestamp').first()
     last_alert = Alert.objects.order_by('-created_at').first()
     
@@ -1514,11 +1384,9 @@ def health_dashboard(request):
     """Health dashboard page with nice UI (for humans)"""
     profile = request.user.userprofile
     
-    # Only owners can access
     if profile.user_type != 'owner':
         return redirect('dashboard')
     
-    # Kunin ang data (same sa API)
     rooms_count = Room.objects.count()
     tenants_count = UserProfile.objects.filter(user_type='tenant').count()
     bills_count = Billing.objects.count()
@@ -1539,7 +1407,6 @@ def health_dashboard(request):
     last_reading = EnergyUsage.objects.order_by('-timestamp').first()
     last_alert = Alert.objects.order_by('-created_at').first()
     
-    # Kunin din ang rooms with issues
     rooms_over_limit = []
     for room in Room.objects.all():
         total_usage = EnergyUsage.objects.filter(
@@ -1579,18 +1446,15 @@ def edit_profile(request):
     
     profile = request.user.userprofile
     
-    # Only tenants can access this
     if profile.user_type != 'tenant':
         return redirect('dashboard')
     
     if request.method == 'POST':
-        # Get form data
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
         
-        # Validate
         errors = []
         
         if not email:
@@ -1609,21 +1473,18 @@ def edit_profile(request):
                 'username': request.user.username,
             })
         
-        # Update user info
         user = request.user
         user.first_name = first_name
         user.last_name = last_name
         user.email = email
         user.save()
         
-        # Update profile info
         profile.phone_number = phone_number
         profile.save()
         
         messages.success(request, "✅ Profile updated successfully!")
         return redirect('tenant_dashboard')
     
-    # GET request - show form with current data
     return render(request, 'user/edit_profile.html', {
         'profile': profile,
         'first_name': request.user.first_name,
@@ -1633,58 +1494,8 @@ def edit_profile(request):
         'username': request.user.username,
     })
 
-import secrets
-import hashlib
-from datetime import datetime
 
-def generate_reference_number(bill):
-    """Generate unique reference number for payment"""
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    room_code = bill.room.name.replace(' ', '').upper()
-    amount_hash = hashlib.md5(str(bill.cost).encode()).hexdigest()[:6]
-    return f"PAY-{room_code}-{timestamp}-{amount_hash}"
-
-def create_payment_record(bill, tenant, payment_method):
-    """Create a payment record"""
-    from .models import Payment
-    
-    reference = generate_reference_number(bill)
-    
-    payment = Payment.objects.create(
-        bill=bill,
-        tenant=tenant,
-        amount=bill.cost,
-        payment_method=payment_method,
-        reference_number=reference,
-        status='pending'
-    )
-    
-    return payment
-
-def mark_payment_as_paid(payment, transaction_id=None):
-    """Mark payment as paid and update bill status"""
-    from django.utils import timezone
-    
-    payment.status = 'paid'
-    payment.paid_at = timezone.now()
-    if transaction_id:
-        payment.transaction_id = transaction_id
-    payment.save()
-    
-    # Update the bill status
-    bill = payment.bill
-    bill.is_paid = True
-    bill.save()
-    
-    # Create alert
-    Alert.objects.create(
-        room=bill.room,
-        alert_type='billing',
-        message=f"Payment received for {bill.billing_month} via {payment.get_payment_method_display()}. Reference: {payment.reference_number}"
-    )
-    
-    return payment
-
+# ============== GCASH/PAYMENT VIEWS ==============
 @login_required
 def create_gcash_payment(request, bill_id):
     """Create GCash payment via PayMongo"""
@@ -1699,31 +1510,56 @@ def create_gcash_payment(request, bill_id):
         messages.warning(request, "This bill is already paid.")
         return redirect('tenant_dashboard')
     
-    # Create or get pending payment
     payment = Payment.objects.filter(bill=bill, status='pending').first()
     if not payment:
         payment = create_payment_record(bill, profile, 'gcash')
-    
-    # Get PayMongo instance
-    paymongo = get_paymongo()
-    
-    # Create checkout session
-    success_url = request.build_absolute_uri(f'/payment/success/{payment.reference_number}/')
-    cancel_url = request.build_absolute_uri('/tenant/')
-    
-    result = paymongo.create_checkout_session(
-        amount=bill.cost,
-        description=f"Electricity Bill - {bill.room.name} - {bill.billing_month}",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        reference=payment.reference_number
-    )
-    
-    if result.get('status') == 'success':
-        checkout_url = result['data']['attributes']['checkout_url']
-        return redirect(checkout_url)
+        print(f"✅ Created new payment with reference: {payment.reference_number}")
     else:
-        messages.error(request, "Failed to create payment. Please try again.")
+        print(f"✅ Using existing payment with reference: {payment.reference_number}")
+    
+    # IMPORTANT: Gamitin ang APP_BASE_URL mula sa settings
+    from django.conf import settings as django_settings
+    base_url = getattr(django_settings, 'APP_BASE_URL', 'http://127.0.0.1:8000')
+    
+    success_url = f"{base_url}/payment/success/{payment.reference_number}/"
+    cancel_url = f"{base_url}/tenant/"
+    
+    # ✅ IMPORTANT: Isama ang reference_number sa description para makuha ng webhook
+    description = f"Electricity Bill - {bill.room.name} - {bill.billing_month} - Ref: {payment.reference_number}"
+    
+    print(f"🔗 Success URL: {success_url}")
+    print(f"🔗 Cancel URL: {cancel_url}")
+    print(f"💰 Amount: {bill.cost}")
+    print(f"📝 Reference: {payment.reference_number}")
+    print(f"📝 Description: {description}")
+    
+    if not PAYMONGO_AVAILABLE:
+        messages.info(request, "GCash payment is in simulation mode. Use the checkout link to test.")
+        return redirect('payment_checkout_simulation', reference=payment.reference_number)
+    
+    try:
+        paymongo = get_paymongo()
+        
+        result = paymongo.create_checkout_session(
+            amount=bill.cost,
+            description=description,  # ✅ ITO ANG BAGO - may reference_number na
+            success_url=success_url,
+            cancel_url=cancel_url,
+            reference=payment.reference_number
+        )
+        
+        if result.get('status') == 'success' or 'data' in result:
+            checkout_url = result['data']['attributes']['checkout_url']
+            print(f"🚀 Redirecting to: {checkout_url}")
+            return redirect(checkout_url)
+        else:
+            error_msg = result.get('error', 'Unknown error')
+            messages.error(request, f"Failed to create payment: {error_msg}")
+            return redirect('tenant_dashboard')
+            
+    except Exception as e:
+        print(f"❌ PayMongo error: {str(e)}")
+        messages.error(request, f"Payment gateway error: {str(e)}")
         return redirect('tenant_dashboard')
 
 
@@ -1732,13 +1568,6 @@ def payment_success(request, reference_number):
     """Handle successful payment callback"""
     payment = get_object_or_404(Payment, reference_number=reference_number)
     
-    # Verify payment with PayMongo
-    paymongo = get_paymongo()
-    
-    # In simulation, this would verify
-    # In live, you'd use the transaction ID
-    
-    # Mark as paid
     mark_payment_as_paid(payment, transaction_id=reference_number)
     
     messages.success(request, f"✅ Payment of ₱{payment.amount} for {payment.bill.billing_month} has been received!")
@@ -1757,16 +1586,13 @@ def manual_paid_confirmation(request, bill_id):
     bill = get_object_or_404(Billing, id=bill_id, room=profile.room)
     
     if request.method == 'POST':
-        # Import Payment here or make sure it's imported at top
         payment = Payment.objects.filter(bill=bill, status='pending').first()
         if not payment:
             payment = create_payment_record(bill, profile, 'cash')
         
-        # Update payment with note
         payment.notes = request.POST.get('notes', '')
         payment.save()
         
-        # Create alert for owner
         Alert.objects.create(
             room=bill.room,
             alert_type='billing',
@@ -1794,7 +1620,6 @@ def payment_method(request):
     if not room:
         return redirect('tenant_dashboard')
     
-    # Get current bill
     current_month = timezone.now().strftime("%B %Y")
     current_bill = Billing.objects.filter(room=room, billing_month=current_month).first()
     
@@ -1802,8 +1627,6 @@ def payment_method(request):
         messages.info(request, "No bill available for this month.")
         return redirect('tenant_dashboard')
     
-    # Get or create pending payment
-    from .models import Payment
     pending_payment = Payment.objects.filter(bill=current_bill, status='pending').first()
     
     if not pending_payment and not current_bill.is_paid:
@@ -1819,15 +1642,43 @@ def payment_method(request):
 
 @login_required
 def payment_checkout_simulation(request, reference):
-    """Simulate PayMongo checkout page"""
+    """Simulate PayMongo checkout page - FIXED for testing"""
     from .models import Payment
     
     payment = get_object_or_404(Payment, reference_number=reference)
     bill = payment.bill
     
+    # Para sa debugging
+    print(f"\n🔍 SIMULATION CHECKOUT - Reference: {reference}")
+    print(f"   Payment ID: {payment.id}")
+    print(f"   Bill ID: {bill.id}")
+    print(f"   Bill is_paid: {bill.is_paid}")
+    print(f"   Payment status: {payment.status}")
+    
     if request.method == 'POST':
-        # Simulate successful payment
-        mark_payment_as_paid(payment, transaction_id=f"SIM_{reference}")
+        print("\n💳 POST request received - Processing payment...")
+        
+        # Mark as paid
+        payment.status = 'paid'
+        payment.paid_at = timezone.now()
+        payment.transaction_id = f"SIM_{reference}"
+        payment.save()
+        
+        # Update the bill
+        bill.is_paid = True
+        bill.save()
+        
+        # Create alert
+        Alert.objects.create(
+            room=bill.room,
+            alert_type='billing',
+            message=f"✅ Payment of ₱{payment.amount} for {bill.billing_month} has been received via SIMULATION."
+        )
+        
+        print(f"✅ Payment marked as paid!")
+        print(f"   Payment status: {payment.status}")
+        print(f"   Bill is_paid: {bill.is_paid}")
+        
         messages.success(request, f"✅ Payment of ₱{payment.amount} for {bill.billing_month} has been received!")
         return redirect('tenant_dashboard')
     
@@ -1846,19 +1697,16 @@ def export_billing_csv(request):
     if profile.user_type != 'owner':
         return redirect('dashboard')
     
-    # Get filter parameters
     room_name = request.GET.get('room_name', '').strip()
     month_filter = request.GET.get('month', '')
     status_filter = request.GET.get('status', '')
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
     
-    # Base query
     bills_query = Billing.objects.filter(
         room__userprofile__user_type='tenant'
     ).select_related('room').distinct()
     
-    # Apply filters
     if room_name:
         bills_query = bills_query.filter(room__name__icontains=room_name)
     if month_filter:
@@ -1869,14 +1717,12 @@ def export_billing_csv(request):
         bills_query = bills_query.filter(is_paid=False)
     if start_date:
         try:
-            from datetime import datetime
             start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
             bills_query = bills_query.filter(created_at__date__gte=start_datetime)
         except ValueError:
             pass
     if end_date:
         try:
-            from datetime import datetime
             end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
             bills_query = bills_query.filter(created_at__date__lte=end_datetime)
         except ValueError:
@@ -1884,26 +1730,22 @@ def export_billing_csv(request):
     
     bills = bills_query.order_by('-billing_month', 'room__name')
     
-    # Calculate summary
     total_bills = bills.count()
     total_amount = sum(bill.cost for bill in bills)
     paid_bills = sum(1 for bill in bills if bill.is_paid)
     unpaid_bills = total_bills - paid_bills
     collection_rate = (paid_bills / total_bills * 100) if total_bills > 0 else 0
     
-    # Create CSV response
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="billing_report_{now().strftime("%Y%m%d_%H%M%S")}.csv"'
     
     writer = csv.writer(response)
     
-    # ============ HEADER SECTION ============
     writer.writerow(['=' * 80])
     writer.writerow(['SMART ENERGY MONITORING SYSTEM'])
     writer.writerow(['BILLING REPORT'])
     writer.writerow([f'Generated: {now().strftime("%B %d, %Y %I:%M %p")}'])
     
-    # Filter info
     filters = []
     if room_name: filters.append(f'Room: {room_name}')
     if month_filter: filters.append(f'Month: {month_filter}')
@@ -1915,7 +1757,6 @@ def export_billing_csv(request):
     writer.writerow(['=' * 80])
     writer.writerow([])
     
-    # ============ SUMMARY SECTION ============
     writer.writerow(['SUMMARY STATISTICS'])
     writer.writerow(['-' * 40])
     writer.writerow([f'Total Bills:,{total_bills}'])
@@ -1927,7 +1768,6 @@ def export_billing_csv(request):
     writer.writerow(['=' * 80])
     writer.writerow([])
     
-    # ============ DETAILS SECTION ============
     writer.writerow(['BILLING DETAILS'])
     writer.writerow(['-' * 100])
     writer.writerow([
@@ -1935,7 +1775,6 @@ def export_billing_csv(request):
     ])
     writer.writerow(['-' * 100])
     
-    # Write data rows
     for bill in bills:
         tenant_name = 'N/A'
         try:
@@ -1969,19 +1808,16 @@ def billing_report_html(request):
     if profile.user_type != 'owner':
         return redirect('dashboard')
     
-    # Same filters as CSV
     room_name = request.GET.get('room_name', '').strip()
     month_filter = request.GET.get('month', '')
     status_filter = request.GET.get('status', '')
     start_date = request.GET.get('start_date', '')
     end_date = request.GET.get('end_date', '')
     
-    # Base query
     bills_query = Billing.objects.filter(
         room__userprofile__user_type='tenant'
     ).select_related('room').distinct()
     
-    # Apply filters
     if room_name:
         bills_query = bills_query.filter(room__name__icontains=room_name)
     if month_filter:
@@ -1992,14 +1828,12 @@ def billing_report_html(request):
         bills_query = bills_query.filter(is_paid=False)
     if start_date:
         try:
-            from datetime import datetime
             start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
             bills_query = bills_query.filter(created_at__date__gte=start_datetime)
         except ValueError:
             pass
     if end_date:
         try:
-            from datetime import datetime
             end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
             bills_query = bills_query.filter(created_at__date__lte=end_datetime)
         except ValueError:
@@ -2007,14 +1841,12 @@ def billing_report_html(request):
     
     bills = bills_query.order_by('-billing_month', 'room__name')
     
-    # Calculate summary
     total_bills = bills.count()
     total_amount = sum(bill.cost for bill in bills)
     paid_bills = sum(1 for bill in bills if bill.is_paid)
     unpaid_bills = total_bills - paid_bills
     collection_rate = (paid_bills / total_bills * 100) if total_bills > 0 else 0
     
-    # Prepare filter display
     filter_text = "All Records"
     if room_name or month_filter or status_filter or start_date or end_date:
         filters = []
@@ -2041,27 +1873,6 @@ def billing_report_html(request):
         'username': request.user.username,
     })
 
-def log_activity(user, action, description, ip_address=None):
-    """Helper function to log user activities"""
-    if not ip_address:
-        import socket
-        try:
-            ip_address = socket.gethostbyname(socket.gethostname())
-        except:
-            ip_address = '127.0.0.1'
-    
-    user_type = 'tenant'
-    if hasattr(user, 'userprofile'):
-        user_type = user.userprofile.user_type
-    
-    ActivityLog.objects.create(
-        user=user,
-        user_type=user_type,
-        action=action,
-        description=description,
-        ip_address=ip_address
-    )
-
 @login_required
 def activity_log(request):
     """View for owner to see all system activities"""
@@ -2070,20 +1881,16 @@ def activity_log(request):
     if profile.user_type != 'owner':
         return redirect('dashboard')
     
-    # Get all logs with pagination
     logs = ActivityLog.objects.all()
     
-    # Filter by action type
     action_filter = request.GET.get('action', '')
     if action_filter:
         logs = logs.filter(action=action_filter)
     
-    # Filter by user type
     user_type_filter = request.GET.get('user_type', '')
     if user_type_filter:
         logs = logs.filter(user_type=user_type_filter)
     
-    # Search by username
     search = request.GET.get('search', '')
     if search:
         logs = logs.filter(user__username__icontains=search)
@@ -2093,11 +1900,9 @@ def activity_log(request):
     page_number = request.GET.get('page')
     logs_page = paginator.get_page(page_number)
     
-    # Get statistics
     total_actions = ActivityLog.objects.count()
     recent_24h = ActivityLog.objects.filter(created_at__gte=timezone.now() - timezone.timedelta(hours=24)).count()
     
-    # Group by action type
     action_counts = {}
     for action in dict(ActivityLog.ACTION_TYPES).keys():
         action_counts[action] = ActivityLog.objects.filter(action=action).count()
