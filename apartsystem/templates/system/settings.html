@@ -196,59 +196,68 @@
                 <i class="fas fa-sliders-h"></i> System Configuration
             </h1>
 
-            <form method="post">
-                {% csrf_token %}
-
-                <div class="form-group">
-                    <label><i class="fas fa-tag"></i> System Name</label>
-                    <input type="text" name="system_name" value="{{ settings.system_name }}" required>
-                    <div class="help-text">Name displayed in emails and dashboard</div>
-                </div>
-
-                <div class="form-group">
-                    <label><i class="fas fa-bolt"></i> Electricity Rate (PHP per kWh)</label>
-                    <input type="number" name="electricity_rate" step="0.01" value="{{ settings.electricity_rate }}" required>
-                    <div class="help-text">Current rate: ₱{{ settings.electricity_rate }}/kWh</div>
-                </div>
-
-                <div class="form-group">
-                    <label><i class="fas fa-exclamation-triangle"></i> Late Payment Penalty (PHP)</label>
-                    <input type="number" name="late_penalty_amount" step="0.01" value="{{ settings.late_penalty_amount }}" required>
-                    <div class="help-text">Amount added to overdue bills</div>
-                </div>
-
-                <div class="form-group">
-                    <label><i class="fas fa-bell"></i> Reminder Days Before Due</label>
-                    <input type="number" name="reminder_days_before" value="{{ settings.reminder_days_before }}" required>
-                    <div class="help-text">Send email reminder X days before due date</div>
-                </div>
-
-                <div class="form-group">
-                    <label><i class="fas fa-chart-line"></i> Abnormal Detection Threshold (standard deviations)</label>
-                    <input type="number" name="abnormal_threshold" step="0.1" value="{{ settings.abnormal_threshold }}" required>
-                    <div class="help-text">Higher = less sensitive, Lower = more alerts</div>
-                </div>
-
-                <div class="form-group">
-                    <label><i class="fas fa-envelope"></i> Contact Email</label>
-                    <input type="email" name="contact_email" value="{{ settings.contact_email }}" required>
-                    <div class="help-text">Displayed in tenant dashboard</div>
-                </div>
-
-                <div class="form-group">
-                    <label><i class="fas fa-phone"></i> Contact Phone</label>
-                    <input type="text" name="contact_phone" value="{{ settings.contact_phone }}" required>
-                    <div class="help-text">Displayed in tenant dashboard</div>
-                </div>
-
-                <div class="btn-group">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Settings
-                    </button>
-                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
-                        <i class="fas fa-times"></i> Cancel
-                    </a>
-                </div>
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="form-group">
+        <label><i class="fas fa-building"></i> System Name</label>
+        <input type="text" name="system_name" class="form-control" value="{{ settings.system_name|default:'Smart Energy Monitor' }}" required>
+        <div class="help-text">Name displayed in the system</div>
+    </div>
+    
+    <div class="form-group">
+        <label><i class="fas fa-user-tie"></i> Administrator Name</label>
+        <input type="text" name="admin_name" class="form-control" value="{{ settings.admin_name|default:'System Administrator' }}" required>
+        <div class="help-text">Name of the system administrator</div>
+    </div>
+    
+    <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Administrator Email</label>
+        <input type="email" name="admin_email" class="form-control" value="{{ settings.admin_email|default:'admin@example.com' }}" required>
+        <div class="help-text">Email displayed to tenants without rooms</div>
+    </div>
+    
+    <div class="form-group">
+        <label><i class="fas fa-phone-alt"></i> Administrator Phone</label>
+        <input type="tel" name="admin_phone" class="form-control" value="{{ settings.admin_phone|default:'+63 XXX XXX XXXX' }}" required>
+        <div class="help-text">Phone number displayed to tenants without rooms</div>
+    </div>
+    
+    <hr>
+    
+    <div class="form-group">
+        <label><i class="fas fa-coins"></i> Electricity Rate (PHP per kWh)</label>
+        <input type="number" name="electricity_rate" step="0.01" class="form-control" value="{{ settings.electricity_rate|default:'23' }}">
+        <div class="help-text">Current rate per kilowatt-hour</div>
+    </div>
+    
+    <div class="form-group">
+        <label><i class="fas fa-exclamation-triangle"></i> Late Penalty Amount (PHP)</label>
+        <input type="number" name="late_penalty_amount" step="0.01" class="form-control" value="{{ settings.late_penalty_amount|default:'50' }}">
+        <div class="help-text">Penalty added to overdue bills</div>
+    </div>
+    
+    <div class="form-group">
+        <label><i class="fas fa-bell"></i> Reminder Days Before Due</label>
+        <input type="number" name="reminder_days_before" class="form-control" value="{{ settings.reminder_days_before|default:'3' }}">
+        <div class="help-text">Send email reminder X days before due date</div>
+    </div>
+    
+    <div class="form-group">
+        <label><i class="fas fa-chart-line"></i> Abnormal Detection Threshold</label>
+        <input type="number" name="abnormal_threshold" step="0.1" class="form-control" value="{{ settings.abnormal_threshold|default:'2' }}">
+        <div class="help-text">Standard deviations for abnormal detection (higher = less sensitive)</div>
+    </div>
+    
+    <div class="btn-group">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Settings
+        </button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cancel
+        </a>
+    </div>
+</form>
             </form>
         </div>
     </div>

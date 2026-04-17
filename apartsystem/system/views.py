@@ -1302,33 +1302,64 @@ def run_smart_features_api(request):
 
 @login_required
 def system_settings(request):
-    """System settings page for owner"""
     profile = request.user.userprofile
     
     if profile.user_type != 'owner':
         return redirect('dashboard')
     
     from .models import SystemSettings
+    
+    # Get or create settings
     settings = SystemSettings.get_settings()
     
     if request.method == 'POST':
-        settings.electricity_rate = float(request.POST.get('electricity_rate', 23))
-        settings.late_penalty_amount = float(request.POST.get('late_penalty_amount', 50))
-        settings.reminder_days_before = int(request.POST.get('reminder_days_before', 3))
-        settings.abnormal_threshold = float(request.POST.get('abnormal_threshold', 2))
-        settings.system_name = request.POST.get('system_name', 'Smart Energy Monitor')
-        settings.contact_email = request.POST.get('contact_email', 'admin@example.com')
-        settings.contact_phone = request.POST.get('contact_phone', '+63 XXX XXX XXXX')
+        # Get form data with proper handling
+        admin_name = request.POST.get('admin_name', '').strip()
+        admin_email = request.POST.get('admin_email', '').strip()
+        admin_phone = request.POST.get('admin_phone', '').strip()
+        system_name = request.POST.get('system_name', '').strip()
+        
+        # Validate required fields
+        if not admin_name:
+            messages.error(request, "⚠️ Administrator Name is required.")
+            return render(request, 'system/settings.html', {
+                'settings': settings,
+                'username': request.user.username,
+            })
+        
+        if not admin_email:
+            messages.error(request, "⚠️ Administrator Email is required.")
+            return render(request, 'system/settings.html', {
+                'settings': settings,
+                'username': request.user.username,
+            })
+        
+        # Update settings (use default if empty)
+        settings.admin_name = admin_name if admin_name else "System Administrator"
+        settings.admin_email = admin_email if admin_email else "admin@example.com"
+        settings.admin_phone = admin_phone if admin_phone else "+63 XXX XXX XXXX"
+        settings.system_name = system_name if system_name else "Smart Energy Monitor"
+        
+        # Optional fields
+        if request.POST.get('electricity_rate'):
+            settings.electricity_rate = float(request.POST.get('electricity_rate'))
+        if request.POST.get('late_penalty_amount'):
+            settings.late_penalty_amount = float(request.POST.get('late_penalty_amount'))
+        if request.POST.get('reminder_days_before'):
+            settings.reminder_days_before = int(request.POST.get('reminder_days_before'))
+        if request.POST.get('abnormal_threshold'):
+            settings.abnormal_threshold = float(request.POST.get('abnormal_threshold'))
+        
         settings.save()
         
-        messages.success(request, "✅ System settings updated successfully!", extra_tags='settings')
+        messages.success(request, "✅ System settings updated successfully!")
         return redirect('system_settings')
     
     return render(request, 'system/settings.html', {
         'settings': settings,
         'username': request.user.username,
-        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })
+
 
 
 @login_required

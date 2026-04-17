@@ -158,10 +158,10 @@ class SystemSettings(models.Model):
     # System Information
     system_name = models.CharField(max_length=100, default="Smart Energy Monitor")
     
-    # Admin Contact
-    admin_name = models.CharField(max_length=100)
-    admin_email = models.EmailField()
-    admin_phone = models.CharField(max_length=20)
+    # Admin Contact (mag-add ng default values)
+    admin_name = models.CharField(max_length=100, default="System Administrator")
+    admin_email = models.EmailField(default="admin@example.com")
+    admin_phone = models.CharField(max_length=20, default="+63 XXX XXX XXXX")
     
     # Billing Configuration
     electricity_rate = models.FloatField(default=23.0, help_text="PHP per kWh")
@@ -194,7 +194,7 @@ class SystemSettings(models.Model):
             id=1,
             defaults={
                 'system_name': 'Smart Energy Monitor',
-                'admin_name': 'Administrator',
+                'admin_name': 'System Administrator',
                 'admin_email': 'admin@example.com',
                 'admin_phone': '+63 XXX XXX XXXX',
                 'electricity_rate': 23.0,
@@ -223,7 +223,6 @@ class SystemSettings(models.Model):
             'penalty': self.late_penalty_amount,
             'reminder_days': self.reminder_days_before
         }
-
 
 # ============ SIGNALS ============
 @receiver(post_save, sender=User)
