@@ -3,128 +3,10 @@
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <title>Smart Energy System - Billing</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-        
-        body {
-            background-color: #f5f7fa;
-            color: #333;
-            min-height: 100vh;
-        }
-        
-        /* Navigation Bar */
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px 30px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .nav-icon {
-            font-size: 32px;
-            background: rgba(255,255,255,0.2);
-            padding: 10px;
-            border-radius: 10px;
-        }
-        
-        .nav-title h1 {
-            font-size: 22px;
-            margin: 0;
-        }
-        
-        .nav-title p {
-            font-size: 13px;
-            opacity: 0.9;
-            margin: 3px 0 0 0;
-        }
-        
-        .user-info {
-            text-align: right;
-        }
-        
-        .username {
-            font-size: 15px;
-            margin-bottom: 8px;
-        }
-        
-        .nav-btn {
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 20px;
-            border-radius: 20px;
-            transition: background 0.3s;
-            display: inline-block;
-            margin-left: 10px;
-        }
-        
-        .nav-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        /* Main Container */
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-        
-        /* Page Header */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .page-header h1 {
-            color: #2c3e50;
-            font-size: 28px;
-            margin: 0;
-        }
-        
-        .page-header h1 i {
-            margin-right: 10px;
-            color: #667eea;
-        }
-        
-        .back-btn {
-            background: #6c757d;
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-weight: 600;
-            transition: background 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .back-btn:hover {
-            background: #5a6268;
-        }
-        
-        /* Payment Summary */
+        /* Additional styles specific to billing page */
         .payment-summary {
             background: white;
             padding: 30px;
@@ -191,7 +73,6 @@
             color: #28a745 !important;
         }
         
-        /* Bills Table */
         .section-title {
             color: #2c3e50;
             font-size: 22px;
@@ -269,7 +150,6 @@
             background-color: #f8f9fa;
         }
         
-        /* Status Badges */
         .status-badge {
             padding: 8px 16px;
             border-radius: 20px;
@@ -294,7 +174,6 @@
             color: #721c24;
         }
         
-        /* Action Buttons */
         .action-form {
             display: inline;
         }
@@ -332,7 +211,6 @@
             background-color: #c82333;
         }
         
-        /* Footer */
         .footer {
             text-align: center;
             padding: 25px;
@@ -362,7 +240,6 @@
             margin-right: 4px;
         }
         
-        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 50px 20px;
@@ -379,31 +256,70 @@
             margin-bottom: 10px;
             color: #2c3e50;
         }
+        
+        .page-header-custom {
+            margin-bottom: 30px;
+        }
+        
+        .page-header-custom h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .page-header-custom p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .current-month-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-title {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .action-btn {
+                min-width: 120px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            .bills-table th,
+            .bills-table td {
+                padding: 12px 10px;
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <div class="nav-icon"><i class="fas fa-coins"></i></div>
-            <div class="nav-title">
-                <h1>Smart Energy System</h1>
-                <p>Billing Management • {{ current_month }}</p>
-            </div>
-        </div>
-        <div class="user-info">
-            <div class="username">Welcome, <strong>{{ username }}</strong></div>
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
-                <a href="{% url 'dashboard' %}" class="nav-btn"><i class="fas fa-chart-line"></i> Dashboard</a>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- Main Content -->
-    <div class="container">
+    <!-- SIDEBAR NAVIGATION -->
+    {% include 'system/sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
         <!-- Page Header -->
-        <div class="page-header">
-            <h1><i class="fas fa-money-bill-wave"></i> Billing Management - {{ current_month }}</h1>
+        <div class="page-header-custom">
+            <h1><i class="fas fa-money-bill-wave"></i> Billing Management</h1>
+            <p>Manage and track electricity bills for all rooms</p>
+            <div class="current-month-badge">
+                <i class="fas fa-calendar-alt"></i> Current Billing Period: {{ current_month }}
+            </div>
         </div>
         
         <!-- Payment Summary -->
@@ -431,7 +347,7 @@
         <!-- Room Bills -->
         <div class="section-title">
             <span><i class="fas fa-door-open"></i> Room Bills - {{ current_month }}</span>
-            <a href="{% url 'billing_history' %}" class="view-history-btn"><i class="fas fa-history"></i> View History →</a>
+            <!-- <a href="{% url 'billing_history' %}" class="view-history-btn"><i class="fas fa-history"></i> View History →</a> -->
         </div>
         
         {% if bills %}
@@ -488,5 +404,22 @@
             <small><i class="fas fa-charging-station"></i> Electricity rate: ₱{{ electricity_rate }} per kWh • Auto-generated monthly</small>
         </div>
     </div>
+
+    <script>
+        // Add active class to current navigation item
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove active class from all nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Add active class to Billing link
+            const billingLink = document.querySelector('a[href*="billing"]');
+            if (billingLink) {
+                billingLink.classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>

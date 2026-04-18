@@ -203,6 +203,7 @@ def get_building_stats(request):
     # Kunin ang usage per room for this month
     room_stats = []
     total_building_usage = 0
+    occupied_rooms_count = 0  # ✅ BAGO: bilang ng rooms na may tenant
     
     for room in rooms:
         total_kwh = EnergyUsage.objects.filter(
@@ -220,9 +221,19 @@ def get_building_stats(request):
         })
         
         total_building_usage += total_kwh
+        
+        # ✅ BAGO: Bilangin ang rooms na may tenant
+        if room.is_occupied():
+            occupied_rooms_count += 1
     
     # Sort by usage (highest first)
     room_stats.sort(key=lambda x: x['usage'], reverse=True)
+    
+    # ✅ BAGO: Compute average - occupied rooms lang
+    if occupied_rooms_count > 0:
+        avg_per_room = total_building_usage / occupied_rooms_count
+    else:
+        avg_per_room = 0
     
     # Kunin ang daily building usage for chart
     daily_building = []
@@ -241,8 +252,9 @@ def get_building_stats(request):
     
     return JsonResponse({
         'total_rooms': len(rooms),
+        'occupied_rooms': occupied_rooms_count,  # ✅ BAGO: idagdag ito
         'total_usage': round(total_building_usage, 2),
-        'avg_per_room': round(total_building_usage / len(rooms), 2) if rooms else 0,
+        'avg_per_room': round(avg_per_room, 2),  # ✅ BAGO: occupied rooms lang
         'room_stats': room_stats[:5],  # Top 5
         'daily_building': daily_building,
         'days': days,

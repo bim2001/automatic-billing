@@ -67,46 +67,55 @@ def meter_reading(request):
     
     Requires: Authorization: Bearer <API_TOKEN>
     """
-    # ==================== TOKEN VERIFICATION ====================
-    #token = verify_api_token(request)
+@csrf_exempt
+@require_http_methods(["POST"])
+def meter_reading(request):
+    """
+    Enhanced API endpoint para sa IoT device (ESP32)
+    Accepts: 
+        - Single reading: {"room": "R01", "kwh": 0.5}
+        - Multiple readings: {"readings": [{"room": "R01", "kwh": 0.5}, ...]}
+        - With timestamp: {"room": "R01", "kwh": 0.5, "timestamp": "2026-03-14 10:30:00"}
     
-    # Check if token is required (you can disable for local testing)
-    #TOKEN_REQUIRED = True  # Set to False for local testing only
+    Requires: Authorization: Bearer <API_TOKEN>
+    """
+    # ==================== TOKEN VERIFICATION (OPTIONAL - COMMENTED OUT FOR NOW) ====================
+    # token = verify_api_token(request)
+    # TOKEN_REQUIRED = False  # Set to True for production with hardware
     
-    #if TOKEN_REQUIRED and not token:
-     #   return JsonResponse({
-      #      'status': 'error',
-       #     'message': 'Invalid or missing API token. Please provide valid Authorization: Bearer <token>'
-        #}, status=401)
+    # if TOKEN_REQUIRED and not token:
+    #     return JsonResponse({
+    #         'status': 'error',
+    #         'message': 'Invalid or missing API token'
+    #     }, status=401)
     
-    #try:
+    try:
         # Log the request (mask token)
-     #   safe_body = request.body.decode('utf-8')[:200] if request.body else ''
-      #  logger.info(f"Received meter reading request: {safe_body}")
+        safe_body = request.body.decode('utf-8')[:200] if request.body else ''
+        logger.info(f"Received meter reading request: {safe_body}")
         
         # Parse JSON data
-       # data = json.loads(request.body)
+        data = json.loads(request.body)
         
         # Check if it's a batch of readings
-        #if 'readings' in data and isinstance(data['readings'], list):
-         #   return process_batch_readings(data['readings'], token)
+        if 'readings' in data and isinstance(data['readings'], list):
+            return process_batch_readings(data['readings'], None)  # Pass None for token since disabled
         
         # Single reading
-        #return process_single_reading(data, token)
+        return process_single_reading(data, None)  # Pass None for token since disabled
         
-    #except json.JSONDecodeError:
-     #   logger.error("Invalid JSON received")
-      #  return JsonResponse({
-       #     'status': 'error',
-        #    'message': 'Invalid JSON format'
-        #}, status=400)
-    #except Exception as e:
-     #   logger.error(f"Unexpected error: {str(e)}")
-      #  return JsonResponse({
-       #     'status': 'error',
-        #    'message': f'Server error: {str(e)}'
-        #}, status=500)
-
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON received")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid JSON format'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Server error: {str(e)}'
+        }, status=500)
 
 def process_single_reading(data, token=None):
     """Process a single meter reading with optional token validation"""
@@ -231,14 +240,14 @@ def process_batch_readings(readings, token=None):
 
 def check_immediate_alerts(room, kwh):
     """Check for immediate alerts based on reading"""
-    import models
+    from django.db.models import Sum, Avg  # ✅ Tamang import sa loob ng function
     
     # Get today's total usage
     today = timezone.now().date()
     today_total = EnergyUsage.objects.filter(
         room=room,
         timestamp__date=today
-    ).aggregate(total=models.Sum('kwh'))['total'] or 0
+    ).aggregate(total=Sum('kwh'))['total'] or 0
     
     # Check if approaching limit
     if today_total > room.limit * 0.8:  # 80% of limit
@@ -252,7 +261,7 @@ def check_immediate_alerts(room, kwh):
     avg_daily = EnergyUsage.objects.filter(
         room=room,
         timestamp__date__gte=today - timezone.timedelta(days=7)
-    ).aggregate(avg=models.Avg('kwh'))['avg'] or 0
+    ).aggregate(avg=Avg('kwh'))['avg'] or 0
     
     if kwh > avg_daily * 3 and avg_daily > 0:
         Alert.objects.create(

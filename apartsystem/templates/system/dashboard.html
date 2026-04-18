@@ -9,97 +9,7 @@
 <body>
 
     <!-- SIDEBAR NAVIGATION -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-bolt"></i>
-                <span>Smart Energy</span>
-            </div>
-            <div class="version">Owner Dashboard v2.0</div>
-        </div>
-
-        <div class="nav-menu">
-            <div class="nav-item">
-                <a href="{% url 'dashboard' %}" class="nav-link active">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'monitoring_dashboard' %}" class="nav-link">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Monitoring</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'add_room' %}" class="nav-link">
-                    <i class="fas fa-door-open"></i>
-                    <span>Rooms</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'tenant_list' %}" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    <span>Tenants</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'billing_view' %}" class="nav-link">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Billing</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'billing_history' %}" class="nav-link">
-                    <i class="fas fa-history"></i>
-                    <span>History</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'alerts_view' %}" class="nav-link">
-                    <i class="fas fa-bell"></i>
-                    <span>Alerts</span>
-                    {% if unread_alerts_count > 0 %}
-                    <span style="background: #dc3545; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: auto;">
-                        {{ unread_alerts_count }}
-                    </span>
-                    {% endif %}
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'system_settings' %}" class="nav-link">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'system_health_dashboard' %}" class="nav-link">
-                    <i class="fas fa-heartbeat"></i>
-                    <span>Health</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="user-details">
-                    <div class="user-name">{{ username }}</div>
-                    <div class="user-role">System Owner</div>
-                </div>
-            </div>
-            <a href="{% url 'logout_view' %}" class="nav-link" style="padding-left: 0;">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-    </div>
+    {% include 'system/sidebar.html' %}
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
@@ -210,65 +120,65 @@
         {% endif %}
     </div>
 
-<!-- MODAL FOR ROOM DETAILS -->
-<div id="roomModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-door-open"></i> <span id="modalRoomName">Room</span></h3>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <!-- Room Details Section -->
-            <div class="modal-section">
-                <h4><i class="fas fa-chart-line"></i> Room Details</h4>
-                <div class="info-row">
-                    <span class="info-label">Current Usage:</span>
-                    <span class="info-value"><span id="modalUsage"></span> kWh</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Monthly Limit:</span>
-                    <span class="info-value"><span id="modalLimit"></span> kWh</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Used:</span>
-                    <span class="info-value"><span id="modalPercentage"></span>%</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Power Status:</span>
-                    <span class="info-value"><span id="modalPower"></span></span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Current Cost:</span>
-                    <span class="info-value">₱<span id="modalCost"></span></span>
-                </div>
+    <!-- MODAL FOR ROOM DETAILS -->
+    <div id="roomModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-door-open"></i> <span id="modalRoomName">Room</span></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
-
-            <!-- Tenant Assignment Section -->
-            <div class="modal-section" id="tenantSection">
-                <h4><i class="fas fa-user-friends"></i> Tenant</h4>
-                <div id="tenantInfo">
-                    <!-- Will be filled by JS -->
+            <div class="modal-body">
+                <!-- Room Details Section -->
+                <div class="modal-section">
+                    <h4><i class="fas fa-chart-line"></i> Room Details</h4>
+                    <div class="info-row">
+                        <span class="info-label">Current Usage:</span>
+                        <span class="info-value"><span id="modalUsage"></span> kWh</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Monthly Limit:</span>
+                        <span class="info-value"><span id="modalLimit"></span> kWh</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Used:</span>
+                        <span class="info-value"><span id="modalPercentage"></span>%</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Power Status:</span>
+                        <span class="info-value"><span id="modalPower"></span></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Current Cost:</span>
+                        <span class="info-value">₱<span id="modalCost"></span></span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Actions Section -->
-            <div class="modal-section">
-                <h4><i class="fas fa-cog"></i> Actions</h4>
-                <div class="modal-actions">
-                    <a href="#" id="editRoomBtn" class="modal-btn modal-btn-primary">
-                        <i class="fas fa-edit"></i> Edit
-                    </a>
-                    <a href="#" id="togglePowerBtn" class="modal-btn modal-btn-primary">
-                        <i class="fas fa-power-off"></i> Power
-                    </a>
-                    <a href="#" id="deleteRoomBtn" class="modal-btn modal-btn-danger">
-                        <i class="fas fa-trash"></i> Delete
-                    </a>
+                <!-- Tenant Assignment Section -->
+                <div class="modal-section" id="tenantSection">
+                    <h4><i class="fas fa-user-friends"></i> Tenant</h4>
+                    <div id="tenantInfo">
+                        <!-- Will be filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Actions Section -->
+                <div class="modal-section">
+                    <h4><i class="fas fa-cog"></i> Actions</h4>
+                    <div class="modal-actions">
+                        <a href="#" id="editRoomBtn" class="modal-btn modal-btn-primary">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="#" id="togglePowerBtn" class="modal-btn modal-btn-primary">
+                            <i class="fas fa-power-off"></i> Power
+                        </a>
+                        <a href="#" id="deleteRoomBtn" class="modal-btn modal-btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
     <script>
         let currentRoomId = null;

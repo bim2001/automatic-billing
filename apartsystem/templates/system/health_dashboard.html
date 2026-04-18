@@ -3,69 +3,10 @@
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <title>System Health - Smart Energy</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .navbar {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .navbar-left i {
-            font-size: 24px;
-        }
-
-        .navbar-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .navbar-right a {
-            color: white;
-            text-decoration: none;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 18px;
-            border-radius: 20px;
-            transition: background 0.3s;
-        }
-
-        .navbar-right a:hover {
-            background: rgba(255,255,255,0.3);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
+        /* Additional styles specific to health dashboard */
         .header-card {
             background: white;
             border-radius: 20px;
@@ -75,6 +16,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .header-title h1 {
@@ -205,6 +148,7 @@
             background: white;
             border-radius: 20px;
             padding: 30px;
+            margin-bottom: 30px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
 
@@ -228,11 +172,21 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .warning-item i {
             color: #ffc107;
             font-size: 18px;
+        }
+
+        .actions-section {
+            text-align: center;
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -252,47 +206,58 @@
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
+        .page-header-custom {
+            margin-bottom: 30px;
+        }
+
+        .page-header-custom h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .page-header-custom p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
         @media (max-width: 768px) {
             .header-card {
                 flex-direction: column;
                 text-align: center;
-                gap: 15px;
             }
             
             .activity-grid {
                 grid-template-columns: 1fr;
             }
 
-            .navbar {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             }
-
-            .navbar-right {
-                flex-wrap: wrap;
-                justify-content: center;
+            
+            .stat-value {
+                font-size: 28px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="navbar-left">
-            <i class="fas fa-heartbeat"></i> System Health Dashboard
-        </div>
-        <div class="navbar-right">
-            <span><i class="fas fa-user"></i> Welcome, <strong>{{ username }}</strong></span>
-            <a href="{% url 'dashboard' %}" style="color: white; margin-left: 20px;"><i class="fas fa-arrow-left"></i> Back</a>
-        </div>
-    </div>
+    <!-- SIDEBAR NAVIGATION -->
+    {% include 'system/sidebar.html' %}
 
-    <div class="container">
-        <!-- Header -->
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header-custom">
+            <h1><i class="fas fa-heartbeat"></i> System Health Dashboard</h1>
+            <p>Real-time status monitoring of your Smart Energy System</p>
+        </div>
+
+        <!-- Header Status Card -->
         <div class="header-card">
             <div class="header-title">
                 <h1><i class="fas fa-chart-line"></i> System Health Overview</h1>
-                <p><i class="fas fa-info-circle"></i> Real-time status of your Smart Energy System</p>
+                <p><i class="fas fa-info-circle"></i> Current system status and metrics</p>
             </div>
             <div class="status-badge">
                 <i class="fas fa-check-circle"></i> HEALTHY
@@ -381,7 +346,7 @@
             </div>
         </div>
 
-        <!-- Warnings -->
+        <!-- Warnings Section -->
         {% if rooms_over_limit %}
         <div class="warning-card">
             <h2><i class="fas fa-exclamation-triangle"></i> Rooms Exceeding Limit</h2>
@@ -390,20 +355,43 @@
             <div class="warning-item">
                 <i class="fas fa-door-open"></i>
                 <strong>{{ room.name }}</strong>: {{ room.usage|floatformat:1 }} kWh / {{ room.limit }} kWh limit
+                <span style="margin-left: auto; font-size: 12px; color: #856404;">
+                    <i class="fas fa-chart-line"></i> {% widthratio room.usage room.limit 100 %}% used
+                </span>
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Actions -->
-        <div style="text-align: center; margin-top: 30px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-            <a href="{% url 'system_settings' %}" class="btn">
-                <i class="fas fa-cog"></i> Go to Settings
-            </a>
-            <a href="{% url 'monitoring_dashboard' %}" class="btn">
-                <i class="fas fa-chart-line"></i> Go to Monitoring
-            </a>
+        <!-- Action Buttons -->
+        <!-- <div class="actions-section"> -->
+            <!-- <a href="{% url 'system_settings' %}" class="btn"> -->
+                <!-- <i class="fas fa-cog"></i> Go to Settings -->
+            <!-- </a> -->
+            <!-- <a href="{% url 'monitoring_dashboard' %}" class="btn"> -->
+                <!-- <i class="fas fa-chart-line"></i> Go to Monitoring -->
+            <!-- </a> -->
+            <!-- <a href="{% url 'dashboard' %}" class="btn"> -->
+                <!-- <i class="fas fa-tachometer-alt"></i> Back to Dashboard -->
+            <!-- </a> -->
         </div>
     </div>
+
+    <script>
+        // Add active class to current navigation item
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove active class from all nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Add active class to Health link
+            const healthLink = document.querySelector('a[href*="health"]');
+            if (healthLink) {
+                healthLink.classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>

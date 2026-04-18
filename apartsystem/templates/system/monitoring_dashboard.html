@@ -3,183 +3,175 @@
 <html>
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <title>Building Monitoring - Smart Energy</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Building Monitoring - Smart Energy System</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .navbar {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px 30px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar-title {
-            font-size: 24px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .navbar-title i {
-            font-size: 28px;
-        }
-
-        .navbar a {
-            color: white;
-            margin-left: 20px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
+        /* Additional styles specific to monitoring dashboard */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
-
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-
-        .stat-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-            color: #667eea;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #333;
-        }
-
+        
         .chart-card {
             background: white;
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px;
             margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #f0f0f0;
         }
-
+        
         .chart-card h2 {
             margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 18px;
+            color: #2c3e50;
         }
-
+        
         .rooms-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
-
+        
         .room-card {
-            background: white;
-            border-radius: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
         }
-
+        
+        .room-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
         .room-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid #e0e0e0;
         }
-
+        
         .room-name {
             font-size: 18px;
             font-weight: 600;
-            color: #333;
+            color: #2c3e50;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-
+        
         .room-usage {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             color: #667eea;
         }
-
+        
         .progress-bar {
             height: 8px;
-            background: #f0f0f0;
+            background: #e0e0e0;
             border-radius: 4px;
             overflow: hidden;
             margin: 10px 0;
         }
-
+        
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #667eea, #764ba2);
             border-radius: 4px;
             transition: width 0.3s;
         }
-
+        
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ffc107, #fd7e14);
+        }
+        
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+        }
+        
         .room-detail {
             display: flex;
             justify-content: space-between;
             color: #666;
-            font-size: 14px;
-            margin-top: 10px;
+            font-size: 13px;
+            margin-top: 8px;
         }
-
+        
         .badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
             font-weight: 600;
         }
-
+        
         .badge-success {
             background: #d4edda;
             color: #155724;
         }
-
+        
         .badge-warning {
             background: #fff3cd;
             color: #856404;
         }
-
+        
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s;
+            border: 1px solid #e9ecef;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+        }
+        
+        .feature-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .feature-title {
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .feature-desc {
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            max-height: 350px;
+        }
+        
         .btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -191,66 +183,16 @@
             gap: 10px;
             border: none;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             transition: all 0.3s;
         }
-
+        
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-secondary:hover {
-            background: #5a6268;
-            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
-        }
-
-        canvas {
-            max-height: 400px;
-        }
-
-        .feature-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            transition: transform 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .feature-icon {
-            font-size: 36px;
-            margin-bottom: 10px;
-            color: #667eea;
-        }
-
-        .feature-title {
-            margin-bottom: 10px;
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .feature-desc {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
+        
         /* MODAL STYLES */
         .modal-overlay {
             position: fixed;
@@ -268,12 +210,12 @@
             opacity: 0;
             transition: all 0.3s ease;
         }
-
+        
         .modal-overlay.active {
             visibility: visible;
             opacity: 1;
         }
-
+        
         .modal-container {
             background: white;
             border-radius: 24px;
@@ -284,66 +226,66 @@
             transition: transform 0.3s ease;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
         }
-
+        
         .modal-overlay.active .modal-container {
             transform: scale(1);
         }
-
+        
         .modal-header {
             padding: 25px 25px 15px 25px;
             text-align: center;
             border-bottom: 1px solid #f0f0f0;
         }
-
+        
         .modal-header i {
             font-size: 56px;
             color: #ffc107;
             margin-bottom: 15px;
         }
-
+        
         .modal-header h3 {
-            font-size: 24px;
-            color: #333;
+            font-size: 22px;
+            color: #2c3e50;
             margin-bottom: 8px;
         }
-
+        
         .modal-header p {
             color: #666;
-            font-size: 15px;
+            font-size: 14px;
         }
-
+        
         .modal-body {
             padding: 20px 25px;
             background: #f8f9fa;
         }
-
+        
         .feature-list {
             list-style: none;
         }
-
+        
         .feature-list li {
-            padding: 10px 0;
+            padding: 12px 0;
             display: flex;
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid #e0e0e0;
         }
-
+        
         .feature-list li:last-child {
             border-bottom: none;
         }
-
+        
         .feature-list li i {
             font-size: 20px;
             width: 32px;
             color: #667eea;
         }
-
+        
         .feature-list li span {
             color: #333;
             font-size: 14px;
         }
-
+        
         .modal-footer {
             padding: 20px 25px;
             display: flex;
@@ -351,7 +293,7 @@
             justify-content: center;
             border-top: 1px solid #f0f0f0;
         }
-
+        
         .modal-btn {
             padding: 12px 24px;
             border-radius: 30px;
@@ -364,43 +306,59 @@
             align-items: center;
             gap: 8px;
         }
-
+        
         .modal-btn-confirm {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-
+        
         .modal-btn-confirm:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
-
+        
         .modal-btn-cancel {
             background: #e9ecef;
             color: #495057;
         }
-
+        
         .modal-btn-cancel:hover {
             background: #dee2e6;
         }
-
+        
         .loading-spinner {
             display: none;
             text-align: center;
             padding: 20px;
         }
-
+        
         .loading-spinner i {
             font-size: 32px;
             color: #667eea;
             animation: spin 1s linear infinite;
         }
-
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .page-header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
         @media (max-width: 768px) {
             .features-grid {
                 grid-template-columns: 1fr;
@@ -413,47 +371,49 @@
             .modal-btn {
                 justify-content: center;
             }
+            
+            .rooms-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="navbar">
-        <div class="navbar-title">
-            <i class="fas fa-chart-line"></i> Building Monitoring Dashboard
-        </div>
-        <div>
-            <span><i class="fas fa-user"></i> Welcome, <strong>{{ username }}</strong></span>
-            <a href="{% url 'dashboard' %}"><i class="fas fa-arrow-left"></i> Back</a>
-        </div>
-    </div>
+    <!-- SIDEBAR NAVIGATION -->
+    {% include 'system/sidebar.html' %}
 
-    <div class="container">
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-chart-line"></i> Building Monitoring Dashboard</h1>
+            <p>Real-time monitoring of all rooms and building consumption</p>
+        </div>
+
         <!-- Stats Overview -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-building"></i></div>
-                <div class="stat-label">Total Rooms</div>
                 <div class="stat-value" id="totalRooms">0</div>
+                <div class="stat-label">Total Rooms</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-bolt"></i></div>
-                <div class="stat-label">Total Building Usage</div>
                 <div class="stat-value" id="totalUsage">0</div>
-                <div style="color: #666;">kWh this month</div>
+                <div class="stat-label">Total Building Usage (kWh)</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-chart-simple"></i></div>
-                <div class="stat-label">Average per Room</div>
                 <div class="stat-value" id="avgUsage">0</div>
-                <div style="color: #666;">kWh</div>
+                <div class="stat-label">Average per Room (kWh)</div>
             </div>
         </div>
 
         <!-- Smart Features Card -->
-        <div class="chart-card" style="margin-bottom: 30px;">
+        <div class="chart-card">
             <h2><i class="fas fa-microchip"></i> Smart Monitoring Features</h2>
-    
+        
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
@@ -473,7 +433,7 @@
                     <p class="feature-desc">Automatic penalties for overdue bills</p>
                 </div>
             </div>
-    
+        
             <div style="margin-top: 20px; text-align: center;">
                 <button onclick="showSmartFeaturesModal()" class="btn">
                     <i class="fas fa-robot"></i> Run Smart Features Now
@@ -563,6 +523,21 @@
     const resultModal = document.getElementById('resultModal');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const featureList = document.querySelector('#smartFeaturesModal .feature-list');
+
+    // Add active class to current navigation item
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove active class from all nav links
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Add active class to Monitoring link
+        const monitoringLink = document.querySelector('a[href*="monitoring"]');
+        if (monitoringLink) {
+            monitoringLink.classList.add('active');
+        }
+    });
 
     function showSmartFeaturesModal() {
         // Reset modal state
@@ -754,10 +729,25 @@
                     roomCard.className = 'room-card';
                     
                     let medalIcon = '';
+                    let progressClass = '';
+                    
+                    if (percentage >= 100) {
+                        progressClass = 'danger';
+                    } else if (percentage >= 80) {
+                        progressClass = 'warning';
+                    }
+                    
                     if (index === 0) medalIcon = '<i class="fas fa-trophy" style="color: gold;"></i>';
                     else if (index === 1) medalIcon = '<i class="fas fa-trophy" style="color: silver;"></i>';
                     else if (index === 2) medalIcon = '<i class="fas fa-trophy" style="color: #cd7f32;"></i>';
                     else medalIcon = '';
+                    
+                    let statusBadge = '';
+                    if (room.status === 'ON') {
+                        statusBadge = '<span class="badge badge-success">Power ON</span>';
+                    } else {
+                        statusBadge = '<span class="badge badge-danger">Power OFF</span>';
+                    }
                     
                     roomCard.innerHTML = `
                         <div class="room-header">
@@ -765,11 +755,11 @@
                             <span class="room-usage">${room.usage} kWh</span>
                         </div>
                         <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${percentage}%"></div>
+                            <div class="progress-fill ${progressClass}" style="width: ${percentage}%"></div>
                         </div>
                         <div class="room-detail">
-                            <span><i class="fas fa-user"></i> Tenant: ${room.tenant}</span>
-                            <span><i class="fas fa-power-off"></i> Status: ${room.status}</span>
+                            <span><i class="fas fa-user"></i> ${room.tenant}</span>
+                            ${statusBadge}
                         </div>
                         <div class="room-detail">
                             <span><i class="fas fa-tachometer-alt"></i> Limit: ${room.limit} kWh</span>

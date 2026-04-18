@@ -1,0 +1,418 @@
+/* ============================================ */
+/* SIDEBAR NAVIGATION - MAIN STYLES            */
+/* ============================================ */
+
+/* Sidebar Container */
+.sidebar {
+    width: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    padding: 25px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+}
+
+.sidebar-header .logo {
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-header .logo i {
+    font-size: 28px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.sidebar-header .version {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 8px;
+}
+
+/* Navigation Menu */
+.nav-menu {
+    flex: 1;
+    padding: 0 15px;
+}
+
+.nav-item {
+    margin-bottom: 5px;
+}
+
+/* Navigation Links */
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-size: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-link i {
+    width: 22px;
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.nav-link:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateX(5px);
+}
+
+.nav-link:hover i {
+    transform: scale(1.1);
+}
+
+.nav-link.active {
+    background: rgba(255,255,255,0.25);
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Ripple Effect */
+.nav-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.nav-link:active::after {
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: 0s;
+}
+
+/* Nav Divider */
+.nav-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 15px 0;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 12px;
+}
+
+/* User Info Section */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.user-info:hover {
+    background: rgba(255,255,255,0.15);
+    transform: translateX(-3px);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.user-info:hover .user-avatar {
+    transform: scale(1.05);
+    background: rgba(255,255,255,0.3);
+}
+
+.user-details {
+    flex: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.user-role {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+/* Alert Badge */
+.nav-link .alert-badge {
+    background: #dc3545;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-left: auto;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Logout Link in Footer */
+.sidebar-footer .nav-link {
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+/* Custom Scrollbar for Sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+/* ============================================ */
+/* RESPONSIVE SIDEBAR (Collapsed State)        */
+/* ============================================ */
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 70px;
+    }
+    
+    .sidebar-header .logo span,
+    .nav-link span,
+    .user-details,
+    .sidebar-footer .nav-link span,
+    .sidebar-header .version {
+        display: none;
+    }
+    
+    .sidebar-header {
+        padding: 20px 15px;
+    }
+    
+    .sidebar-header .logo {
+        justify-content: center;
+    }
+    
+    .sidebar-header .logo i {
+        font-size: 28px;
+        margin: 0;
+    }
+    
+    .nav-link {
+        justify-content: center;
+        padding: 12px;
+    }
+    
+    .nav-link i {
+        margin: 0;
+        font-size: 20px;
+    }
+    
+    .nav-link .alert-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        margin-left: 0;
+    }
+    
+    .user-info {
+        justify-content: center;
+        padding: 10px 5px;
+    }
+    
+    .user-avatar {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    .sidebar-footer {
+        padding: 15px 10px;
+    }
+    
+    .sidebar-footer .nav-link {
+        justify-content: center;
+        padding: 10px;
+    }
+}
+
+/* ============================================ */
+/* ANIMATIONS & EFFECTS                        */
+/* ============================================ */
+
+/* Hover Tooltip for Collapsed State */
+@media (max-width: 768px) {
+    .nav-link {
+        position: relative;
+    }
+    
+    .nav-link:hover::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 70px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1001;
+        pointer-events: none;
+    }
+}
+
+/* Active Link Indicator */
+.nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 3px;
+    background: white;
+    border-radius: 0 3px 3px 0;
+}
+
+/* Gradient Animation for Sidebar */
+.sidebar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-size: 200% 200%;
+    animation: gradientShift 10s ease infinite;
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Glass Morphism Effect on Hover */
+.nav-link:hover {
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.15);
+}
+
+/* Smooth Transition for Collapse/Expand */
+.sidebar,
+.main-content {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .sidebar {
+        background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    }
+}
+
+/* Print Styles */
+@media print {
+    .sidebar {
+        display: none;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .sidebar {
+        background: #000;
+    }
+    
+    .nav-link {
+        border: 1px solid white;
+    }
+    
+    .nav-link:hover {
+        background: #333;
+    }
+}
+
+/* Accessibility - Focus Styles */
+.nav-link:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+    background: rgba(255,255,255,0.2);
+}
+
+/* Loading Animation for Sidebar */
+.sidebar.loading {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+
+.sidebar.loaded {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}

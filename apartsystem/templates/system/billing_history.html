@@ -4,79 +4,11 @@
 <head>
     <title>Billing History - Smart Energy System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Billing History - Smart Energy System</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Arial, sans-serif;
-        }
-        
-        body {
-            background-color: #f5f7fa;
-        }
-        
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px 30px;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .nav-icon {
-            font-size: 32px;
-            background: rgba(255,255,255,0.2);
-            padding: 10px;
-            border-radius: 10px;
-        }
-        
-        .nav-title h1 {
-            font-size: 22px;
-            margin: 0;
-        }
-        
-        .nav-title p {
-            font-size: 13px;
-            opacity: 0.9;
-            margin: 3px 0 0 0;
-        }
-        
-        .user-info {
-            text-align: right;
-        }
-        
-        .logout-btn {
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            background: rgba(255,255,255,0.2);
-            padding: 6px 18px;
-            border-radius: 20px;
-            transition: background 0.3s;
-            margin-left: 10px;
-        }
-        
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-        
         /* Page Header */
-        .page-header {
+        .page-header-custom {
             background: white;
             padding: 25px;
             border-radius: 12px;
@@ -84,7 +16,7 @@
             margin-bottom: 30px;
         }
         
-        .page-header h1 {
+        .page-header-custom h1 {
             color: #2c3e50;
             font-size: 28px;
             margin: 0;
@@ -144,6 +76,12 @@
             width: 100%;
         }
         
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .btn-search {
             background: #28a745;
             color: white;
@@ -153,6 +91,12 @@
             cursor: pointer;
             font-weight: 600;
             height: 38px;
+            transition: all 0.3s;
+        }
+        
+        .btn-search:hover {
+            background: #218838;
+            transform: translateY(-1px);
         }
         
         .btn-clear {
@@ -168,6 +112,13 @@
             height: 38px;
             display: inline-flex;
             align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        
+        .btn-clear:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
         }
         
         .advanced-filters {
@@ -178,6 +129,11 @@
             cursor: pointer;
             font-weight: 600;
             color: #667eea;
+            user-select: none;
+        }
+        
+        .advanced-summary:hover {
+            color: #5a67d8;
         }
         
         .date-range-grid {
@@ -218,11 +174,13 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
         
         .btn-print:hover {
             background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
         
         /* Billing Table */
@@ -302,14 +260,25 @@
         .action-link {
             text-decoration: none;
             font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
         }
         
         .action-paid {
             color: #28a745;
         }
         
+        .action-paid:hover {
+            background: #d4edda;
+        }
+        
         .action-unpaid {
             color: #dc3545;
+        }
+        
+        .action-unpaid:hover {
+            background: #f8d7da;
         }
         
         /* Empty State */
@@ -332,29 +301,8 @@
             margin-bottom: 10px;
         }
         
-        /* Navigation Buttons */
-        .nav-buttons {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-            justify-content: center;
-        }
-        
-        .nav-btn {
-            padding: 12px 25px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary-nav {
-            background: #667eea;
-            color: white;
-        }
-        
-        .btn-primary-nav:hover {
-            background: #5a67d8;
+        .empty-state p {
+            color: #95a5a6;
         }
         
         /* Footer */
@@ -367,6 +315,30 @@
             border-top: 1px solid #ecf0f1;
         }
         
+        /* Messages */
+        .messages {
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        /* Responsive */
         @media (max-width: 768px) {
             .filter-grid {
                 grid-template-columns: 1fr;
@@ -377,31 +349,33 @@
                 gap: 15px;
                 text-align: center;
             }
+            
+            .date-range-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-brand">
-            <div class="nav-icon"><i class="fas fa-history"></i></div>
-            <div class="nav-title">
-                <h1>Smart Energy System</h1>
-                <p>Advanced Billing History Search</p>
+    <!-- SIDEBAR NAVIGATION -->
+    {% include 'system/sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-circle{% endif %}"></i>
+                {{ message }}
             </div>
+            {% endfor %}
         </div>
-        <div class="user-info">
-            <div style="margin-bottom: 8px; font-size: 15px;">Welcome, <strong>{{ username }}</strong></div>
-            <a href="{% url 'dashboard' %}" class="logout-btn"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
-            <a href="{% url 'billing_view' %}" class="logout-btn"><i class="fas fa-file-invoice-dollar"></i> Current Bill</a>
-            <a href="{% url 'logout_view' %}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
-        </div>
-    </nav>
-    
-    <!-- Main Content -->
-    <div class="container">
+        {% endif %}
+        
         <!-- Page Header -->
-        <div class="page-header">
+        <div class="page-header-custom">
             <h1><i class="fas fa-history"></i> Billing History</h1>
             <p class="page-subtitle">View and manage all electricity bills</p>
         </div>
@@ -561,5 +535,22 @@
             <small>Filter by: Room Name • Month • Status • Date Range</small>
         </div>
     </div>
+
+    <script>
+        // Add active class to current navigation item
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove active class from all nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Add active class to History link
+            const historyLink = document.querySelector('a[href*="billing_history"]');
+            if (historyLink) {
+                historyLink.classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>

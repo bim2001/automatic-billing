@@ -1,0 +1,94 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+
+<div class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-bolt"></i>
+            <span>Smart Energy</span>
+        </div>
+        <div class="version">Owner Dashboard v2.0</div>
+    </div>
+
+    <div class="nav-menu">
+        <div class="nav-item">
+            <a href="{% url 'dashboard' %}" class="nav-link" data-tooltip="Dashboard">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'monitoring_dashboard' %}" class="nav-link" data-tooltip="Monitoring">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Monitoring</span>
+            </a>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-item">
+            <a href="{% url 'add_room' %}" class="nav-link" data-tooltip="Rooms">
+                <i class="fas fa-door-open"></i>
+                <span>Rooms</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'tenant_list' %}" class="nav-link" data-tooltip="Tenants">
+                <i class="fas fa-users"></i>
+                <span>Tenants</span>
+            </a>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-item">
+            <a href="{% url 'billing_view' %}" class="nav-link" data-tooltip="Billing">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <span>Billing</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'billing_history' %}" class="nav-link" data-tooltip="History">
+                <i class="fas fa-history"></i>
+                <span>History</span>
+            </a>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-item">
+            <a href="{% url 'alerts_view' %}" class="nav-link" data-tooltip="Alerts">
+                <i class="fas fa-bell"></i>
+                <span>Alerts</span>
+                {% if unread_alerts_count > 0 %}
+                <span class="alert-badge">
+                    {{ unread_alerts_count }}
+                </span>
+                {% endif %}
+            </a>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-item">
+            <a href="{% url 'system_settings' %}" class="nav-link" data-tooltip="Settings">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'system_health_dashboard' %}" class="nav-link" data-tooltip="Health">
+                <i class="fas fa-heartbeat"></i>
+                <span>Health</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-details">
+                <div class="user-name">{{ username }}</div>
+                <div class="user-role">System Owner</div>
+            </div>
+        </div>
+        <a href="{% url 'logout_view' %}" class="nav-link" data-tooltip="Logout">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</div>

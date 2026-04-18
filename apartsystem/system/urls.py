@@ -44,8 +44,8 @@ urlpatterns = [
     # ==================== MONITORING & SETTINGS ====================
     path('monitoring/', views.monitoring_dashboard, name='monitoring_dashboard'),
     path('settings/', views.system_settings, name='system_settings'),
-    path('system-health/', views.health_dashboard, name='system_health_dashboard'),
-    path('health/', views.health_dashboard, name='health_dashboard'),
+    path('system-health/', views.health_dashboard, name='health_dashboard'),
+    path('health/', views.health_dashboard, name='system_health_dashboard'),
     
     # ==================== API ENDPOINTS ====================
     path('api/meter-reading/', api.meter_reading, name='meter_reading'),
