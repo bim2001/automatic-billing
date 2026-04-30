@@ -105,7 +105,7 @@ def log_activity(user, action, description, ip_address=None):
         ip_address=ip_address
     )
 
-# ============== PAYMONGO WEBHOOK (NEW - ITO ANG KULANG MO!) ==============
+# ============== PAYMONGO WEBHOOK ==============
 @csrf_exempt
 def paymongo_webhook(request):
     """Handle PayMongo webhook callbacks for payment status updates"""
@@ -203,7 +203,7 @@ def get_building_stats(request):
     # Kunin ang usage per room for this month
     room_stats = []
     total_building_usage = 0
-    occupied_rooms_count = 0  # ✅ BAGO: bilang ng rooms na may tenant
+    occupied_rooms_count = 0
     
     for room in rooms:
         total_kwh = EnergyUsage.objects.filter(
@@ -222,14 +222,12 @@ def get_building_stats(request):
         
         total_building_usage += total_kwh
         
-        # ✅ BAGO: Bilangin ang rooms na may tenant
         if room.is_occupied():
             occupied_rooms_count += 1
     
     # Sort by usage (highest first)
     room_stats.sort(key=lambda x: x['usage'], reverse=True)
     
-    # ✅ BAGO: Compute average - occupied rooms lang
     if occupied_rooms_count > 0:
         avg_per_room = total_building_usage / occupied_rooms_count
     else:
@@ -252,10 +250,10 @@ def get_building_stats(request):
     
     return JsonResponse({
         'total_rooms': len(rooms),
-        'occupied_rooms': occupied_rooms_count,  # ✅ BAGO: idagdag ito
+        'occupied_rooms': occupied_rooms_count,
         'total_usage': round(total_building_usage, 2),
-        'avg_per_room': round(avg_per_room, 2),  # ✅ BAGO: occupied rooms lang
-        'room_stats': room_stats[:5],  # Top 5
+        'avg_per_room': round(avg_per_room, 2),
+        'room_stats': room_stats[:5],
         'daily_building': daily_building,
         'days': days,
         'month': today.strftime("%B %Y")
@@ -299,7 +297,7 @@ def get_room_usage_data(request):
         daily_totals[day] += reading.kwh
     
     # Create arrays for Chart.js
-    for day in range(1, 32):  # Max 31 days
+    for day in range(1, 32):
         if day in daily_totals:
             daily_usage.append(round(daily_totals[day], 2))
             days_in_month.append(f"Day {day}")
@@ -341,7 +339,6 @@ def generate_monthly_bills(year=None, month=None):
     import calendar
     
     def get_last_day_of_month(year, month):
-        """Return the last day of the given month"""
         return calendar.monthrange(year, month)[1]
     
     # Get electricity rate from settings
@@ -375,23 +372,19 @@ def generate_monthly_bills(year=None, month=None):
         room = assignment.room
         tenant = assignment.tenant
         
-        # Calculate days occupied this month
         days_occupied = assignment.days_occupied_in_month(year, month)
         
         if days_occupied == 0:
             continue
         
-        # Get total kWh for the room this month
         total_kwh = EnergyUsage.objects.filter(
             room=room,
             timestamp__year=year,
             timestamp__month=month
         ).aggregate(total=Sum('kwh'))['total'] or 0
         
-        # Prorate based on days occupied
         total_days_in_month = get_last_day_of_month(year, month)
         
-        # Avoid division by zero
         if total_days_in_month > 0:
             prorated_kwh = (total_kwh / total_days_in_month) * days_occupied
         else:
@@ -400,7 +393,6 @@ def generate_monthly_bills(year=None, month=None):
         prorated_cost = prorated_kwh * electricity_rate
         due_date = month_end
         
-        # Check if bill already exists for this assignment
         bill, created = Billing.objects.update_or_create(
             room=room,
             billing_month=month_name,
@@ -445,7 +437,6 @@ def send_payment_reminders(days_before_due=3, test_mode=False):
     print(f"\n📧 CHECKING BILLS DUE ON: {reminder_date} (in {days_before_due} days)")
     print("=" * 60)
     
-    # Kunin ang bills na due in X days, unpaid, at hindi pa nasendan ng reminder
     bills = Billing.objects.filter(
         due_date=reminder_date,
         is_paid=False,
@@ -465,22 +456,18 @@ def send_payment_reminders(days_before_due=3, test_mode=False):
     
     for bill in bills:
         try:
-            # Kunin ang tenant
             tenant_profile = UserProfile.objects.get(room=bill.room, user_type='tenant')
             tenant = tenant_profile.user
             tenant_email = tenant.email
             tenant_name = tenant.get_full_name() or tenant.username
             
-            # Skip if no email
             if not tenant_email:
                 print(f"⚠️ SKIPPED: {bill.room.name} - No email for {tenant_name}")
                 skipped_count += 1
                 continue
             
-            # Compute days remaining
             days_remaining = (bill.due_date - today).days
             
-            # Create email content
             subject = f"🧾 Bill Reminder: {bill.billing_month} due in {days_remaining} days"
             
             message = f"""
@@ -510,7 +497,6 @@ Smart Energy Monitor System
                 print(f"   Message: {message[:100]}...")
                 sent_count += 1
             else:
-                # ACTUAL SENDING - use django_settings, not the system settings
                 send_mail(
                     subject=subject,
                     message=message,
@@ -519,7 +505,6 @@ Smart Energy Monitor System
                     fail_silently=False,
                 )
                 
-                # Mark as sent
                 bill.reminder_sent = True
                 bill.save(update_fields=['reminder_sent'])
                 
@@ -581,10 +566,8 @@ def register_tenant(request):
         elif User.objects.filter(email=email).exists():
             context['register_error'] = "Email already registered."
         else:
-            # Create the user
             user = User.objects.create_user(username=username, email=email, password=password)
 
-            # Only create UserProfile if it doesn't exist yet
             if not hasattr(user, 'userprofile'):
                 UserProfile.objects.create(user=user, user_type='tenant')
 
@@ -636,37 +619,30 @@ def logout_view(request):
 @login_required
 def dashboard(request):
     profile = request.user.userprofile
-    settings = get_settings()
 
-    # Only allow owners/admins
     if profile.user_type != 'owner':
         return redirect('tenant_dashboard')
 
     rooms = Room.objects.all()
-    
-    # Get recent alerts
-    recent_alerts = Alert.objects.order_by('-created_at')[:10]
+    settings = get_settings()
+    ELECTRICITY_RATE = settings.electricity_rate
     
     for room in rooms:
-        # Calculate billing using settings rate
-        room.cost = room.usage * settings.electricity_rate
+        current_usage = room.get_current_usage()
+        room.current_usage = current_usage
+        room.cost = current_usage * ELECTRICITY_RATE
         
-        # AUTO-OFF LOGIC with Alert
-        if room.usage > room.limit and room.power_status:
-            # Automatically turn OFF if over limit
+        if current_usage > room.limit and room.power_status:
             room.power_status = False
             room.save()
-            
-            # Create alert for auto power-off
             Alert.objects.create(
                 room=room,
                 alert_type='power_off',
-                message=f"Room {room.name} exceeded limit ({room.usage} > {room.limit} kWh). Power automatically turned OFF."
+                message=f"Room {room.name} exceeded limit ({current_usage} > {room.limit} kWh). Power automatically turned OFF."
             )
         
-        room.over_limit = room.usage > room.limit
+        room.over_limit = current_usage > room.limit
         
-        # Create alert for over limit (if not already created today)
         if room.over_limit and not Alert.objects.filter(
             room=room, 
             alert_type='over_limit',
@@ -675,49 +651,48 @@ def dashboard(request):
             Alert.objects.create(
                 room=room,
                 alert_type='over_limit',
-                message=f"Room {room.name} is over limit! Current: {room.usage} kWh, Limit: {room.limit} kWh"
+                message=f"Room {room.name} is over limit! Current: {current_usage} kWh, Limit: {room.limit} kWh"
             )
     
-    # Calculate dashboard stats
     total_rooms = rooms.count()
     occupied_rooms = sum(1 for room in rooms if room.is_occupied())
-    total_kwh = sum(room.usage for room in rooms)
+    total_kwh = sum(room.current_usage for room in rooms)
     total_cost = sum(room.cost for room in rooms)
     over_limit_count = sum(1 for room in rooms if room.over_limit)
+    
+    recent_alerts = Alert.objects.order_by('-created_at')[:10]
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
-    # Get all tenants without rooms for assignment
-    available_rooms = total_rooms - occupied_rooms
     available_tenants = UserProfile.objects.filter(
         user_type='tenant', 
         room__isnull=True
     ).select_related('user')
     
+    from datetime import date
+    today = date.today()
+    
     return render(request, 'system/dashboard.html', {
         'rooms': rooms,
         'username': request.user.username,
-        'electricity_rate': settings.electricity_rate,
+        'electricity_rate': ELECTRICITY_RATE,
         'recent_alerts': recent_alerts,
         'unread_alerts_count': unread_alerts_count,
         'available_tenants': available_tenants,
+        'today': today,
         'stats': {
             'total_rooms': total_rooms,
             'occupied_rooms': occupied_rooms,
             'total_kwh': total_kwh,
             'total_cost': total_cost,
             'over_limit_count': over_limit_count,
-            'available_rooms': available_rooms, 
         }
     })
-
 
 # ============== TENANT DASHBOARD ==============
 @login_required
 def tenant_dashboard(request):
-    settings = get_settings()
-    
-    # Send reminders at login using settings value
-    send_payment_reminders(days_before_due=settings.reminder_days_before)
+    # Send reminders at login
+    send_payment_reminders(days_before_due=3)
 
     profile = request.user.userprofile
     if profile.user_type != 'tenant':
@@ -733,46 +708,32 @@ def tenant_dashboard(request):
             'username': request.user.username,
         })
 
+    # Get electricity rate from settings
+    settings = get_settings()
+    ELECTRICITY_RATE = settings.electricity_rate
+
+    # Get current usage from sensor (automatic)
+    current_usage = room.get_current_usage()
+    room.current_usage = current_usage
+    room.cost = current_usage * ELECTRICITY_RATE
+
     bills = Billing.objects.filter(room=room).order_by('-created_at')
     current_month = timezone.now().strftime("%B %Y")
+    current_date = timezone.now()
     current_bill = bills.filter(billing_month=current_month).first()
 
-    # ==================== PAYMENT SECTION ====================
-    pending_payment = None
-    reference_number = ''
-    
-    if current_bill:
-        # Get existing pending payment
-        pending_payment = Payment.objects.filter(
-            bill=current_bill,
-            status='pending'
-        ).first()
-        
-        # If no pending payment exists and bill is not paid, create one
-        if not pending_payment and not current_bill.is_paid:
-            pending_payment = create_payment_record(current_bill, profile, 'cash')  # Default to cash
-        
-        # Generate reference number for display
-        if pending_payment:
-            reference_number = pending_payment.reference_number
-    # ==========================================================
-
-    # Tenant alert types
-    tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing', 'late_payment', 'abnormal_usage', 'high_consumption']
-    
-    # Get recent alerts (5 lang)
+    # Filter alerts for tenant
+    tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing']
     recent_alerts = Alert.objects.filter(
         room=room,
         alert_type__in=tenant_alert_types
     ).order_by('-created_at')[:5]
     
-    # Get total count ng alerts
     alerts_count = Alert.objects.filter(
         room=room,
         alert_type__in=tenant_alert_types
     ).count()
     
-    # Get unread alerts count
     unread_alerts_count = Alert.objects.filter(
         room=room,
         alert_type__in=tenant_alert_types,
@@ -785,7 +746,7 @@ def tenant_dashboard(request):
 
     # Average daily usage
     days_in_month = 30
-    avg_daily_usage = room.usage / days_in_month if room.usage else 0
+    avg_daily_usage = current_usage / days_in_month if current_usage else 0
 
     # Due date
     due_date = None
@@ -797,8 +758,9 @@ def tenant_dashboard(request):
         'bills': bills,
         'current_bill': current_bill,
         'current_month': current_month,
+        'current_date': current_date,
         'due_date': due_date,
-        'electricity_rate': settings.electricity_rate,
+        'electricity_rate': ELECTRICITY_RATE,
         'username': request.user.username,
         'recent_alerts': recent_alerts,
         'alerts_count': alerts_count,
@@ -807,9 +769,6 @@ def tenant_dashboard(request):
         'avg_daily_usage': avg_daily_usage,
         'total_kwh': total_kwh,
         'total_paid': total_paid,
-        # Payment-related context
-        'pending_payment': pending_payment,
-        'reference_number': reference_number,
     })
 
 @login_required
@@ -853,7 +812,6 @@ def tenant_notifications(request):
 # ============== ROOM MANAGEMENT ==============
 @login_required
 def toggle_power(request, room_id):
-    # Check if user is owner
     if request.user.userprofile.user_type != 'owner':
         messages.error(request, "You don't have permission to do that.")
         return redirect('tenant_dashboard')
@@ -863,11 +821,10 @@ def toggle_power(request, room_id):
     room.power_status = not room.power_status
     room.save()
     
-    # Create alert for manual power change
-    if old_status:  # Was ON, now OFF
+    if old_status:
         alert_type = 'power_off'
         message = f"Room {room.name} power manually turned OFF by owner."
-    else:  # Was OFF, now ON
+    else:
         alert_type = 'power_on'
         message = f"Room {room.name} power manually turned ON by owner."
     
@@ -888,7 +845,6 @@ def add_room(request):
     if request.method == 'POST':
         name = request.POST.get('name')
         limit = float(request.POST.get('limit', 200))
-        usage = float(request.POST.get('usage', 0))
         power_status = request.POST.get('power_status') == 'on'
         
         if not name:
@@ -897,7 +853,6 @@ def add_room(request):
         
         room = Room.objects.create(
             name=name,
-            usage=usage,
             limit=limit,
             power_status=power_status
         )
@@ -932,7 +887,6 @@ def edit_room(request, room_id):
     if request.method == 'POST':
         room.name = request.POST.get('name')
         room.limit = float(request.POST.get('limit', 200))
-        room.usage = float(request.POST.get('usage', room.usage))
         room.save()
         
         log_activity(request.user, 'update', f"Updated room: {old_name} → {room.name}")
@@ -948,8 +902,12 @@ def edit_room(request, room_id):
     
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
+    # Get current usage from sensor
+    current_usage = room.get_current_usage()
+    
     return render(request, 'system/edit_room.html', {
         'room': room,
+        'current_usage': current_usage,
         'username': request.user.username,
         'unread_alerts_count': unread_alerts_count
     })
@@ -1091,12 +1049,13 @@ def billing_view(request):
         has_tenant = UserProfile.objects.filter(room=room, user_type='tenant').exists()
         
         if has_tenant:
+            current_usage = room.get_current_usage()
             bill, created = Billing.objects.get_or_create(
                 room=room,
                 billing_month=current_month,
                 defaults={
-                    'kwh': room.usage,
-                    'cost': room.usage * settings.electricity_rate,
+                    'kwh': current_usage,
+                    'cost': current_usage * settings.electricity_rate,
                     'is_paid': False,
                     'due_date': due_date,
                     'reminder_sent': False
@@ -1104,8 +1063,8 @@ def billing_view(request):
             )
             
             if not created:
-                bill.kwh = room.usage
-                bill.cost = room.usage * settings.electricity_rate
+                bill.kwh = current_usage
+                bill.cost = current_usage * settings.electricity_rate
                 bill.save()
         else:
             Billing.objects.filter(room=room, billing_month=current_month).delete()
@@ -1321,17 +1280,14 @@ def system_settings(request):
     
     from .models import SystemSettings
     
-    # Get or create settings
     settings = SystemSettings.get_settings()
     
     if request.method == 'POST':
-        # Get form data with proper handling
         admin_name = request.POST.get('admin_name', '').strip()
         admin_email = request.POST.get('admin_email', '').strip()
         admin_phone = request.POST.get('admin_phone', '').strip()
         system_name = request.POST.get('system_name', '').strip()
         
-        # Validate required fields
         if not admin_name:
             messages.error(request, "⚠️ Administrator Name is required.")
             return render(request, 'system/settings.html', {
@@ -1346,13 +1302,11 @@ def system_settings(request):
                 'username': request.user.username,
             })
         
-        # Update settings (use default if empty)
         settings.admin_name = admin_name if admin_name else "System Administrator"
         settings.admin_email = admin_email if admin_email else "admin@example.com"
         settings.admin_phone = admin_phone if admin_phone else "+63 XXX XXX XXXX"
         settings.system_name = system_name if system_name else "Smart Energy Monitor"
         
-        # Optional fields
         if request.POST.get('electricity_rate'):
             settings.electricity_rate = float(request.POST.get('electricity_rate'))
         if request.POST.get('late_penalty_amount'):
@@ -1376,7 +1330,7 @@ def system_settings(request):
 
 @login_required
 def system_health(request):
-    """System health check for owner (FIXED: removed duplicate decorator)"""
+    """System health check for owner"""
     profile = request.user.userprofile
     
     if profile.user_type != 'owner':
@@ -1560,14 +1514,12 @@ def create_gcash_payment(request, bill_id):
     else:
         print(f"✅ Using existing payment with reference: {payment.reference_number}")
     
-    # IMPORTANT: Gamitin ang APP_BASE_URL mula sa settings
     from django.conf import settings as django_settings
     base_url = getattr(django_settings, 'APP_BASE_URL', 'http://127.0.0.1:8000')
     
     success_url = f"{base_url}/payment/success/{payment.reference_number}/"
     cancel_url = f"{base_url}/tenant/"
     
-    # ✅ IMPORTANT: Isama ang reference_number sa description para makuha ng webhook
     description = f"Electricity Bill - {bill.room.name} - {bill.billing_month} - Ref: {payment.reference_number}"
     
     print(f"🔗 Success URL: {success_url}")
@@ -1585,7 +1537,7 @@ def create_gcash_payment(request, bill_id):
         
         result = paymongo.create_checkout_session(
             amount=bill.cost,
-            description=description,  # ✅ ITO ANG BAGO - may reference_number na
+            description=description,
             success_url=success_url,
             cancel_url=cancel_url,
             reference=payment.reference_number
@@ -1685,42 +1637,26 @@ def payment_method(request):
 
 @login_required
 def payment_checkout_simulation(request, reference):
-    """Simulate PayMongo checkout page - FIXED for testing"""
+    """Simulate PayMongo checkout page"""
     from .models import Payment
     
     payment = get_object_or_404(Payment, reference_number=reference)
     bill = payment.bill
     
-    # Para sa debugging
-    print(f"\n🔍 SIMULATION CHECKOUT - Reference: {reference}")
-    print(f"   Payment ID: {payment.id}")
-    print(f"   Bill ID: {bill.id}")
-    print(f"   Bill is_paid: {bill.is_paid}")
-    print(f"   Payment status: {payment.status}")
-    
     if request.method == 'POST':
-        print("\n💳 POST request received - Processing payment...")
-        
-        # Mark as paid
         payment.status = 'paid'
         payment.paid_at = timezone.now()
         payment.transaction_id = f"SIM_{reference}"
         payment.save()
         
-        # Update the bill
         bill.is_paid = True
         bill.save()
         
-        # Create alert
         Alert.objects.create(
             room=bill.room,
             alert_type='billing',
             message=f"✅ Payment of ₱{payment.amount} for {bill.billing_month} has been received via SIMULATION."
         )
-        
-        print(f"✅ Payment marked as paid!")
-        print(f"   Payment status: {payment.status}")
-        print(f"   Bill is_paid: {bill.is_paid}")
         
         messages.success(request, f"✅ Payment of ₱{payment.amount} for {bill.billing_month} has been received!")
         return redirect('tenant_dashboard')

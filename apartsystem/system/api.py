@@ -58,64 +58,48 @@ def generate_api_token():
 @csrf_exempt
 @require_http_methods(["POST"])
 def meter_reading(request):
-    """
-    Enhanced API endpoint para sa IoT device (ESP32)
-    Accepts: 
-        - Single reading: {"room": "R01", "kwh": 0.5}
-        - Multiple readings: {"readings": [{"room": "R01", "kwh": 0.5}, ...]}
-        - With timestamp: {"room": "R01", "kwh": 0.5, "timestamp": "2026-03-14 10:30:00"}
-    
-    Requires: Authorization: Bearer <API_TOKEN>
-    """
-@csrf_exempt
-@require_http_methods(["POST"])
-def meter_reading(request):
-    """
-    Enhanced API endpoint para sa IoT device (ESP32)
-    Accepts: 
-        - Single reading: {"room": "R01", "kwh": 0.5}
-        - Multiple readings: {"readings": [{"room": "R01", "kwh": 0.5}, ...]}
-        - With timestamp: {"room": "R01", "kwh": 0.5, "timestamp": "2026-03-14 10:30:00"}
-    
-    Requires: Authorization: Bearer <API_TOKEN>
-    """
-    # ==================== TOKEN VERIFICATION (OPTIONAL - COMMENTED OUT FOR NOW) ====================
-    # token = verify_api_token(request)
-    # TOKEN_REQUIRED = False  # Set to True for production with hardware
-    
-    # if TOKEN_REQUIRED and not token:
-    #     return JsonResponse({
-    #         'status': 'error',
-    #         'message': 'Invalid or missing API token'
-    #     }, status=401)
-    
     try:
-        # Log the request (mask token)
-        safe_body = request.body.decode('utf-8')[:200] if request.body else ''
-        logger.info(f"Received meter reading request: {safe_body}")
-        
-        # Parse JSON data
         data = json.loads(request.body)
         
-        # Check if it's a batch of readings
-        if 'readings' in data and isinstance(data['readings'], list):
-            return process_batch_readings(data['readings'], None)  # Pass None for token since disabled
+        room_name = data.get('room')
+        kwh = data.get('kwh')
+        voltage = data.get('vrms', 0)     # optional
+        current = data.get('irms', 0)     # optional
+        power = data.get('power', 0)      # optional
         
-        # Single reading
-        return process_single_reading(data, None)  # Pass None for token since disabled
+        if not room_name or kwh is None:
+            return JsonResponse({'status': 'error', 'message': 'Missing room or kwh'}, status=400)
         
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON received")
+        try:
+            room = Room.objects.get(name=room_name)
+        except Room.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': f'Room {room_name} not found'}, status=404)
+        
+        # Save reading
+        usage = EnergyUsage.objects.create(
+            room=room,
+            kwh=kwh,
+            voltage=voltage,
+            current=current,
+            power=power
+        )
+        
         return JsonResponse({
-            'status': 'error',
-            'message': 'Invalid JSON format'
-        }, status=400)
+            'status': 'success',
+            'message': f'Saved {kwh}kWh for {room_name}',
+            'data': {
+                'id': usage.id,
+                'room': room.name,
+                'kwh': kwh,
+                'voltage': voltage,
+                'current': current,
+                'power': power,
+                'timestamp': usage.timestamp
+            }
+        })
+        
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        return JsonResponse({
-            'status': 'error',
-            'message': f'Server error: {str(e)}'
-        }, status=500)
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 def process_single_reading(data, token=None):
     """Process a single meter reading with optional token validation"""

@@ -1,14 +1,17 @@
-# system/admin.py - CORRECTED FULL VERSION
+# system/admin.py - UPDATED (walang usage field)
 
 from django.contrib import admin
-from .models import Room, Billing, Alert, UserProfile, SystemSettings
+from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ['name', 'usage', 'limit', 'power_status']
+    list_display = ['name', 'get_current_usage', 'limit', 'power_status']
     list_filter = ['power_status']
     search_fields = ['name']
-    list_editable = ['usage', 'limit', 'power_status']
+    
+    def get_current_usage(self, obj):
+        return obj.get_current_usage()
+    get_current_usage.short_description = 'Current Usage (kWh)'
 
 @admin.register(Billing)
 class BillingAdmin(admin.ModelAdmin):
@@ -37,3 +40,9 @@ class UserProfileAdmin(admin.ModelAdmin):
 class SystemSettingsAdmin(admin.ModelAdmin):
     list_display = ('admin_name', 'admin_email', 'admin_phone')
 
+@admin.register(EnergyUsage)
+class EnergyUsageAdmin(admin.ModelAdmin):
+    list_display = ['room', 'kwh', 'voltage', 'current', 'power', 'timestamp']
+    list_filter = ['room', 'timestamp']
+    search_fields = ['room__name']
+    ordering = ['-timestamp']

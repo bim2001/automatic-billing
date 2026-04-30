@@ -33,7 +33,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-coins"></i></div>
-                <div class="stat-value">₱{{ stats.total_cost|floatformat:2 }}</div>
+                <div class="stat-value">{{ stats.total_cost|floatformat:2 }}</div>
                 <div class="stat-label">Total Cost</div>
             </div>
             <div class="stat-card">
@@ -44,7 +44,7 @@
         </div>
 
         <!-- Tenant Assignment Stats -->
-        <div style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
+        <div class="tenant-stats">
             <div><i class="fas fa-door-open"></i> <strong>Total Rooms:</strong> {{ stats.total_rooms }}</div>
             <div><i class="fas fa-users"></i> <strong>Occupied:</strong> {{ stats.occupied_rooms }}</div>
             <div><i class="fas fa-key"></i> <strong>Available:</strong> {{ stats.total_rooms|add:"-stats.occupied_rooms" }}</div>
@@ -52,15 +52,15 @@
 
         <!-- ROOMS AS CARDS -->
         <div class="section-title">
-            <span style="color: #667eea;"><i class="fas fa-door-open"></i> Room Management</span>
-            <a href="{% url 'add_room' %}" class="action-btn" style="font-size: 13px; background: #667eea; color: white; padding: 6px 15px; border-radius: 6px; text-decoration: none; display: inline-block;">
-                <i class="fas fa-plus" style="color: white;"></i> Add Room
+            <span class="section-title-text"><i class="fas fa-door-open"></i> Room Management</span>
+            <a href="{% url 'add_room' %}" class="btn-add-room">
+                <i class="fas fa-plus"></i> Add Room
             </a>
         </div>
 
         <div class="rooms-grid" id="roomsGrid">
             {% for room in rooms %}
-            <div class="room-card" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}" data-room-usage="{{ room.usage }}" data-room-limit="{{ room.limit }}" data-room-power="{{ room.power_status }}" data-room-cost="{{ room.cost }}" data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}">
+            <div class="room-card" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}" data-room-usage="{{ room.current_usage }}" data-room-limit="{{ room.limit }}" data-room-power="{{ room.power_status }}" data-room-cost="{{ room.cost }}" data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}">
                 <div class="room-card-header">
                     <span class="room-name"><i class="fas fa-door-open"></i> {{ room.name }}</span>
                     <span class="room-status {% if room.power_status %}on{% else %}off{% endif %}">
@@ -68,18 +68,23 @@
                     </span>
                 </div>
                 <div class="room-usage">
-                    <span class="usage-value">{{ room.usage|floatformat:1 }}</span>
+                    <span class="usage-value">{{ room.current_usage|floatformat:1 }}</span>
                     <span class="usage-unit">kWh</span>
                     <div class="usage-limit">Limit: {{ room.limit }} kWh</div>
                     <div class="progress-bar-container">
-                        {% with percentage=room.usage|floatformat:0 %}
+                        {% if room.current_usage > room.limit %}
+                            {% widthratio room.current_usage room.limit 100 as width_percent %}
+                        {% elif room.current_usage > room.limit|add:'-10' %}
+                            {% widthratio room.current_usage room.limit 100 as width_percent %}
+                        {% else %}
+                            {% widthratio room.current_usage room.limit 100 as width_percent %}
+                        {% endif %}
                         <div class="progress-fill-card 
-                            {% if room.usage > room.limit %}danger
-                            {% elif room.usage > room.limit|add:'-10' %}warning
+                            {% if room.current_usage > room.limit %}danger
+                            {% elif room.current_usage > room.limit|add:'-10' %}warning
                             {% endif %}" 
-                            style="width: {% widthratio room.usage room.limit 100 %}%;">
+                            style="width: {{ width_percent }}%;">
                         </div>
-                        {% endwith %}
                     </div>
                 </div>
                 <div class="room-tenant">
@@ -87,17 +92,17 @@
                     {% if room.is_occupied %}
                         {{ room.get_tenant_name }}
                     {% else %}
-                        <span style="color: #999;">No tenant assigned</span>
+                        <span class="no-tenant">No tenant assigned</span>
                     {% endif %}
                 </div>
                 <div class="room-actions-card">
-                    <button class="btn-view" onclick="openRoomModal({{ room.id }})">
+                    <button class="btn-view" data-room-id="{{ room.id }}" onclick="openRoomModal(this.getAttribute('data-room-id'))">
                         <i class="fas fa-eye"></i> View Details
                     </button>
                 </div>
             </div>
             {% empty %}
-            <div style="text-align: center; padding: 40px;">No rooms added yet. <a href="{% url 'add_room' %}">Add your first room</a></div>
+            <div class="no-rooms-message">No rooms added yet. <a href="{% url 'add_room' %}">Add your first room</a></div>
             {% endfor %}
         </div>
 
@@ -106,13 +111,13 @@
         <div class="alert-card">
             <div class="alert-header">
                 <h3><i class="fas fa-bell"></i> Recent Alerts</h3>
-                <a href="{% url 'alerts_view' %}" style="color: #667eea;">View all →</a>
+                <a href="{% url 'alerts_view' %}" class="alert-view-all">View all →</a>
             </div>
             {% for alert in recent_alerts|slice:":3" %}
-            <div class="alert-item" style="border-left-color: #667eea;">
-                <div style="display: flex; justify-content: space-between;">
+            <div class="alert-item">
+                <div class="alert-content">
                     <span>{{ alert.message|truncatechars:80 }}</span>
-                    <small style="color: #999;">{{ alert.created_at|timesince }} ago</small>
+                    <small>{{ alert.created_at|timesince }} ago</small>
                 </div>
             </div>
             {% endfor %}
@@ -156,9 +161,7 @@
                 <!-- Tenant Assignment Section -->
                 <div class="modal-section" id="tenantSection">
                     <h4><i class="fas fa-user-friends"></i> Tenant</h4>
-                    <div id="tenantInfo">
-                        <!-- Will be filled by JS -->
-                    </div>
+                    <div id="tenantInfo"></div>
                 </div>
 
                 <!-- Actions Section -->
@@ -180,27 +183,73 @@
         </div>
     </div>
 
+    <style>
+        .tenant-stats {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .btn-add-room {
+            font-size: 13px;
+            background: #667eea;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-add-room i {
+            color: white;
+        }
+        .section-title-text {
+            color: #667eea;
+        }
+        .no-tenant {
+            color: #999;
+        }
+        .no-rooms-message {
+            text-align: center;
+            padding: 40px;
+        }
+        .alert-item {
+            border-left: 3px solid #667eea;
+            padding: 12px;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .alert-content {
+            display: flex;
+            justify-content: space-between;
+        }
+        .alert-view-all {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+
     <script>
         let currentRoomId = null;
 
         function openRoomModal(roomId) {
-            // Find the room card
-            const card = document.querySelector(`.room-card[data-room-id="${roomId}"]`);
+            const card = document.querySelector('.room-card[data-room-id="' + roomId + '"]');
             if (!card) return;
             
             currentRoomId = roomId;
             
-            // Get data from card
-            const roomName = card.dataset.roomName;
-            const usage = parseFloat(card.dataset.roomUsage).toFixed(1);
-            const limit = parseFloat(card.dataset.roomLimit);
-            const powerStatus = card.dataset.roomPower === 'True';
-            const cost = parseFloat(card.dataset.roomCost).toFixed(2);
-            const isOccupied = card.dataset.roomOccupied === 'True';
-            const tenantName = card.dataset.roomTenant;
+            const roomName = card.getAttribute('data-room-name');
+            const usage = parseFloat(card.getAttribute('data-room-usage')).toFixed(1);
+            const limit = parseFloat(card.getAttribute('data-room-limit'));
+            const powerStatus = card.getAttribute('data-room-power') === 'True';
+            const cost = parseFloat(card.getAttribute('data-room-cost')).toFixed(2);
+            const isOccupied = card.getAttribute('data-room-occupied') === 'True';
+            const tenantName = card.getAttribute('data-room-tenant');
             
-            // Update modal content
-            document.getElementById('modalRoomName').innerHTML = `<i class="fas fa-door-open"></i> ${roomName}`;
+            document.getElementById('modalRoomName').innerHTML = '<i class="fas fa-door-open"></i> ' + roomName;
             document.getElementById('modalUsage').textContent = usage;
             document.getElementById('modalLimit').textContent = limit;
             
@@ -209,7 +258,6 @@
             document.getElementById('modalPower').innerHTML = powerStatus ? '<span style="color: #28a745;"><i class="fas fa-toggle-on"></i> POWER ON</span>' : '<span style="color: #dc3545;"><i class="fas fa-toggle-off"></i> POWER OFF</span>';
             document.getElementById('modalCost').textContent = cost;
             
-            // Update tenant section
             const tenantSection = document.getElementById('tenantInfo');
             if (isOccupied) {
                 tenantSection.innerHTML = `
@@ -226,7 +274,6 @@
                     </div>
                 `;
             } else {
-                // Show assign tenant form
                 tenantSection.innerHTML = `
                     <form method="post" action="/room/${roomId}/assign-tenant/">
                         {% csrf_token %}
@@ -250,12 +297,9 @@
                 `;
             }
             
-            // Update action buttons
-            document.getElementById('editRoomBtn').href = `/room/edit/${roomId}/`;
-            document.getElementById('togglePowerBtn').href = `/toggle_power/${roomId}/`;
-            document.getElementById('deleteRoomBtn').href = `/room/delete/${roomId}/`;
-            
-            // Show modal
+            document.getElementById('editRoomBtn').href = '/room/edit/' + roomId + '/';
+            document.getElementById('togglePowerBtn').href = '/toggle_power/' + roomId + '/';
+            document.getElementById('deleteRoomBtn').href = '/room/delete/' + roomId + '/';
             document.getElementById('roomModal').classList.add('show');
         }
         
@@ -264,7 +308,6 @@
             currentRoomId = null;
         }
         
-        // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('roomModal');
             if (event.target === modal) {
@@ -272,7 +315,6 @@
             }
         }
         
-        // Close modal with Escape key
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();

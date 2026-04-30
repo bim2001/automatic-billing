@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 
 class Room(models.Model):
     name = models.CharField(max_length=50)
-    usage = models.FloatField(default=0)
     limit = models.FloatField(default=50)
     power_status = models.BooleanField(default=True)
+    # REMOVED: usage field - automatic na ito galing sa EnergyUsage
     
     def __str__(self):
         tenant_name = self.get_tenant_name()
@@ -19,17 +19,39 @@ class Room(models.Model):
             return f"{self.name} - {tenant_name}"
         return self.name
     
+    def get_current_usage(self):
+        """Get current month's total usage from EnergyUsage readings"""
+        from django.utils import timezone
+        now = timezone.now()
+        total = EnergyUsage.objects.filter(
+            room=self,
+            timestamp__year=now.year,
+            timestamp__month=now.month
+        ).aggregate(total=models.Sum('kwh'))['total'] or 0
+        return round(total, 2)
+    
+    def get_previous_usage(self):
+        """Get previous month's total usage"""
+        from django.utils import timezone
+        from datetime import timedelta
+        now = timezone.now()
+        last_month = now - timedelta(days=30)
+        total = EnergyUsage.objects.filter(
+            room=self,
+            timestamp__year=last_month.year,
+            timestamp__month=last_month.month
+        ).aggregate(total=models.Sum('kwh'))['total'] or 0
+        return round(total, 2)
+    
+    def is_occupied(self):
+        return UserProfile.objects.filter(room=self, user_type='tenant').exists()
+    
     def get_tenant_name(self):
-        """Get the name of the tenant assigned to this room"""
         try:
             profile = UserProfile.objects.get(room=self, user_type='tenant')
             return profile.user.get_full_name() or profile.user.username
         except UserProfile.DoesNotExist:
             return None
-    
-    def is_occupied(self):
-        """Check if room has a tenant assigned"""
-        return UserProfile.objects.filter(room=self, user_type='tenant').exists()
     
     class Meta:
         ordering = ['name']
@@ -115,16 +137,18 @@ class Billing(models.Model):
 
 class EnergyUsage(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    kwh = models.FloatField(help_text="Kilowatt-hours consumed")
+    kwh = models.FloatField(default=0)
+    voltage = models.FloatField(default=0, null=True, blank=True)  # Vrms
+    current = models.FloatField(default=0, null=True, blank=True)  # Irms
+    power = models.FloatField(default=0, null=True, blank=True)    # Watts
     timestamp = models.DateTimeField(auto_now_add=True)
     date = models.DateField(auto_now_add=True)
-
+    
     def __str__(self):
         return f"{self.room.name} - {self.kwh}kWh - {self.timestamp}"
-
+    
     class Meta:
         ordering = ['-timestamp']
-
 
 class Alert(models.Model):
     ALERT_TYPES = [
