@@ -14,6 +14,26 @@ body {
 }
 
 /* ============================================ */
+/* 1.5. TENANT STATS (Added for dashboard)     */
+/* ============================================ */
+.tenant-stats {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+}
+
+.tenant-stats > div {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* ============================================ */
 /* 2. STATS CARDS (4 cards - Total Rooms, etc) */
 /* ============================================ */
 .stats-grid {
@@ -77,10 +97,48 @@ body {
 }
 
 /* Icon Colors for each stat */
-.stat-card:nth-child(1) .stat-icon i { color: #3498db; }  /* Total Rooms - Blue */
-.stat-card:nth-child(2) .stat-icon i { color: #f39c12; }  /* Total kWh - Orange */
-.stat-card:nth-child(3) .stat-icon i { color: #2ecc71; }  /* Total Cost - Green */
-.stat-card:nth-child(4) .stat-icon i { color: #e74c3c; }  /* Over Limit - Red */
+.stat-card:nth-child(1) .stat-icon i { color: #3498db; }
+.stat-card:nth-child(2) .stat-icon i { color: #f39c12; }
+.stat-card:nth-child(3) .stat-icon i { color: #2ecc71; }
+.stat-card:nth-child(4) .stat-icon i { color: #e74c3c; }
+
+/* ============================================ */
+/* 2.5. SECTION TITLE & ADD ROOM BUTTON        */
+/* ============================================ */
+.section-title {
+    font-size: 20px;
+    color: #2c3e50;
+    margin: 30px 0 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-title-text {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.btn-add-room {
+    font-size: 13px;
+    background: #667eea;
+    color: white;
+    padding: 6px 15px;
+    border-radius: 6px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.btn-add-room:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+}
+
+.btn-add-room i {
+    color: white;
+    margin-right: 5px;
+}
 
 /* ============================================ */
 /* 3. ROOM CARDS GRID (Compact)                */
@@ -192,6 +250,10 @@ body {
     font-size: 11px;
 }
 
+.no-tenant {
+    color: #999;
+}
+
 .room-actions-card {
     margin-top: 8px;
 }
@@ -213,6 +275,12 @@ body {
     background: #667eea;
     border-color: #667eea;
     color: white;
+}
+
+.no-rooms-message {
+    text-align: center;
+    padding: 40px;
+    color: #666;
 }
 
 /* ============================================ */
@@ -239,9 +307,9 @@ body {
 .modal-content {
     background: white;
     border-radius: 12px;
-    max-width: 400px;
+    max-width: 450px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow-y: auto;
     animation: modalSlideIn 0.2s ease;
 }
@@ -398,6 +466,45 @@ body {
     margin-top: 5px;
 }
 
+/* Remove Tenant Modal Specific Styles */
+.warning-icon-small {
+    font-size: 48px;
+    text-align: center;
+    margin-bottom: 10px;
+    color: #dc3545;
+}
+
+.modal-room-details {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.modal-room-details ul {
+    margin-left: 20px;
+    margin-top: 10px;
+}
+
+.modal-room-details li {
+    margin: 5px 0;
+    color: #555;
+}
+
+.remove-confirm-text {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.remove-note {
+    font-size: 13px;
+    color: #856404;
+    background: #fff3cd;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
 /* ============================================ */
 /* 5. SIDEBAR NAVIGATION                       */
 /* ============================================ */
@@ -530,6 +637,7 @@ body {
 }
 
 .page-header {
+    text-align: center;
     margin-bottom: 30px;
 }
 
@@ -539,25 +647,18 @@ body {
     margin-bottom: 5px;
 }
 
+.page-header h1 i {
+    color: #667eea;
+    margin-right: 10px;
+}
+
 .page-header p {
     color: #7f8c8d;
     font-size: 14px;
 }
 
 /* ============================================ */
-/* 7. SECTION TITLES                           */
-/* ============================================ */
-.section-title {
-    font-size: 20px;
-    color: #2c3e50;
-    margin: 30px 0 20px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* ============================================ */
-/* 8. ALERT CARD STYLES                        */
+/* 7. ALERT CARD STYLES                        */
 /* ============================================ */
 .alert-card {
     background: white;
@@ -565,6 +666,7 @@ body {
     padding: 20px;
     margin: 30px 0;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #e9ecef;
 }
 
 .alert-header {
@@ -577,6 +679,19 @@ body {
 .alert-header h3 {
     font-size: 16px;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.alert-view-all {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.alert-view-all:hover {
+    text-decoration: underline;
 }
 
 .alert-item {
@@ -587,8 +702,27 @@ body {
     border-radius: 5px;
 }
 
+.alert-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.alert-content span {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+}
+
+.alert-content small {
+    color: #999;
+    font-size: 11px;
+}
+
 /* ============================================ */
-/* 9. RESPONSIVE STYLES                        */
+/* 8. RESPONSIVE STYLES                        */
 /* ============================================ */
 @media (max-width: 768px) {
     .sidebar {
@@ -612,6 +746,10 @@ body {
     .rooms-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
+    .tenant-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 @media (max-width: 600px) {
@@ -623,5 +761,9 @@ body {
     }
     .modal-btn {
         width: 100%;
+    }
+    .alert-content {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
