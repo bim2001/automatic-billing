@@ -398,3 +398,15 @@ def paymongo_webhook(request):
     except Exception as e:
         print(f"❌ Webhook error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def room_status(request, room_name):
+    """API endpoint para makuha ng ESP32 ang power_status ng room"""
+    try:
+        room = Room.objects.get(name=room_name)
+        return JsonResponse({
+            'room': room.name,
+            'power_status': room.power_status
+        })
+    except Room.DoesNotExist:
+        return JsonResponse({'error': 'Room not found'}, status=404)

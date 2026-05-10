@@ -22,6 +22,8 @@ from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsa
 from django.http import HttpResponse
 import csv
 from .models import ActivityLog
+from django.contrib import messages
+from django.contrib.auth.models import User
 
 # Try to import paymongo (optional - for GCash)
 try:
@@ -330,6 +332,8 @@ def get_room_usage_data(request):
 
 
 # ============== BILLING FUNCTIONS ==============
+from dateutil.relativedelta import relativedelta
+
 def generate_monthly_bills(year=None, month=None):
     """Generate prorated bills for all tenants based on their move-in/move-out dates"""
     
@@ -391,7 +395,9 @@ def generate_monthly_bills(year=None, month=None):
             prorated_kwh = 0
             
         prorated_cost = prorated_kwh * electricity_rate
-        due_date = month_end
+        
+        # ✅ BAGONG DUE DATE: 1 month after move-in date
+        due_date = assignment.move_in_date + relativedelta(months=1)
         
         bill, created = Billing.objects.update_or_create(
             room=room,
@@ -418,6 +424,7 @@ def generate_monthly_bills(year=None, month=None):
         print(f"   Days occupied: {days_occupied}/{total_days_in_month} days")
         print(f"   Total kWh: {total_kwh:.2f} → Prorated: {prorated_kwh:.2f} kWh")
         print(f"   Amount: ₱{prorated_cost:.2f}")
+        print(f"   Due Date: {due_date}")  # ← I-print ang bagong due date
         print("-" * 40)
     
     print("=" * 60)
@@ -951,12 +958,25 @@ def assign_tenant(request, room_id):
         if tenant_id:
             tenant_profile = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant')
             
+            # Deactivate previous assignment
             TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             
+            # Calculate due date (1 month after move-in)
+            from dateutil.relativedelta import relativedelta
+            from datetime import date
+            
+            move_in = move_in_date or date.today()
+            if isinstance(move_in, str):
+                from datetime import datetime
+                move_in = datetime.strptime(move_in_date, '%Y-%m-%d').date()
+            
+            due_date = move_in + relativedelta(months=1)
+            
+            # Create new assignment with move_in_date
             assignment = TenantAssignment.objects.create(
                 tenant=tenant_profile,
                 room=room,
-                move_in_date=move_in_date or date.today(),
+                move_in_date=move_in,
                 is_active=True
             )
             
@@ -965,13 +985,17 @@ def assign_tenant(request, room_id):
             
             log_activity(request.user, 'assign', f"Assigned {tenant_profile.user.username} to room {room.name}")
             
+            messages.success(
+                request, 
+                f"✅ Tenant {tenant_profile.user.username} assigned to {room.name} starting {move_in.strftime('%B %d, %Y')}. "
+                f"Due date will be on {due_date.strftime('%B %d, %Y')}."
+            )
+            
             Alert.objects.create(
                 room=room,
                 alert_type='tenant_assigned',
-                message=f"Tenant {tenant_profile.user.username} assigned to room {room.name} starting {assignment.move_in_date}"
+                message=f"Tenant {tenant_profile.user.username} assigned to room {room.name} starting {move_in.strftime('%B %d, %Y')}. First bill due on {due_date.strftime('%B %d, %Y')}."
             )
-            
-            messages.success(request, f"Tenant {tenant_profile.user.username} assigned to {room.name}")
         else:
             TenantAssignment.objects.filter(room=room, is_active=True).update(is_active=False)
             UserProfile.objects.filter(room=room, user_type='tenant').update(room=None)
@@ -1258,6 +1282,153 @@ def monitoring_dashboard(request):
         'username': request.user.username
     })
 
+# ============== SMART FEATURES FUNCTIONS ==============
+from django.db.models import Sum
+from datetime import timedelta
+
+def detect_abnormal_usage():
+    """Detect abnormal electricity usage patterns"""
+    print("\n🔍 Checking for abnormal usage patterns...")
+    print("-" * 50)
+    
+    today = timezone.now().date()
+    yesterday = today - timedelta(days=1)
+    
+    rooms = Room.objects.all()
+    alerts_created = 0
+    
+    for room in rooms:
+        thirty_days_ago = today - timedelta(days=30)
+        historical_data = EnergyUsage.objects.filter(
+            room=room,
+            timestamp__date__gte=thirty_days_ago,
+            timestamp__date__lt=yesterday
+        ).values_list('kwh', flat=True)
+        
+        yesterday_usage = EnergyUsage.objects.filter(
+            room=room,
+            timestamp__date=yesterday
+        ).aggregate(total=Sum('kwh'))['total'] or 0
+        
+        if len(historical_data) < 7:
+            continue
+        
+        avg_usage = sum(historical_data) / len(historical_data)
+        
+        if len(historical_data) > 1:
+            variance = sum((x - avg_usage) ** 2 for x in historical_data) / len(historical_data)
+            std_dev = variance ** 0.5
+        else:
+            std_dev = avg_usage * 0.3
+        
+        if yesterday_usage > 0 and yesterday_usage > avg_usage + (2 * std_dev):
+            percent_increase = ((yesterday_usage - avg_usage) / avg_usage) * 100
+            Alert.objects.create(
+                room=room,
+                alert_type='abnormal_usage',
+                message=f"⚠️ Abnormal usage detected! Yesterday's consumption ({yesterday_usage:.2f} kWh) is {percent_increase:.1f}% higher than average ({avg_usage:.2f} kWh)."
+            )
+            alerts_created += 1
+            print(f"  ⚠️ {room.name}: {percent_increase:.1f}% increase")
+    
+    print("-" * 50)
+    print(f"✅ Created {alerts_created} abnormal usage alerts")
+    return alerts_created
+
+def check_high_consumption():
+    """Check for rooms approaching or exceeding their limit"""
+    print("\n📊 Checking for high consumption...")
+    print("-" * 50)
+    
+    today = timezone.now()
+    current_month = today.month
+    current_year = today.year
+    
+    rooms = Room.objects.all()
+    alerts_created = 0
+    
+    for room in rooms:
+        total_usage = EnergyUsage.objects.filter(
+            room=room,
+            timestamp__year=current_year,
+            timestamp__month=current_month
+        ).aggregate(total=Sum('kwh'))['total'] or 0
+        
+        if room.limit > 0:
+            percentage = (total_usage / room.limit) * 100
+            
+            if percentage >= 90 and percentage < 100:
+                Alert.objects.create(
+                    room=room,
+                    alert_type='high_consumption',
+                    message=f"⚠️ You've used {percentage:.1f}% of your monthly limit ({total_usage:.1f}/{room.limit} kWh). Consider reducing consumption."
+                )
+                alerts_created += 1
+                print(f"  ⚠️ {room.name}: {percentage:.1f}% of limit")
+            
+            elif percentage >= 100:
+                Alert.objects.create(
+                    room=room,
+                    alert_type='over_limit',
+                    message=f"🚨 You've EXCEEDED your monthly limit! Current: {total_usage:.1f} kWh, Limit: {room.limit} kWh"
+                )
+                alerts_created += 1
+                print(f"  🚨 {room.name}: EXCEEDED limit!")
+    
+    print("-" * 50)
+    print(f"✅ Created {alerts_created} consumption alerts")
+    return alerts_created
+
+def apply_late_payment_penalty(penalty_amount=50):
+    """Apply late payment penalty to overdue bills"""
+    print("\n💰 Checking for late payments...")
+    print("-" * 50)
+    
+    today = timezone.now().date()
+    
+    overdue_bills = Billing.objects.filter(
+        is_paid=False,
+        due_date__lt=today
+    )
+    
+    penalties_applied = 0
+    
+    for bill in overdue_bills:
+        days_late = (today - bill.due_date).days
+        
+        Alert.objects.create(
+            room=bill.room,
+            alert_type='late_payment',
+            message=f"⚠️ Your bill for {bill.billing_month} is {days_late} days late. A penalty of ₱{penalty_amount} will be applied to your next bill."
+        )
+        
+        penalties_applied += 1
+        print(f"  ⚠️ {bill.room.name}: {bill.billing_month} - {days_late} days late")
+    
+    print("-" * 50)
+    print(f"✅ Created {penalties_applied} late payment alerts")
+    return penalties_applied
+
+def run_smart_features_daily():
+    """Run all smart features in one go"""
+    print("\n" + "="*60)
+    print("🤖 RUNNING SMART FEATURES")
+    print("="*60)
+    
+    abnormal = detect_abnormal_usage()
+    high_cons = check_high_consumption()
+    late = apply_late_payment_penalty()
+    
+    print("\n" + "="*60)
+    print(f"📊 SUMMARY: {abnormal} abnormal, {high_cons} high consumption, {late} late payments")
+    print("="*60)
+    
+    return {
+        'abnormal': abnormal,
+        'high_consumption': high_cons,
+        'late_payments': late
+    }    
+
 @login_required
 @require_POST
 def run_smart_features_api(request):
@@ -1438,20 +1609,20 @@ def health_dashboard(request):
 @login_required
 def edit_profile(request):
     """Allow tenants to edit their profile information"""
-    from django.contrib import messages
-    from django.contrib.auth.models import User
-    
     profile = request.user.userprofile
     
+    # Only tenants can access
     if profile.user_type != 'tenant':
         return redirect('dashboard')
     
     if request.method == 'POST':
+        # Get form data
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email', '').strip()
         phone_number = request.POST.get('phone_number', '').strip()
         
+        # Validate
         errors = []
         
         if not email:
@@ -1470,27 +1641,29 @@ def edit_profile(request):
                 'username': request.user.username,
             })
         
+        # ✅ UPDATE USER INFO (ITO ANG MAHALAGA!)
         user = request.user
         user.first_name = first_name
         user.last_name = last_name
-        user.email = email
+        user.email = email  # <--- SIGURADUHING NANDITO
         user.save()
         
+        # Update profile info
         profile.phone_number = phone_number
         profile.save()
         
         messages.success(request, "✅ Profile updated successfully!")
         return redirect('tenant_dashboard')
     
+    # GET request - show form with current data
     return render(request, 'user/edit_profile.html', {
         'profile': profile,
         'first_name': request.user.first_name,
         'last_name': request.user.last_name,
-        'email': request.user.email,
+        'email': request.user.email,  # <--- SIGURADUHING NANDITO
         'phone_number': profile.phone_number or '',
         'username': request.user.username,
     })
-
 
 # ============== GCASH/PAYMENT VIEWS ==============
 @login_required

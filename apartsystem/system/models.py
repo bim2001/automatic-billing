@@ -72,6 +72,8 @@ class UserProfile(models.Model):
 
 
 # ============ TENANT ASSIGNMENT (UNAHIN BAGO BILLING) ============
+from dateutil.relativedelta import relativedelta 
+
 class TenantAssignment(models.Model):
     """Tracks tenant move-in and move-out dates for prorated billing"""
     tenant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='assignments')
@@ -84,6 +86,12 @@ class TenantAssignment(models.Model):
     def __str__(self):
         status = "Active" if self.is_active else "Inactive"
         return f"{self.tenant.user.username} - {self.room.name} ({status})"
+    
+    def get_due_date(self):
+        """Return due date based on move-in date (1 month after move-in)"""
+        if self.move_in_date:
+            return self.move_in_date + relativedelta(months=1)
+        return None
     
     def days_occupied_in_month(self, year, month):
         """Calculate how many days tenant occupied the room in a given month"""
@@ -133,6 +141,7 @@ class Billing(models.Model):
     
     class Meta:
         ordering = ['-billing_month', 'room__name']
+        unique_together = ('room', 'billing_month')
 
 
 class EnergyUsage(models.Model):
