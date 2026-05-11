@@ -2,6 +2,7 @@
 
 from django.contrib import admin
 from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage
+from .models import Payment
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
@@ -46,3 +47,10 @@ class EnergyUsageAdmin(admin.ModelAdmin):
     list_filter = ['room', 'timestamp']
     search_fields = ['room__name']
     ordering = ['-timestamp']
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ['bill', 'tenant', 'amount', 'payment_method', 'status', 'reference_number', 'created_at']
+    list_filter = ['payment_method', 'status']
+    search_fields = ['reference_number', 'bill__room__name', 'tenant__user__username']
+    readonly_fields = ['reference_number', 'transaction_id', 'webhook_data', 'created_at']

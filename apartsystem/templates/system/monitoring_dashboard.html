@@ -719,7 +719,7 @@
                     }
                 });
 
-                // Display top rooms
+                // Display top rooms (NO TROPHY ICONS)
                 const roomsContainer = document.getElementById('roomsContainer');
                 roomsContainer.innerHTML = '';
                 
@@ -728,7 +728,6 @@
                     const roomCard = document.createElement('div');
                     roomCard.className = 'room-card';
                     
-                    let medalIcon = '';
                     let progressClass = '';
                     
                     if (percentage >= 100) {
@@ -736,11 +735,6 @@
                     } else if (percentage >= 80) {
                         progressClass = 'warning';
                     }
-                    
-                    if (index === 0) medalIcon = '<i class="fas fa-trophy" style="color: gold;"></i>';
-                    else if (index === 1) medalIcon = '<i class="fas fa-trophy" style="color: silver;"></i>';
-                    else if (index === 2) medalIcon = '<i class="fas fa-trophy" style="color: #cd7f32;"></i>';
-                    else medalIcon = '';
                     
                     let statusBadge = '';
                     if (room.status === 'ON') {
@@ -751,7 +745,7 @@
                     
                     roomCard.innerHTML = `
                         <div class="room-header">
-                            <span class="room-name">${medalIcon} ${room.name}</span>
+                            <span class="room-name">${index + 1}. ${room.name}</span>
                             <span class="room-usage">${room.usage} kWh</span>
                         </div>
                         <div class="progress-bar">

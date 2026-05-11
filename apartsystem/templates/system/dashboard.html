@@ -43,19 +43,9 @@
             </div>
         </div>
 
-        <!-- Tenant Assignment Stats -->
-        <div class="tenant-stats">
-            <div><i class="fas fa-door-open"></i> <strong>Total Rooms:</strong> {{ stats.total_rooms }}</div>
-            <div><i class="fas fa-users"></i> <strong>Occupied:</strong> {{ stats.occupied_rooms }}</div>
-            <div><i class="fas fa-key"></i> <strong>Available:</strong> {{ stats.total_rooms|add:"-stats.occupied_rooms" }}</div>
-        </div>
-
         <!-- ROOMS AS CARDS -->
         <div class="section-title">
             <span class="section-title-text"><i class="fas fa-door-open"></i> Room Management</span>
-            <a href="{% url 'add_room' %}" class="btn-add-room">
-                <i class="fas fa-plus"></i> Add Room
-            </a>
         </div>
 
         <div class="rooms-grid" id="roomsGrid">
@@ -72,13 +62,7 @@
                     <span class="usage-unit">kWh</span>
                     <div class="usage-limit">Limit: {{ room.limit }} kWh</div>
                     <div class="progress-bar-container">
-                        {% if room.current_usage > room.limit %}
-                            {% widthratio room.current_usage room.limit 100 as width_percent %}
-                        {% elif room.current_usage > room.limit|add:'-10' %}
-                            {% widthratio room.current_usage room.limit 100 as width_percent %}
-                        {% else %}
-                            {% widthratio room.current_usage room.limit 100 as width_percent %}
-                        {% endif %}
+                        {% widthratio room.current_usage room.limit 100 as width_percent %}
                         <div class="progress-fill-card 
                             {% if room.current_usage > room.limit %}danger
                             {% elif room.current_usage > room.limit|add:'-10' %}warning
@@ -183,57 +167,51 @@
         </div>
     </div>
 
-    <style>
-        .tenant-stats {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .btn-add-room {
-            font-size: 13px;
-            background: #667eea;
-            color: white;
-            padding: 6px 15px;
-            border-radius: 6px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        .btn-add-room i {
-            color: white;
-        }
-        .section-title-text {
-            color: #667eea;
-        }
-        .no-tenant {
-            color: #999;
-        }
-        .no-rooms-message {
-            text-align: center;
-            padding: 40px;
-        }
-        .alert-item {
-            border-left: 3px solid #667eea;
-            padding: 12px;
-            background: #f8f9fa;
-            margin-bottom: 10px;
-            border-radius: 5px;
-        }
-        .alert-content {
-            display: flex;
-            justify-content: space-between;
-        }
-        .alert-view-all {
-            color: #667eea;
-            text-decoration: none;
-        }
-    </style>
+    <!-- Remove Tenant Confirmation Modal -->
+    <div id="removeTenantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Remove Tenant</h3>
+                <button class="modal-close" onclick="closeRemoveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon-small">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <p class="remove-confirm-text">
+                    Are you sure you want to remove <strong id="removeTenantName"></strong> from <strong id="removeRoomName"></strong>?
+                </p>
+                <div class="modal-room-details">
+                    <p><i class="fas fa-exclamation-circle"></i> <strong>Warning:</strong> This action will:</p>
+                    <ul>
+                        <li>Remove the tenant from this room</li>
+                        <li>The room will become vacant</li>
+                        <li>The tenant will no longer see this room in their dashboard</li>
+                    </ul>
+                </div>
+                <p class="remove-note">
+                    <i class="fas fa-info-circle"></i> This action can be undone by reassigning the tenant.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closeRemoveModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <form id="removeTenantForm" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="modal-btn modal-btn-danger">
+                        <i class="fas fa-user-minus"></i> Yes, Remove Tenant
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
         let currentRoomId = null;
+        let currentRemoveRoomId = null;
+        let currentRemoveTenantName = null;
+        let currentRemoveRoomName = null;
 
         function openRoomModal(roomId) {
             const card = document.querySelector('.room-card[data-room-id="' + roomId + '"]');
@@ -267,9 +245,9 @@
                             <span class="info-value"><i class="fas fa-user"></i> ${tenantName}</span>
                         </div>
                         <div style="margin-top: 15px;">
-                            <a href="/room/${roomId}/remove-tenant/" class="modal-btn modal-btn-danger" style="display: block; text-align: center; text-decoration: none;" onclick="return confirm('Remove tenant from this room?')">
+                            <button onclick="showRemoveModal('${roomId}', '${tenantName}', '${roomName}')" class="modal-btn modal-btn-danger" style="display: block; text-align: center; width: 100%;">
                                 <i class="fas fa-user-minus"></i> Remove Tenant
-                            </a>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -308,16 +286,40 @@
             currentRoomId = null;
         }
         
+        function showRemoveModal(roomId, tenantName, roomName) {
+            currentRemoveRoomId = roomId;
+            currentRemoveTenantName = tenantName;
+            currentRemoveRoomName = roomName;
+            
+            document.getElementById('removeTenantName').textContent = tenantName;
+            document.getElementById('removeRoomName').textContent = roomName;
+            
+            const form = document.getElementById('removeTenantForm');
+            form.action = '/room/' + roomId + '/remove-tenant/';
+            
+            document.getElementById('removeTenantModal').classList.add('show');
+        }
+        
+        function closeRemoveModal() {
+            document.getElementById('removeTenantModal').classList.remove('show');
+            currentRemoveRoomId = null;
+        }
+        
         window.onclick = function(event) {
             const modal = document.getElementById('roomModal');
             if (event.target === modal) {
                 closeModal();
+            }
+            const removeModal = document.getElementById('removeTenantModal');
+            if (event.target === removeModal) {
+                closeRemoveModal();
             }
         }
         
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
+                closeRemoveModal();
             }
         });
     </script>

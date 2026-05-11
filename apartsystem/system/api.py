@@ -1,10 +1,14 @@
 import json
 import secrets
+import hmac
+import hashlib
+import re
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
 from .models import EnergyUsage, Room, Alert
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -100,6 +104,7 @@ def meter_reading(request):
         
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 def process_single_reading(data, token=None):
     """Process a single meter reading with optional token validation"""
@@ -224,7 +229,7 @@ def process_batch_readings(readings, token=None):
 
 def check_immediate_alerts(room, kwh):
     """Check for immediate alerts based on reading"""
-    from django.db.models import Sum, Avg  # ✅ Tamang import sa loob ng function
+    from django.db.models import Sum, Avg
     
     # Get today's total usage
     today = timezone.now().date()
@@ -259,8 +264,6 @@ def check_immediate_alerts(room, kwh):
 @require_http_methods(["GET"])
 def device_info(request):
     """Endpoint for IoT device to get configuration"""
-    from django.utils import timezone
-    
     return JsonResponse({
         'status': 'success',
         'server_time': timezone.now().isoformat(),
@@ -319,79 +322,52 @@ def create_api_token(request):
         }
     })
 
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.http import JsonResponse
-from django.utils import timezone
-import json
-import hmac
-import hashlib
+
+# ==================== PAYMONGO WEBHOOK ====================
 
 @csrf_exempt
 @require_POST
 def paymongo_webhook(request):
-    """
-    PayMongo webhook endpoint for payment updates
-    This is called by PayMongo when payment status changes
-    """
+    """Handle PayMongo webhook callbacks for payment status updates"""
     try:
-        # Get the raw request body
         payload = request.body
-        signature = request.headers.get('Paymongo-Signature', '')
-        
-        print(f"📡 Webhook received!")
-        print(f"   Signature: {signature[:50] if signature else 'None'}...")
-        
-        # Parse the webhook data
         data = json.loads(payload)
+        event_type = data.get('data', {}).get('attributes', {}).get('type', '')
         
-        # Get event type
-        event_data = data.get('data', {})
-        event_attributes = event_data.get('attributes', {})
-        event_type = event_attributes.get('type')
+        print(f"📡 Webhook received: {event_type}")
         
-        print(f"   Event type: {event_type}")
-        
-        # Handle checkout_session.payment.paid event
         if event_type == 'checkout_session.payment.paid':
-            checkout_data = event_attributes.get('data', {})
+            checkout_data = data.get('data', {}).get('attributes', {}).get('data', {})
             checkout_id = checkout_data.get('id')
+            description = checkout_data.get('attributes', {}).get('description', '')
             
-            print(f"   Checkout ID: {checkout_id}")
+            # Extract reference_number from description
+            import re
+            reference_number = None
+            match = re.search(r'Ref:\s*(PAY-[A-Z0-9]+-\d+-[a-f0-9]+)', description)
+            if match:
+                reference_number = match.group(1)
             
-            if checkout_id:
-                # Find the payment record
-                from .models import Payment, Alert
-                payment = Payment.objects.filter(
-                    checkout_session_id=checkout_id, 
-                    status='pending'
-                ).first()
+            if reference_number:
+                from .models import Payment
+                payment = Payment.objects.filter(reference_number=reference_number, status='pending').first()
                 
                 if payment:
-                    print(f"✅ Payment found: {payment.reference_number}")
-                    
-                    # Mark as paid
+                    # ✅ WEBHOOK LANG ANG GUMAWA NITO
                     payment.status = 'paid'
+                    payment.paid_at = timezone.now()
+                    payment.transaction_id = checkout_id
                     payment.webhook_received = True
                     payment.webhook_data = data
-                    payment.paid_at = timezone.now()
                     payment.save()
                     
-                    # Update the bill
                     bill = payment.bill
                     bill.is_paid = True
                     bill.save()
                     
-                    # Create alert
-                    Alert.objects.create(
-                        room=bill.room,
-                        alert_type='billing',
-                        message=f"✅ Payment received for {bill.billing_month} via GCash. Reference: {payment.reference_number}"
-                    )
-                    
-                    print(f"✅ Payment confirmed for {payment.reference_number}")
+                    print(f"✅ Payment {reference_number} marked as paid via WEBHOOK!")
                 else:
-                    print(f"⚠️ No pending payment found for checkout_id: {checkout_id}")
+                    print(f"⚠️ Payment not found for reference: {reference_number}")
         
         return JsonResponse({'status': 'success'}, status=200)
         
@@ -399,6 +375,7 @@ def paymongo_webhook(request):
         print(f"❌ Webhook error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
+# ==================== ROOM STATUS API ====================
 
 def room_status(request, room_name):
     """API endpoint para makuha ng ESP32 ang power_status ng room"""

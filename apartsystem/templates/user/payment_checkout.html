@@ -1,8 +1,7 @@
-{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Payment Checkout - Smart Energy</title>
+    <title>GCash Checkout - Smart Energy</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -115,6 +114,10 @@
             color: #666;
             text-decoration: none;
         }
+
+        .back-link:hover {
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -133,7 +136,7 @@
             </div>
             
             <h1>Pay with GCash</h1>
-            <p style="color: #666;">Scan QR code or pay via PayMongo</p>
+            <p style="color: #666;">Complete your payment below</p>
             
             <div class="amount">
                 ₱{{ bill.cost|floatformat:2 }}
@@ -144,16 +147,24 @@
             </div>
             
             <div class="simulation-note">
-                <i class="fas fa-flask"></i> <strong>SIMULATION MODE</strong><br>
-                This is a simulated payment. No actual money will be transferred.
+                <i class="fas fa-info-circle"></i> <strong>Test Mode Notice</strong><br>
+                This is a SIMULATED payment for demonstration purposes.<br>
+                No actual money will be transferred.
+                <br><br>
+                <strong>In production:</strong> This page will redirect to PayMongo's secure checkout.
             </div>
             
+            <!-- ✅ SIMPLE POST FORM - NO FRONTEND PAYMENT UPDATE -->
             <form method="post">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-gcash">
                     <i class="fab fa-gcash"></i> Confirm Payment (Simulate)
                 </button>
             </form>
+            
+            <p style="font-size: 12px; color: #999; margin-top: 15px;">
+                <i class="fas fa-lock"></i> Secure payment powered by PayMongo
+            </p>
             
             <a href="{% url 'payment_method' %}" class="back-link">
                 <i class="fas fa-arrow-left"></i> Cancel and go back

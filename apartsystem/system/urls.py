@@ -54,7 +54,8 @@ urlpatterns = [
     path('api/building-stats/', views.get_building_stats, name='building_stats_api'),
     path('api/run-smart-features/', views.run_smart_features_api, name='run_smart_features_api'),
     path('api/system-health/', views.system_health, name='system_health'),
-    path('api/paymongo-webhook/', views.paymongo_webhook, name='paymongo_webhook'),  # Remove trailing slash?
+    path('api/paymongo-webhook/', views.paymongo_webhook, name='paymongo_webhook'),
+    path('api/paymongo-webhook/', api.paymongo_webhook, name='paymongo_webhook'),
     path('api/room-status/<str:room_name>/', api.room_status, name='room_status'),
 
     # Payment URLs

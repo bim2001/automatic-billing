@@ -311,9 +311,9 @@ class Payment(models.Model):
     # ================================================================
     
     def __str__(self):
-        # Fixed: changed self.billing_month to proper reference
-        month_name = self.bill.billing_month.strftime('%B %Y') if self.bill and self.bill.billing_month else 'Unknown'
-        return f"{self.bill.room.name} - {month_name} - {self.status}"
+        # ✅ FIXED: Tamang indentation
+        date_str = self.created_at.strftime('%Y-%m-%d') if self.created_at else 'No Date'
+        return f"{self.reference_number} - {date_str} - {self.status}"
     
     class Meta:
         ordering = ['-created_at']

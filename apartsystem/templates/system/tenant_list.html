@@ -289,21 +289,29 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="stats-grid-tenant">
-            <div class="stat-card-tenant">
-                <h3><i class="fas fa-users"></i> Total Tenants</h3>
-                <div class="number">{{ total_tenants }}</div>
-            </div>
-            <div class="stat-card-tenant">
-                <h3><i class="fas fa-home"></i> With Room</h3>
-                <div class="number">{{ with_room }}</div>
-            </div>
-            <div class="stat-card-tenant">
-                <h3><i class="fas fa-user-slash"></i> Without Room</h3>
-                <div class="number">{{ without_room }}</div>
-            </div>
+        <div class="stats-grid" style="margin-bottom: 20px;">
+            <div class="stat-card" style="text-align: center;">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-value">{{ total_tenants }}</div>
+            <div class="stat-label">Total Tenants</div>
         </div>
-
+        <div class="stat-card" style="text-align: center;">
+            <div class="stat-icon"><i class="fas fa-home"></i></div>
+            <div class="stat-value">{{ with_room }}</div>
+            <div class="stat-label">With Room</div>
+        </div>
+        <div class="stat-card" style="text-align: center;">
+            <div class="stat-icon"><i class="fas fa-user-slash"></i></div>
+            <div class="stat-value">{{ without_room }}</div>
+            <div class="stat-label">Without Room</div>
+        </div>
+        <div class="stat-card" style="text-align: center;">
+            <div class="stat-icon"><i class="fas fa-key"></i></div>
+            <div class="stat-value">{{ available_rooms }}</div>
+            <div class="stat-label">Available Rooms</div>
+        </div>
+    </div>
+    
         <!-- Tenants Grid - 3 columns -->
         {% if tenants %}
         <div class="tenants-grid">

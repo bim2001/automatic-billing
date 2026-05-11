@@ -485,7 +485,7 @@ This is a reminder about your electricity bill.
 ━━━━━━━━━━━━━━━━━━━━━━━━
 Room: {bill.room.name}
 Billing Month: {bill.billing_month}
-Amount Due: ₱{bill.cost}
+Amount Due: ₱{bill.cost:.2f}
 Due Date: {bill.due_date}
 Days Remaining: {days_remaining}
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1039,6 +1039,10 @@ def tenant_list(request):
         user_type='tenant'
     ).select_related('user', 'room')
     
+    total_rooms = Room.objects.count()
+    occupied_rooms = UserProfile.objects.filter(user_type='tenant', room__isnull=False).count()
+    available_rooms = total_rooms - occupied_rooms
+    
     total_tenants = tenants.count()
     with_room = tenants.filter(room__isnull=False).count()
     without_room = tenants.filter(room__isnull=True).count()
@@ -1048,9 +1052,11 @@ def tenant_list(request):
         'total_tenants': total_tenants,
         'with_room': with_room,
         'without_room': without_room,
+        'available_rooms': available_rooms,  # ✅ BAGO
+        'total_rooms': total_rooms,  # ✅ BAGO (optional)
+        'occupied_rooms': occupied_rooms,  # ✅ BAGO (optional)
         'username': request.user.username,
     })
-
 
 # ============== BILLING VIEWS ==============
 @login_required
@@ -1668,7 +1674,7 @@ def edit_profile(request):
 # ============== GCASH/PAYMENT VIEWS ==============
 @login_required
 def create_gcash_payment(request, bill_id):
-    """Create GCash payment via PayMongo"""
+    """Create GCash payment via PayMongo (ACTUAL PAYMENT)"""
     profile = request.user.userprofile
     
     if profile.user_type != 'tenant':
@@ -1680,6 +1686,7 @@ def create_gcash_payment(request, bill_id):
         messages.warning(request, "This bill is already paid.")
         return redirect('tenant_dashboard')
     
+    # Create or get pending payment
     payment = Payment.objects.filter(bill=bill, status='pending').first()
     if not payment:
         payment = create_payment_record(bill, profile, 'gcash')
@@ -1693,6 +1700,7 @@ def create_gcash_payment(request, bill_id):
     success_url = f"{base_url}/payment/success/{payment.reference_number}/"
     cancel_url = f"{base_url}/tenant/"
     
+    # IMPORTANT: Isama ang reference_number sa description para makuha ng webhook
     description = f"Electricity Bill - {bill.room.name} - {bill.billing_month} - Ref: {payment.reference_number}"
     
     print(f"🔗 Success URL: {success_url}")
@@ -1701,9 +1709,10 @@ def create_gcash_payment(request, bill_id):
     print(f"📝 Reference: {payment.reference_number}")
     print(f"📝 Description: {description}")
     
+    # Check if PayMongo is available
     if not PAYMONGO_AVAILABLE:
-        messages.info(request, "GCash payment is in simulation mode. Use the checkout link to test.")
-        return redirect('payment_checkout_simulation', reference=payment.reference_number)
+        messages.error(request, "Payment gateway is not available. Please try again later or use Cash payment.")
+        return redirect('payment_method')
     
     try:
         paymongo = get_paymongo()
@@ -1718,31 +1727,42 @@ def create_gcash_payment(request, bill_id):
         
         if result.get('status') == 'success' or 'data' in result:
             checkout_url = result['data']['attributes']['checkout_url']
-            print(f"🚀 Redirecting to: {checkout_url}")
+            checkout_id = result['data']['id']
+            
+            # Save checkout_session_id para magamit ng webhook
+            payment.checkout_session_id = checkout_id
+            payment.save()
+            
+            print(f"🚀 Redirecting to PayMongo checkout: {checkout_url}")
             return redirect(checkout_url)
         else:
             error_msg = result.get('error', 'Unknown error')
             messages.error(request, f"Failed to create payment: {error_msg}")
-            return redirect('tenant_dashboard')
+            return redirect('payment_method')
             
     except Exception as e:
         print(f"❌ PayMongo error: {str(e)}")
         messages.error(request, f"Payment gateway error: {str(e)}")
-        return redirect('tenant_dashboard')
-
+        return redirect('payment_method')
 
 @login_required
 def payment_success(request, reference_number):
-    """Handle successful payment callback"""
+    """Handle successful payment callback - ONLY webhook should update payment status"""
     payment = get_object_or_404(Payment, reference_number=reference_number)
     
-    mark_payment_as_paid(payment, transaction_id=reference_number)
+    # ⚠️ HUWAG MAG-MARK AS PAID DITO!
+    # Ang webhook lang dapat ang nagma-mark as paid
+    # Ito ay redirect page lamang
     
-    messages.success(request, f"✅ Payment of ₱{payment.amount} for {payment.bill.billing_month} has been received!")
+    # I-check kung ang payment ay paid na (dapat webhook na ang nag-update)
+    if payment.status == 'paid':
+        messages.success(request, f"✅ Payment of ₱{payment.amount} for {payment.bill.billing_month} has been received!")
+    else:
+        # Pending pa rin — hintayin ang webhook
+        messages.info(request, f"Your payment is being processed. You will receive a confirmation once verified.")
     
     return redirect('tenant_dashboard')
-
-
+    
 @login_required
 def manual_paid_confirmation(request, bill_id):
     """Tenant confirms cash payment (notifies owner)"""
