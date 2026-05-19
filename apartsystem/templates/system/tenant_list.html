@@ -76,6 +76,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             transition: all 0.3s ease;
             border: 1px solid #f0f0f0;
+            position: relative;
         }
         
         .tenant-card:hover {
@@ -190,6 +191,34 @@
             color: #856404;
         }
         
+        /* Delete button */
+        .delete-tenant-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            opacity: 0;
+        }
+        
+        .tenant-card:hover .delete-tenant-btn {
+            opacity: 1;
+        }
+        
+        .delete-tenant-btn:hover {
+            background: #c82333;
+            transform: scale(1.1);
+        }
+        
         .empty-state {
             text-align: center;
             padding: 60px 30px;
@@ -214,6 +243,131 @@
             margin-bottom: 20px;
         }
         
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            animation: modalSlideIn 0.3s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: white;
+        }
+        
+        .modal-body {
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .warning-icon {
+            font-size: 48px;
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+        
+        .modal-body p {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .warning-text {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin: 15px 0;
+        }
+        
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .tenants-grid {
@@ -222,12 +376,21 @@
         }
         
         @media (max-width: 768px) {
-            .stats-grid-tenant {
+            .stats-grid {
                 grid-template-columns: 1fr;
             }
             
             .tenants-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-footer {
+                flex-direction: column;
+            }
+            .modal-footer .btn {
+                width: 100%;
             }
         }
         
@@ -291,32 +454,36 @@
         <!-- Stats Cards -->
         <div class="stats-grid" style="margin-bottom: 20px;">
             <div class="stat-card" style="text-align: center;">
-            <div class="stat-icon"><i class="fas fa-users"></i></div>
-            <div class="stat-value">{{ total_tenants }}</div>
-            <div class="stat-label">Total Tenants</div>
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-value">{{ total_tenants }}</div>
+                <div class="stat-label">Total Tenants</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div class="stat-icon"><i class="fas fa-home"></i></div>
+                <div class="stat-value">{{ with_room }}</div>
+                <div class="stat-label">With Room</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div class="stat-icon"><i class="fas fa-user-slash"></i></div>
+                <div class="stat-value">{{ without_room }}</div>
+                <div class="stat-label">Without Room</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div class="stat-icon"><i class="fas fa-key"></i></div>
+                <div class="stat-value">{{ available_rooms }}</div>
+                <div class="stat-label">Available Rooms</div>
+            </div>
         </div>
-        <div class="stat-card" style="text-align: center;">
-            <div class="stat-icon"><i class="fas fa-home"></i></div>
-            <div class="stat-value">{{ with_room }}</div>
-            <div class="stat-label">With Room</div>
-        </div>
-        <div class="stat-card" style="text-align: center;">
-            <div class="stat-icon"><i class="fas fa-user-slash"></i></div>
-            <div class="stat-value">{{ without_room }}</div>
-            <div class="stat-label">Without Room</div>
-        </div>
-        <div class="stat-card" style="text-align: center;">
-            <div class="stat-icon"><i class="fas fa-key"></i></div>
-            <div class="stat-value">{{ available_rooms }}</div>
-            <div class="stat-label">Available Rooms</div>
-        </div>
-    </div>
-    
+        
         <!-- Tenants Grid - 3 columns -->
         {% if tenants %}
         <div class="tenants-grid">
             {% for tenant in tenants %}
             <div class="tenant-card">
+                <button class="delete-tenant-btn" onclick="openDeleteModal('{{ tenant.id }}', '{{ tenant.user.username }}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                
                 <div class="tenant-header">
                     <div class="tenant-info">
                         <div class="tenant-name">
@@ -394,16 +561,80 @@
         {% endif %}
     </div>
 
+    <!-- Delete Tenant Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Delete Tenant</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <p>Are you sure you want to delete <strong id="deleteTenantName"></strong>?</p>
+                <p class="warning-text">
+                    <i class="fas fa-exclamation-circle"></i> This action cannot be undone!
+                </p>
+                <p style="font-size: 13px; color: #666;">This will permanently remove the tenant and all their records from the system.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <form id="deleteTenantForm" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt"></i> Yes, Delete Tenant
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentDeleteTenantId = null;
+        let currentDeleteTenantName = null;
+        
+        function openDeleteModal(tenantId, tenantName) {
+            currentDeleteTenantId = tenantId;
+            currentDeleteTenantName = tenantName;
+            
+            document.getElementById('deleteTenantName').textContent = tenantName;
+            
+            const form = document.getElementById('deleteTenantForm');
+            form.action = '/tenant/delete/' + tenantId + '/';
+            
+            document.getElementById('deleteModal').classList.add('show');
+        }
+        
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+            currentDeleteTenantId = null;
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('deleteModal');
+            if (event.target === modal) {
+                closeDeleteModal();
+            }
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDeleteModal();
+            }
+        });
+        
         // Add active class to current navigation item
         document.addEventListener('DOMContentLoaded', function() {
-            // Remove active class from all nav links
             const navLinks = document.querySelectorAll('.nav-link');
             navLinks.forEach(link => {
                 link.classList.remove('active');
             });
             
-            // Add active class to Tenants link
             const tenantsLink = document.querySelector('a[href*="tenant_list"]');
             if (tenantsLink) {
                 tenantsLink.classList.add('active');

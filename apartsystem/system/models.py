@@ -93,15 +93,41 @@ class TenantAssignment(models.Model):
             return self.move_in_date + relativedelta(months=1)
         return None
     
+class TenantAssignment(models.Model):
+    tenant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='assignments')
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    move_in_date = models.DateField()
+    move_out_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        status = "Active" if self.is_active else "Inactive"
+        return f"{self.tenant.user.username} - {self.room.name} ({status})"
+    
+    def get_due_date(self):
+        """Return due date based on move-in date (1 month after move-in)"""
+        if self.move_in_date:
+            from dateutil.relativedelta import relativedelta
+            return self.move_in_date + relativedelta(months=1)
+        return None
+    
     def days_occupied_in_month(self, year, month):
         """Calculate how many days tenant occupied the room in a given month"""
         from datetime import date, timedelta
+        from django.utils import timezone
         
         month_start = date(year, month, 1)
-        if month == 12:
-            month_end = date(year + 1, 1, 1) - timedelta(days=1)
+        
+        # Check if this is current month
+        today = timezone.now().date()
+        if year == today.year and month == today.month:
+            month_end = today
         else:
-            month_end = date(year, month + 1, 1) - timedelta(days=1)
+            if month == 12:
+                month_end = date(year + 1, 1, 1) - timedelta(days=1)
+            else:
+                month_end = date(year, month + 1, 1) - timedelta(days=1)
         
         # Tenant's stay during this month
         stay_start = max(self.move_in_date, month_start)
@@ -333,32 +359,3 @@ class Payment(models.Model):
     
     class Meta:
         ordering = ['-created_at']
-
-    
-class ActivityLog(models.Model):
-    ACTION_TYPES = [
-        ('create', 'Create'),
-        ('update', 'Update'),
-        ('delete', 'Delete'),
-        ('login', 'Login'),
-        ('logout', 'Logout'),
-        ('assign', 'Assign'),
-        ('remove', 'Remove'),
-        ('payment', 'Payment'),
-        ('toggle', 'Toggle Power'),
-    ]
-    
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    user_type = models.CharField(max_length=20, choices=UserProfile.USER_TYPES, default='tenant')
-    action = models.CharField(max_length=20, choices=ACTION_TYPES)
-    description = models.TextField()
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = 'Activity Log'
-        verbose_name_plural = 'Activity Logs'
-    
-    def __str__(self):
-        return f"{self.user} - {self.action} - {self.created_at}"

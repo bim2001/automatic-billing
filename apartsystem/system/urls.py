@@ -15,6 +15,7 @@ urlpatterns = [
     path('tenant/', views.tenant_dashboard, name='tenant_dashboard'),
     path('tenant/notifications/', views.tenant_notifications, name='tenant_notifications'),
     path('edit-profile/', views.edit_profile, name='edit_profile'),
+    path('tenant/delete/<int:tenant_id>/', views.delete_tenant, name='delete_tenant'),
     
     # ==================== ROOM MANAGEMENT ====================
     path('room/add/', views.add_room, name='add_room'),
@@ -57,6 +58,7 @@ urlpatterns = [
     path('api/system-health/', views.system_health, name='system_health'),
     path('api/paymongo-webhook/', api.paymongo_webhook, name='paymongo_webhook'),
     path('api/room-status/<str:room_name>/', api.room_status, name='room_status'),
+    path('api/bill-details/<int:bill_id>/', views.bill_details_api, name='bill_details_api'),
 
     # ==================== PAYMENT URLs ====================
     path('payment/gcash/<int:bill_id>/', views.create_gcash_payment, name='create_gcash_payment'),
@@ -64,7 +66,4 @@ urlpatterns = [
     path('payment/cash/<int:bill_id>/', views.manual_paid_confirmation, name='manual_paid_confirmation'),
     path('payment/', views.payment_method, name='payment_method'),
     path('payment/checkout/<str:reference>/', views.payment_checkout_simulation, name='payment_checkout_simulation'),
-
-    # ==================== ACTIVITY LOG ====================
-    path('activity-log/', views.activity_log, name='activity_log'),
 ]
