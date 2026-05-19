@@ -14,27 +14,7 @@ body {
 }
 
 /* ============================================ */
-/* 1.5. TENANT STATS (Added for dashboard)     */
-/* ============================================ */
-.tenant-stats {
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    border: 1px solid #e9ecef;
-}
-
-.tenant-stats > div {
-    flex: 1;
-    min-width: 120px;
-}
-
-/* ============================================ */
-/* 2. STATS CARDS (4 cards - Total Rooms, etc) */
+/* 2. STATS CARDS (4 cards)                    */
 /* ============================================ */
 .stats-grid {
     display: grid;
@@ -96,14 +76,14 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Icon Colors for each stat */
+/* Icon Colors */
 .stat-card:nth-child(1) .stat-icon i { color: #3498db; }
 .stat-card:nth-child(2) .stat-icon i { color: #f39c12; }
 .stat-card:nth-child(3) .stat-icon i { color: #2ecc71; }
 .stat-card:nth-child(4) .stat-icon i { color: #e74c3c; }
 
 /* ============================================ */
-/* 2.5. SECTION TITLE & ADD ROOM BUTTON        */
+/* 3. SECTION TITLES & BUTTONS                 */
 /* ============================================ */
 .section-title {
     font-size: 20px;
@@ -141,7 +121,7 @@ body {
 }
 
 /* ============================================ */
-/* 3. ROOM CARDS GRID (Compact)                */
+/* 4. ROOM CARDS GRID                          */
 /* ============================================ */
 .rooms-grid {
     display: grid;
@@ -284,7 +264,7 @@ body {
 }
 
 /* ============================================ */
-/* 4. MODAL STYLES (Compact)                   */
+/* 5. MODAL STYLES                             */
 /* ============================================ */
 .modal {
     display: none;
@@ -315,14 +295,8 @@ body {
 }
 
 @keyframes modalSlideIn {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 .modal-header {
@@ -459,14 +433,7 @@ body {
     padding: 3px 0;
 }
 
-.modal-btn-block {
-    display: block;
-    width: 100%;
-    text-align: center;
-    margin-top: 5px;
-}
-
-/* Remove Tenant Modal Specific Styles */
+/* Remove Tenant Modal */
 .warning-icon-small {
     font-size: 48px;
     text-align: center;
@@ -506,7 +473,7 @@ body {
 }
 
 /* ============================================ */
-/* 5. SIDEBAR NAVIGATION                       */
+/* 6. SIDEBAR NAVIGATION                       */
 /* ============================================ */
 .sidebar {
     width: 280px;
@@ -627,7 +594,7 @@ body {
 }
 
 /* ============================================ */
-/* 6. MAIN CONTENT AREA                        */
+/* 7. MAIN CONTENT AREA                        */
 /* ============================================ */
 .main-content {
     flex: 1;
@@ -658,7 +625,7 @@ body {
 }
 
 /* ============================================ */
-/* 7. ALERT CARD STYLES                        */
+/* 8. ALERT CARD STYLES                        */
 /* ============================================ */
 .alert-card {
     background: white;
@@ -722,7 +689,112 @@ body {
 }
 
 /* ============================================ */
-/* 8. RESPONSIVE STYLES                        */
+/* 9. DASHBOARD GRAPHS & TOP ROOMS             */
+/* ============================================ */
+.dashboard-graph-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin: 30px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #e9ecef;
+}
+
+.graph-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.graph-header h3 {
+    font-size: 18px;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.view-all-link {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.view-all-link:hover {
+    text-decoration: underline;
+}
+
+.dashboard-top-rooms {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #e9ecef;
+}
+
+.top-room-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.top-room-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.top-room-rank {
+    width: 60px;
+    text-align: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.top-room-rank.gold { filter: drop-shadow(0 0 2px gold); }
+.top-room-rank.silver { filter: drop-shadow(0 0 2px silver); }
+.top-room-rank.bronze { filter: drop-shadow(0 0 2px #cd7f32); }
+
+.top-room-name {
+    width: 70px;
+    font-weight: 600;
+    color: #2c3e50;
+    flex-shrink: 0;
+}
+
+.top-room-usage {
+    width: 100px;
+    text-align: right;
+    font-weight: 600;
+    color: #667eea;
+    flex-shrink: 0;
+}
+
+.top-room-tenant {
+    flex: 1;
+    text-align: right;
+    color: #666;
+    font-size: 13px;
+    padding-left: 10px;
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+}
+
+/* ============================================ */
+/* 10. RESPONSIVE STYLES                       */
 /* ============================================ */
 @media (max-width: 768px) {
     .sidebar {
@@ -746,10 +818,6 @@ body {
     .rooms-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
-    .tenant-stats {
-        flex-direction: column;
-        gap: 10px;
-    }
 }
 
 @media (max-width: 600px) {
@@ -766,4 +834,8 @@ body {
         flex-direction: column;
         align-items: flex-start;
     }
+    .top-room-rank { width: 45px; font-size: 20px; }
+    .top-room-name { width: 55px; font-size: 14px; }
+    .top-room-usage { width: 80px; font-size: 13px; }
+    .top-room-tenant { font-size: 11px; }
 }

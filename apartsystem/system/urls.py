@@ -11,7 +11,7 @@ urlpatterns = [
     
     # ==================== DASHBOARDS ====================
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('dashboard', views.dashboard, name='dashboard'),  # Without slash (backward compat)
+    path('dashboard', views.dashboard, name='dashboard'),
     path('tenant/', views.tenant_dashboard, name='tenant_dashboard'),
     path('tenant/notifications/', views.tenant_notifications, name='tenant_notifications'),
     path('edit-profile/', views.edit_profile, name='edit_profile'),
@@ -21,7 +21,8 @@ urlpatterns = [
     path('room/edit/<int:room_id>/', views.edit_room, name='edit_room'),
     path('room/delete/<int:room_id>/', views.delete_room, name='delete_room'),
     path('toggle_power/<int:room_id>/', views.toggle_power, name='toggle_power'),
-    path('toggle/<int:room_id>/', views.toggle_power, name='toggle_power'),  # Old pattern
+    path('toggle/<int:room_id>/', views.toggle_power, name='toggle_power'),
+    path('rooms/', views.rooms_page, name='rooms_page'),
     
     # ==================== TENANT MANAGEMENT ====================
     path('room/<int:room_id>/assign-tenant/', views.assign_tenant, name='assign_tenant'),
@@ -32,7 +33,7 @@ urlpatterns = [
     path('billing/', views.billing_view, name='billing_view'),
     path('billing/history/', views.billing_history, name='billing_history'),
     path('billing/mark-paid/<int:bill_id>/', views.mark_as_paid, name='mark_as_paid'),
-    path('billing/<int:bill_id>/mark-paid/', views.mark_as_paid, name='mark_as_paid'),  # Alternative
+    path('billing/<int:bill_id>/mark-paid/', views.mark_as_paid, name='mark_as_paid'),
     path('billing/export/', views.export_billing_csv, name='export_billing_csv'),
     path('billing/report/', views.billing_report_html, name='billing_report_html'),
     
@@ -51,22 +52,19 @@ urlpatterns = [
     path('api/meter-reading/', api.meter_reading, name='meter_reading'),
     path('api/device-info/', api.device_info, name='device_info'),
     path('api/room-usage/', views.get_room_usage_data, name='room_usage_api'),
-    path('api/building-stats/', views.get_building_stats, name='building_stats_api'),
+    path('api/building-stats/', api.get_building_stats, name='building_stats_api'),  # ✅ GAMITIN ANG API
     path('api/run-smart-features/', views.run_smart_features_api, name='run_smart_features_api'),
     path('api/system-health/', views.system_health, name='system_health'),
-    path('api/paymongo-webhook/', views.paymongo_webhook, name='paymongo_webhook'),
     path('api/paymongo-webhook/', api.paymongo_webhook, name='paymongo_webhook'),
     path('api/room-status/<str:room_name>/', api.room_status, name='room_status'),
 
-    # Payment URLs
+    # ==================== PAYMENT URLs ====================
     path('payment/gcash/<int:bill_id>/', views.create_gcash_payment, name='create_gcash_payment'),
     path('payment/success/<str:reference_number>/', views.payment_success, name='payment_success'),
     path('payment/cash/<int:bill_id>/', views.manual_paid_confirmation, name='manual_paid_confirmation'),
     path('payment/', views.payment_method, name='payment_method'),
- 
-
-    # Payment Checkout Simulation (for PayMongo)
     path('payment/checkout/<str:reference>/', views.payment_checkout_simulation, name='payment_checkout_simulation'),
 
+    # ==================== ACTIVITY LOG ====================
     path('activity-log/', views.activity_log, name='activity_log'),
 ]

@@ -2090,3 +2090,26 @@ def activity_log(request):
         'username': request.user.username,
         'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })
+
+@login_required
+def rooms_page(request):
+    """Display all rooms (moved from dashboard)"""
+    if request.user.userprofile.user_type != 'owner':
+        return redirect('tenant_dashboard')
+    
+    rooms = Room.objects.all()
+    for room in rooms:
+        current_usage = room.get_current_usage()
+        room.current_usage = current_usage
+        room.cost = current_usage * SystemSettings.get_settings().electricity_rate
+        room.over_limit = current_usage > room.limit
+    
+    available_tenants = UserProfile.objects.filter(user_type='tenant', room__isnull=True).select_related('user')
+    
+    return render(request, 'system/rooms.html', {
+        'rooms': rooms,
+        'available_tenants': available_tenants,
+        'username': request.user.username,
+        'today': timezone.now().date(),
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
+    })

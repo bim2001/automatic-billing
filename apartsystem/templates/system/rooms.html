@@ -1,0 +1,422 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Rooms - Smart Energy System</title>
+    <style>
+        .rooms-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .rooms-header h1 {
+            font-size: 24px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-add-room {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-add-room:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        /* Modal styles for remove tenant */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(3px);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.2s ease;
+        }
+        @keyframes modalSlideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        .modal-header h3 {
+            font-size: 16px;
+            margin: 0;
+        }
+        .modal-close {
+            font-size: 20px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: white;
+        }
+        .modal-body {
+            padding: 15px;
+        }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .modal-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .modal-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .warning-icon-small {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #dc3545;
+        }
+        .modal-room-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .modal-room-details ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        .remove-confirm-text {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .remove-note {
+            font-size: 13px;
+            color: #856404;
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    {% include 'system/sidebar.html' %}
+
+    <div class="main-content">
+        <div class="rooms-header">
+            <h1><i class="fas fa-door-open"></i> Room Management</h1>
+            <a href="{% url 'add_room' %}" class="btn-add-room">
+                <i class="fas fa-plus"></i> Add New Room
+            </a>
+        </div>
+
+        <div class="rooms-grid">
+            {% for room in rooms %}
+            <div class="room-card" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}" 
+                 data-room-usage="{{ room.current_usage }}" data-room-limit="{{ room.limit }}" 
+                 data-room-power="{{ room.power_status }}" data-room-cost="{{ room.cost }}" 
+                 data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}">
+                <div class="room-card-header">
+                    <span class="room-name"><i class="fas fa-door-open"></i> {{ room.name }}</span>
+                    <span class="room-status {% if room.power_status %}on{% else %}off{% endif %}">
+                        {% if room.power_status %}POWER ON{% else %}POWER OFF{% endif %}
+                    </span>
+                </div>
+                <div class="room-usage">
+                    <span class="usage-value">{{ room.current_usage|floatformat:1 }}</span>
+                    <span class="usage-unit">kWh</span>
+                    <div class="usage-limit">Limit: {{ room.limit }} kWh</div>
+                    <div class="progress-bar-container">
+                        {% widthratio room.current_usage room.limit 100 as width_percent %}
+                        <div class="progress-fill-card 
+                            {% if room.current_usage > room.limit %}danger
+                            {% elif room.current_usage > room.limit|add:'-10' %}warning
+                            {% endif %}" 
+                            style="width: {{ width_percent }}%;">
+                        </div>
+                    </div>
+                </div>
+                <div class="room-tenant">
+                    <i class="fas fa-user"></i>
+                    {% if room.is_occupied %}
+                        {{ room.get_tenant_name }}
+                    {% else %}
+                        <span class="no-tenant">No tenant assigned</span>
+                    {% endif %}
+                </div>
+                <div class="room-actions-card">
+                    <button class="btn-view" onclick="openRoomModal('{{ room.id }}')">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="no-rooms-message">No rooms added yet. <a href="{% url 'add_room' %}">Add your first room</a></div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- MODAL FOR ROOM DETAILS -->
+    <div id="roomModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-door-open"></i> <span id="modalRoomName">Room</span></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h4><i class="fas fa-chart-line"></i> Room Details</h4>
+                    <div class="info-row"><span class="info-label">Current Usage:</span><span class="info-value"><span id="modalUsage"></span> kWh</span></div>
+                    <div class="info-row"><span class="info-label">Monthly Limit:</span><span class="info-value"><span id="modalLimit"></span> kWh</span></div>
+                    <div class="info-row"><span class="info-label">Used:</span><span class="info-value"><span id="modalPercentage"></span>%</span></div>
+                    <div class="info-row"><span class="info-label">Power Status:</span><span class="info-value"><span id="modalPower"></span></span></div>
+                    <div class="info-row"><span class="info-label">Current Cost:</span><span class="info-value">₱<span id="modalCost"></span></span></div>
+                </div>
+                <div class="modal-section" id="tenantSection">
+                    <h4><i class="fas fa-user-friends"></i> Tenant</h4>
+                    <div id="tenantInfo"></div>
+                </div>
+                <div class="modal-section">
+                    <h4><i class="fas fa-cog"></i> Actions</h4>
+                    <div class="modal-actions">
+                        <a href="#" id="editRoomBtn" class="modal-btn modal-btn-primary"><i class="fas fa-edit"></i> Edit</a>
+                        <a href="#" id="togglePowerBtn" class="modal-btn modal-btn-primary"><i class="fas fa-power-off"></i> Power</a>
+                        <a href="#" id="deleteRoomBtn" class="modal-btn modal-btn-danger"><i class="fas fa-trash"></i> Delete</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- REMOVE TENANT CONFIRMATION MODAL -->
+    <div id="removeTenantModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Remove Tenant</h3>
+                <button class="modal-close" onclick="closeRemoveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon-small">
+                    <i class="fas fa-user-slash"></i>
+                </div>
+                <p class="remove-confirm-text">
+                    Are you sure you want to remove <strong id="removeTenantName"></strong> from <strong id="removeRoomName"></strong>?
+                </p>
+                <div class="modal-room-details">
+                    <p><i class="fas fa-exclamation-circle"></i> <strong>Warning:</strong> This action will:</p>
+                    <ul>
+                        <li>Remove the tenant from this room</li>
+                        <li>The room will become vacant</li>
+                        <li>The tenant will no longer see this room in their dashboard</li>
+                    </ul>
+                </div>
+                <p class="remove-note">
+                    <i class="fas fa-info-circle"></i> This action can be undone by reassigning the tenant.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closeRemoveModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <form id="removeTenantForm" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="modal-btn modal-btn-danger">
+                        <i class="fas fa-user-minus"></i> Yes, Remove Tenant
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE ROOM CONFIRMATION MODAL -->
+    <div id="deleteRoomModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Delete Room</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon-small">
+                    <i class="fas fa-trash-alt"></i>
+                </div>
+                <p class="remove-confirm-text">
+                    Are you sure you want to permanently delete <strong id="deleteRoomName"></strong>?
+                </p>
+                <div class="modal-room-details">
+                    <p><i class="fas fa-exclamation-circle"></i> <strong>Warning:</strong> This action will:</p>
+                    <ul>
+                        <li>Delete the room permanently</li>
+                        <li>Remove all billing records for this room</li>
+                        <li>Remove all energy usage data for this room</li>
+                        <li>Remove all alerts for this room</li>
+                        <li>This action CANNOT be undone!</li>
+                    </ul>
+                </div>
+                <p class="remove-note">
+                    <i class="fas fa-info-circle"></i> Consider removing the tenant first before deleting the room.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <form id="deleteRoomForm" method="post" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="modal-btn modal-btn-danger">
+                        <i class="fas fa-trash-alt"></i> Yes, Delete Permanently
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRoomId = null;
+        let currentRemoveRoomId = null;
+        let currentRemoveTenantName = null;
+        let currentRemoveRoomName = null;
+        let currentDeleteRoomId = null;
+        let currentDeleteRoomName = null;
+
+        function openRoomModal(roomId) {
+            const card = document.querySelector('.room-card[data-room-id="' + roomId + '"]');
+            if (!card) return;
+            currentRoomId = roomId;
+            const roomName = card.getAttribute('data-room-name');
+            const usage = parseFloat(card.getAttribute('data-room-usage')).toFixed(1);
+            const limit = parseFloat(card.getAttribute('data-room-limit'));
+            const powerStatus = card.getAttribute('data-room-power') === 'True';
+            const cost = parseFloat(card.getAttribute('data-room-cost')).toFixed(2);
+            const isOccupied = card.getAttribute('data-room-occupied') === 'True';
+            const tenantName = card.getAttribute('data-room-tenant');
+            document.getElementById('modalRoomName').innerHTML = '<i class="fas fa-door-open"></i> ' + roomName;
+            document.getElementById('modalUsage').textContent = usage;
+            document.getElementById('modalLimit').textContent = limit;
+            const percentage = (usage / limit * 100).toFixed(1);
+            document.getElementById('modalPercentage').textContent = percentage;
+            document.getElementById('modalPower').innerHTML = powerStatus ? '<span style="color: #28a745;"><i class="fas fa-toggle-on"></i> POWER ON</span>' : '<span style="color: #dc3545;"><i class="fas fa-toggle-off"></i> POWER OFF</span>';
+            document.getElementById('modalCost').textContent = cost;
+            const tenantSection = document.getElementById('tenantInfo');
+            if (isOccupied) {
+                tenantSection.innerHTML = `<div class="tenant-badge"><div class="info-row"><span class="info-label">Current Tenant:</span><span class="info-value"><i class="fas fa-user"></i> ${tenantName}</span></div><div style="margin-top: 15px;"><button onclick="showRemoveModal('${roomId}', '${tenantName}', '${roomName}')" class="modal-btn modal-btn-danger" style="display: block; text-align: center; width: 100%;"><i class="fas fa-user-minus"></i> Remove Tenant</button></div></div>`;
+            } else {
+                tenantSection.innerHTML = `<form method="post" action="/room/${roomId}/assign-tenant/">{% csrf_token %}<div class="modal-form-group"><label><i class="fas fa-user"></i> Select Tenant:</label><select name="tenant_id" required class="form-control"><option value="">-- Select Tenant --</option>{% for tenant in available_tenants %}<option value="{{ tenant.id }}">{{ tenant.user.get_full_name|default:tenant.user.username }} ({{ tenant.user.email }})</option>{% endfor %}</select></div><div class="modal-form-group"><label><i class="fas fa-calendar"></i> Move-in Date:</label><input type="date" name="move_in_date" value="{{ today|date:'Y-m-d' }}" required></div><button type="submit" class="modal-btn modal-btn-primary" style="width: 100%;"><i class="fas fa-user-plus"></i> Assign Tenant</button></form>`;
+            }
+            document.getElementById('editRoomBtn').href = '/room/edit/' + roomId + '/';
+            document.getElementById('togglePowerBtn').href = '/toggle_power/' + roomId + '/';
+            document.getElementById('deleteRoomBtn').onclick = function() { showDeleteModal(roomId, roomName); };
+            document.getElementById('roomModal').classList.add('show');
+        }
+        
+        function closeModal() { 
+            document.getElementById('roomModal').classList.remove('show'); 
+        }
+        
+        function showRemoveModal(roomId, tenantName, roomName) {
+            currentRemoveRoomId = roomId;
+            currentRemoveTenantName = tenantName;
+            currentRemoveRoomName = roomName;
+            
+            document.getElementById('removeTenantName').textContent = tenantName;
+            document.getElementById('removeRoomName').textContent = roomName;
+            
+            const form = document.getElementById('removeTenantForm');
+            form.action = '/room/' + roomId + '/remove-tenant/';
+            
+            document.getElementById('removeTenantModal').classList.add('show');
+        }
+        
+        function closeRemoveModal() {
+            document.getElementById('removeTenantModal').classList.remove('show');
+            currentRemoveRoomId = null;
+        }
+        
+        function showDeleteModal(roomId, roomName) {
+            currentDeleteRoomId = roomId;
+            currentDeleteRoomName = roomName;
+            
+            document.getElementById('deleteRoomName').textContent = roomName;
+            
+            const form = document.getElementById('deleteRoomForm');
+            form.action = '/room/delete/' + roomId + '/';
+            
+            document.getElementById('deleteRoomModal').classList.add('show');
+        }
+        
+        function closeDeleteModal() {
+            document.getElementById('deleteRoomModal').classList.remove('show');
+            currentDeleteRoomId = null;
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('roomModal');
+            if (event.target === modal) closeModal();
+            const removeModal = document.getElementById('removeTenantModal');
+            if (event.target === removeModal) closeRemoveModal();
+            const deleteModal = document.getElementById('deleteRoomModal');
+            if (event.target === deleteModal) closeDeleteModal();
+        }
+        
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+                closeRemoveModal();
+                closeDeleteModal();
+            }
+        });
+    </script>
+    <script src="{% static 'js/active-nav.js' %}"></script>
+</body>
+</html>

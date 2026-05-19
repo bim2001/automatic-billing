@@ -7,7 +7,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
-from .models import EnergyUsage, Room, Alert
+from django.contrib.auth.decorators import login_required
+from .models import EnergyUsage, Room, Alert, Billing
 
 import logging
 
@@ -387,3 +388,100 @@ def room_status(request, room_name):
         })
     except Room.DoesNotExist:
         return JsonResponse({'error': 'Room not found'}, status=404)
+
+@login_required
+def get_building_stats(request):
+    profile = request.user.userprofile
+    if profile.user_type != 'owner':
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    from django.db.models import Sum
+    from datetime import datetime, timedelta
+    from .models import Billing  # ✅ IMPORTANTE: I-import ang Billing
+    
+    start_date = request.GET.get('start')
+    end_date = request.GET.get('end')
+    
+    if start_date and end_date:
+        start = datetime.strptime(start_date, '%Y-%m-%d')
+        end = datetime.strptime(end_date, '%Y-%m-%d')
+    else:
+        today = datetime.now()
+        start = datetime(today.year, today.month, 1)
+        end = today
+    
+    rooms = Room.objects.all()
+    room_names = []
+    room_usages = []
+    daily_building = []
+    days = []
+    
+    # Get daily totals
+    current = start
+    while current <= end:
+        day_total = EnergyUsage.objects.filter(
+            timestamp__date=current.date()
+        ).aggregate(total=Sum('kwh'))['total'] or 0
+        daily_building.append(round(day_total, 2))
+        days.append(current.strftime('%b %d'))
+        current += timedelta(days=1)
+    
+    # Get room totals
+    total_building_usage = 0
+    occupied_rooms_count = 0
+    room_stats = []
+    
+    for room in rooms:
+        total_kwh = EnergyUsage.objects.filter(
+            room=room,
+            timestamp__date__gte=start.date(),
+            timestamp__date__lte=end.date()
+        ).aggregate(total=Sum('kwh'))['total'] or 0
+        
+        room_names.append(room.name)
+        room_usages.append(round(total_kwh, 2))
+        
+        room_stats.append({
+            'name': room.name,
+            'usage': round(total_kwh, 2),
+            'limit': room.limit,
+            'status': 'ON' if room.power_status else 'OFF',
+            'tenant': room.get_tenant_name() or 'Vacant'
+        })
+        total_building_usage += total_kwh
+        if room.is_occupied():
+            occupied_rooms_count += 1
+    
+    room_stats.sort(key=lambda x: x['usage'], reverse=True)
+    avg_per_room = round(total_building_usage / occupied_rooms_count, 2) if occupied_rooms_count > 0 else 0
+    
+    # ========== ✅ BAGONG CODE: Current Bill Total ==========
+    month_name = end.strftime("%B %Y")
+    
+    # Kunin ang total unpaid bills para sa current month
+    total_bill = 0
+    try:
+        total_bill = sum(
+            bill.cost for bill in Billing.objects.filter(
+                billing_month=month_name,
+                is_paid=False
+            )
+        )
+    except Exception as e:
+        print(f"Error getting total bill: {e}")
+        total_bill = 0
+    
+    return JsonResponse({
+        'total_rooms': len(rooms),
+        'occupied_rooms': occupied_rooms_count,
+        'total_usage': round(total_building_usage, 2),
+        'avg_per_room': avg_per_room,
+        'room_stats': room_stats,
+        'room_names': room_names,
+        'room_usages': room_usages,
+        'daily_building': daily_building,
+        'days': days,
+        'month': month_name,
+        'current_bill_total': float(total_bill),           # ✅ BAGO
+        'total_kwh_this_month': round(total_building_usage, 2),  # ✅ BAGO
+    })

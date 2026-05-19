@@ -4,93 +4,94 @@
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>Smart Energy System - Owner Dashboard</title>
 </head>
 <body>
 
-    <!-- SIDEBAR NAVIGATION -->
+    <!-- SIDEBAR -->
     {% include 'system/sidebar.html' %}
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
-        <!-- Page Header -->
         <div class="page-header">
-            <h1><i class="fas fa-home"></i> Apartment Energy Dashboard</h1>
-            <p>Monitor and manage electricity consumption in real-time</p>
+            <h1><i class="fas fa-chart-line"></i> Apartment Energy Dashboard</h1>
+            <p>Monitor real-time consumption & billing</p>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-building"></i></div>
-                <div class="stat-value">{{ stats.total_rooms }}</div>
-                <div class="stat-label">Total Rooms</div>
+        <!-- GAUGE + STATS SECTION (Compact) -->
+        <div class="gauge-section">
+            <!--<div class="gauge-title">
+                <i class="fas fa-coins"></i> CURRENT BILL (THIS MONTH)
+            </div> -->
+            <div class="gauge-container">
+                <canvas id="billGauge" class="gauge-canvas" width="200" height="400"></canvas>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-bolt"></i></div>
-                <div class="stat-value">{{ stats.total_kwh|floatformat:2 }}</div>
-                <div class="stat-label">Total kWh Used</div>
+
+            <!-- ✅ BAGO: TEXT SA ILALIM NG GAUGE -->
+            <div class="gauge-value">
+                <div class="current-bill-amount" id="gaugeBillAmount" style="font-size: 28px; font-weight: 700; color: #1c3f53;">₱0</div>
+                <div class="current-bill-label" style="font-size: 12px; font-weight: 500; color: #8ba1b3;">current bill - This month</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-coins"></i></div>
-                <div class="stat-value">{{ stats.total_cost|floatformat:2 }}</div>
-                <div class="stat-label">Total Cost</div>
+
+            <!-- Compact Stats Row -->
+            <div class="stats-row-dashboard">
+                <div class="stat-item-dashboard">
+                    <div class="stat-number-dashboard">{{ stats.total_rooms }}</div>
+                    <div class="stat-label-dashboard">🏢 TOTAL ROOMS</div>
+                </div>
+                <div class="stat-item-dashboard">
+                    <div class="stat-number-dashboard">{{ stats.total_kwh|floatformat:1 }}</div>
+                    <div class="stat-label-dashboard">⚡ TOTAL KWH</div>
+                </div>
+                <div class="stat-item-dashboard">
+                    <div class="stat-number-dashboard">{{ stats.over_limit_count }}</div>
+                    <div class="stat-label-dashboard">⚠️ OVER LIMIT</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="stat-value">{{ stats.over_limit_count }}</div>
-                <div class="stat-label">Over Limit</div>
+
+            <!-- Extra Info (No projected/est. total) -->
+            <div class="extra-info-row">
+                <div class="extra-info-item">
+                    <div class="extra-info-label">📊 DAILY AVG</div>
+                    <div class="extra-info-value" id="dailyAvg">-- kWh</div>
+                </div>
+                <div class="extra-info-item">
+                    <div class="extra-info-label">🎯 MONTHLY TARGET</div>
+                    <div class="extra-info-value" id="monthlyTarget">--% used</div>
+                </div>
+                <div class="extra-info-item">
+                    <div class="extra-info-label">🏆 TOP ROOM</div>
+                    <div class="extra-info-value" id="topRoomName">--</div>
+                </div>
             </div>
         </div>
 
-        <!-- ROOMS AS CARDS -->
-        <div class="section-title">
-            <span class="section-title-text"><i class="fas fa-door-open"></i> Room Management</span>
-        </div>
+        <!-- CHARTS: TWO COLUMNS (Daily + Top 3 Rooms) -->
+        <div class="charts-row">
+            <!-- Daily Consumption Chart -->
+            <div class="chart-card-dashboard">
+                <div class="chart-header-dashboard">
+                    <h3><i class="fas fa-chart-line"></i> Daily Building Consumption</h3>
+                    <span class="chart-badge" id="chartMonth">Loading...</span>
+                </div>
+                <canvas id="dailyConsumptionChart" class="chart-canvas"></canvas>
+            </div>
 
-        <div class="rooms-grid" id="roomsGrid">
-            {% for room in rooms %}
-            <div class="room-card" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}" data-room-usage="{{ room.current_usage }}" data-room-limit="{{ room.limit }}" data-room-power="{{ room.power_status }}" data-room-cost="{{ room.cost }}" data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}">
-                <div class="room-card-header">
-                    <span class="room-name"><i class="fas fa-door-open"></i> {{ room.name }}</span>
-                    <span class="room-status {% if room.power_status %}on{% else %}off{% endif %}">
-                        {% if room.power_status %}POWER ON{% else %}POWER OFF{% endif %}
-                    </span>
+            <!-- Top 3 Rooms Chart -->
+            <div class="chart-card-dashboard">
+                <div class="chart-header-dashboard">
+                    <h3><i class="fas fa-trophy"></i> Top 3 Consuming Rooms</h3>
+                    <span class="chart-badge">This Month</span>
                 </div>
-                <div class="room-usage">
-                    <span class="usage-value">{{ room.current_usage|floatformat:1 }}</span>
-                    <span class="usage-unit">kWh</span>
-                    <div class="usage-limit">Limit: {{ room.limit }} kWh</div>
-                    <div class="progress-bar-container">
-                        {% widthratio room.current_usage room.limit 100 as width_percent %}
-                        <div class="progress-fill-card 
-                            {% if room.current_usage > room.limit %}danger
-                            {% elif room.current_usage > room.limit|add:'-10' %}warning
-                            {% endif %}" 
-                            style="width: {{ width_percent }}%;">
-                        </div>
-                    </div>
-                </div>
-                <div class="room-tenant">
-                    <i class="fas fa-user"></i>
-                    {% if room.is_occupied %}
-                        {{ room.get_tenant_name }}
-                    {% else %}
-                        <span class="no-tenant">No tenant assigned</span>
-                    {% endif %}
-                </div>
-                <div class="room-actions-card">
-                    <button class="btn-view" data-room-id="{{ room.id }}" onclick="openRoomModal(this.getAttribute('data-room-id'))">
-                        <i class="fas fa-eye"></i> View Details
-                    </button>
+                <canvas id="topRoomsChart" class="chart-canvas"></canvas>
+                <div style="text-align: center; margin-top: 12px;">
+                    <small style="color: #666;">🥇 Gold | 🥈 Silver | 🥉 Bronze</small>
                 </div>
             </div>
-            {% empty %}
-            <div class="no-rooms-message">No rooms added yet. <a href="{% url 'add_room' %}">Add your first room</a></div>
-            {% endfor %}
         </div>
 
-        <!-- Recent Alerts -->
+        <!-- Recent Alerts (Optional) -->
         {% if recent_alerts %}
         <div class="alert-card">
             <div class="alert-header">
@@ -109,65 +110,7 @@
         {% endif %}
     </div>
 
-    <!-- MODAL FOR ROOM DETAILS -->
-    <div id="roomModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-door-open"></i> <span id="modalRoomName">Room</span></h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Room Details Section -->
-                <div class="modal-section">
-                    <h4><i class="fas fa-chart-line"></i> Room Details</h4>
-                    <div class="info-row">
-                        <span class="info-label">Current Usage:</span>
-                        <span class="info-value"><span id="modalUsage"></span> kWh</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Monthly Limit:</span>
-                        <span class="info-value"><span id="modalLimit"></span> kWh</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Used:</span>
-                        <span class="info-value"><span id="modalPercentage"></span>%</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Power Status:</span>
-                        <span class="info-value"><span id="modalPower"></span></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Current Cost:</span>
-                        <span class="info-value">₱<span id="modalCost"></span></span>
-                    </div>
-                </div>
-
-                <!-- Tenant Assignment Section -->
-                <div class="modal-section" id="tenantSection">
-                    <h4><i class="fas fa-user-friends"></i> Tenant</h4>
-                    <div id="tenantInfo"></div>
-                </div>
-
-                <!-- Actions Section -->
-                <div class="modal-section">
-                    <h4><i class="fas fa-cog"></i> Actions</h4>
-                    <div class="modal-actions">
-                        <a href="#" id="editRoomBtn" class="modal-btn modal-btn-primary">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        <a href="#" id="togglePowerBtn" class="modal-btn modal-btn-primary">
-                            <i class="fas fa-power-off"></i> Power
-                        </a>
-                        <a href="#" id="deleteRoomBtn" class="modal-btn modal-btn-danger">
-                            <i class="fas fa-trash"></i> Delete
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Remove Tenant Confirmation Modal -->
+    <!-- REMOVE TENANT MODAL -->
     <div id="removeTenantModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -208,95 +151,19 @@
     </div>
 
     <script>
-        let currentRoomId = null;
+        // Remove Tenant Modal Functions
         let currentRemoveRoomId = null;
         let currentRemoveTenantName = null;
         let currentRemoveRoomName = null;
 
-        function openRoomModal(roomId) {
-            const card = document.querySelector('.room-card[data-room-id="' + roomId + '"]');
-            if (!card) return;
-            
-            currentRoomId = roomId;
-            
-            const roomName = card.getAttribute('data-room-name');
-            const usage = parseFloat(card.getAttribute('data-room-usage')).toFixed(1);
-            const limit = parseFloat(card.getAttribute('data-room-limit'));
-            const powerStatus = card.getAttribute('data-room-power') === 'True';
-            const cost = parseFloat(card.getAttribute('data-room-cost')).toFixed(2);
-            const isOccupied = card.getAttribute('data-room-occupied') === 'True';
-            const tenantName = card.getAttribute('data-room-tenant');
-            
-            document.getElementById('modalRoomName').innerHTML = '<i class="fas fa-door-open"></i> ' + roomName;
-            document.getElementById('modalUsage').textContent = usage;
-            document.getElementById('modalLimit').textContent = limit;
-            
-            const percentage = (usage / limit * 100).toFixed(1);
-            document.getElementById('modalPercentage').textContent = percentage;
-            document.getElementById('modalPower').innerHTML = powerStatus ? '<span style="color: #28a745;"><i class="fas fa-toggle-on"></i> POWER ON</span>' : '<span style="color: #dc3545;"><i class="fas fa-toggle-off"></i> POWER OFF</span>';
-            document.getElementById('modalCost').textContent = cost;
-            
-            const tenantSection = document.getElementById('tenantInfo');
-            if (isOccupied) {
-                tenantSection.innerHTML = `
-                    <div class="tenant-badge">
-                        <div class="info-row">
-                            <span class="info-label">Current Tenant:</span>
-                            <span class="info-value"><i class="fas fa-user"></i> ${tenantName}</span>
-                        </div>
-                        <div style="margin-top: 15px;">
-                            <button onclick="showRemoveModal('${roomId}', '${tenantName}', '${roomName}')" class="modal-btn modal-btn-danger" style="display: block; text-align: center; width: 100%;">
-                                <i class="fas fa-user-minus"></i> Remove Tenant
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else {
-                tenantSection.innerHTML = `
-                    <form method="post" action="/room/${roomId}/assign-tenant/">
-                        {% csrf_token %}
-                        <div class="modal-form-group">
-                            <label><i class="fas fa-user"></i> Select Tenant:</label>
-                            <select name="tenant_id" required class="form-control">
-                                <option value="">-- Select Tenant --</option>
-                                {% for tenant in available_tenants %}
-                                <option value="{{ tenant.id }}">{{ tenant.user.get_full_name|default:tenant.user.username }} ({{ tenant.user.email }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="modal-form-group">
-                            <label><i class="fas fa-calendar"></i> Move-in Date:</label>
-                            <input type="date" name="move_in_date" value="{{ today|date:'Y-m-d' }}" required>
-                        </div>
-                        <button type="submit" class="modal-btn modal-btn-primary" style="width: 100%;">
-                            <i class="fas fa-user-plus"></i> Assign Tenant
-                        </button>
-                    </form>
-                `;
-            }
-            
-            document.getElementById('editRoomBtn').href = '/room/edit/' + roomId + '/';
-            document.getElementById('togglePowerBtn').href = '/toggle_power/' + roomId + '/';
-            document.getElementById('deleteRoomBtn').href = '/room/delete/' + roomId + '/';
-            document.getElementById('roomModal').classList.add('show');
-        }
-        
-        function closeModal() {
-            document.getElementById('roomModal').classList.remove('show');
-            currentRoomId = null;
-        }
-        
         function showRemoveModal(roomId, tenantName, roomName) {
             currentRemoveRoomId = roomId;
             currentRemoveTenantName = tenantName;
             currentRemoveRoomName = roomName;
-            
             document.getElementById('removeTenantName').textContent = tenantName;
             document.getElementById('removeRoomName').textContent = roomName;
-            
             const form = document.getElementById('removeTenantForm');
             form.action = '/room/' + roomId + '/remove-tenant/';
-            
             document.getElementById('removeTenantModal').classList.add('show');
         }
         
@@ -306,24 +173,252 @@
         }
         
         window.onclick = function(event) {
-            const modal = document.getElementById('roomModal');
-            if (event.target === modal) {
-                closeModal();
-            }
             const removeModal = document.getElementById('removeTenantModal');
-            if (event.target === removeModal) {
-                closeRemoveModal();
-            }
+            if (event.target === removeModal) closeRemoveModal();
         }
         
         document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeModal();
-                closeRemoveModal();
-            }
+            if (event.key === 'Escape') closeRemoveModal();
         });
-    </script>
-    <script src="{% static 'js/active-nav.js' %}"></script>
 
+        // ============================================
+        // GAUGE + CHARTS using LIVE DATA from API
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/building-stats/')
+                .then(response => response.json())
+                .then(data => {
+                    // Update month badge
+                    document.getElementById('chartMonth').textContent = data.month;
+                    
+                    // Calculate daily average
+                    const dailyUsage = data.daily_building || [];
+                    const avgKwh = dailyUsage.length > 0 ? 
+                        (dailyUsage.reduce((a,b) => a + b, 0) / dailyUsage.length).toFixed(1) : 0;
+                    document.getElementById('dailyAvg').textContent = avgKwh + ' kWh';
+                    
+                    // Monthly target % (based on total usage vs assumed limit)
+                    const totalKwh = data.total_kwh_this_month || 0;
+                    const assumedLimit = 5000;
+                    const percentUsed = Math.min(100, Math.round((totalKwh / assumedLimit) * 100));
+                    document.getElementById('monthlyTarget').textContent = percentUsed + '% used';
+                    
+                    // Top room name
+                    const topRoom = (data.room_stats && data.room_stats.length > 0) ? data.room_stats[0].name : '--';
+                    document.getElementById('topRoomName').textContent = topRoom;
+                    
+                    // ========== GAUGE (Current Bill) ==========
+                    const currentBill = data.current_bill_total || 0;
+                    
+                    // ✅ UPDATE ANG TEXT SA ILALIM NG GAUGE
+                    document.getElementById('gaugeBillAmount').innerHTML = `₱${currentBill.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                    
+                    // Set max value: 2x ng current bill or minimum 1000
+                    let maxGaugeValue = Math.max(currentBill * 2, 1000);
+                    drawGauge(currentBill, maxGaugeValue);
+                    
+                    // ========== DAILY LINE CHART ==========
+                    const ctx1 = document.getElementById('dailyConsumptionChart').getContext('2d');
+                    new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: data.days || [],
+                            datasets: [{
+                                label: 'kWh Used',
+                                data: dailyUsage,
+                                borderColor: '#667eea',
+                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: true,
+                                pointBackgroundColor: '#667eea',
+                                pointBorderColor: 'white',
+                                pointBorderWidth: 2,
+                                pointRadius: 3,
+                                pointHoverRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} kWh` } } },
+                            scales: { y: { beginAtZero: true, title: { display: true, text: 'kWh' } } }
+                        }
+                    });
+                    
+                    // ========== TOP 3 ROOMS BAR CHART ==========
+                    const top3Rooms = (data.room_stats || []).slice(0, 3);
+                    const roomNames = top3Rooms.map(r => r.name);
+                    const roomUsages = top3Rooms.map(r => r.usage);
+                    const roomColors = ['#667eea', '#764ba2', '#f39c12'];
+                    
+                    const ctx2 = document.getElementById('topRoomsChart').getContext('2d');
+                    new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: roomNames,
+                            datasets: [{
+                                label: 'kWh Used',
+                                data: roomUsages,
+                                backgroundColor: roomColors,
+                                borderRadius: 8,
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} kWh` } } },
+                            scales: { y: { beginAtZero: true, title: { display: true, text: 'kWh' } } }
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching chart data:', error);
+                    drawGauge(0, 10000);
+                    document.getElementById('gaugeBillAmount').innerHTML = '₱0.00';
+                });
+        });
+        
+        // ========== GAUGE DRAW FUNCTION ==========
+        function drawGauge(currentBill, maxGaugeValue) {
+            const canvas = document.getElementById('billGauge');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 400;
+            canvas.height = 240;
+            canvas.style.width = '260px';
+            canvas.style.height = '150px';
+            
+            const centerX = canvas.width / 2;
+            const centerY = 145
+            const radius = 120;
+            
+            const startDeg = 160;
+            const endDeg = 380;
+            const startRad = startDeg * Math.PI / 180;
+            const endRad = endDeg * Math.PI / 180;
+            const totalSweep = endRad - startRad;
+            
+            function valueToAngle(value, minVal, maxVal) {
+                let t = (value - minVal) / (maxVal - minVal);
+                t = Math.min(Math.max(t, 0), 1);
+                return startRad + t * totalSweep;
+            }
+            
+            const needleAngle = valueToAngle(currentBill, 0, maxGaugeValue);
+            const percent = (currentBill / maxGaugeValue) * 100;
+            let gaugeColor = percent < 35 ? "#2a9d8f" : (percent < 70 ? "#e9b35f" : "#e26d5c");
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background arc
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startRad, endRad);
+            ctx.lineWidth = 30;
+            ctx.strokeStyle = "#e5edf4";
+            ctx.stroke();
+            
+            // Colored arc
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, startRad, needleAngle);
+            ctx.lineWidth = 30;
+            ctx.strokeStyle = gaugeColor;
+            ctx.stroke();
+            
+            // Inner circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius - 45, 0, 2 * Math.PI);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+            
+            // ========== TICKS AT LABELS ==========
+            let innerR = radius - 18;
+            let outerR = radius + 10;
+            let labelR = radius + 30;
+            
+            // Tick at 0 (kaliwa)
+            let angle0 = valueToAngle(0, 0, maxGaugeValue);
+            let xOuter0 = centerX + outerR * Math.cos(angle0);
+            let yOuter0 = centerY + outerR * Math.sin(angle0);
+            let xInner0 = centerX + innerR * Math.cos(angle0);
+            let yInner0 = centerY + innerR * Math.sin(angle0);
+            
+            ctx.beginPath();
+            ctx.moveTo(xOuter0, yOuter0);
+            ctx.lineTo(xInner0, yInner0);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "#b8cfdf";
+            ctx.stroke();
+            
+            // Label "₱0" sa kaliwa
+            let xLabel0 = centerX + labelR * Math.cos(angle0);
+            let yLabel0 = centerY + labelR * Math.sin(angle0);
+            ctx.font = `600 13px "Inter", sans-serif`;
+            ctx.fillStyle = "#467590";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("₱0", xLabel0, yLabel0);
+            
+            // ========== SA KANAN: CURRENT BILL VALUE ==========
+            let xLabelRight = centerX + labelR * Math.cos(needleAngle);
+            let yLabelRight = centerY + labelR * Math.sin(needleAngle);
+            
+            let rightLabel;
+            if (currentBill >= 1000) {
+                rightLabel = `₱${(currentBill / 1000).toFixed(1)}k`;
+            } else {
+                rightLabel = `₱${currentBill.toFixed(0)}`;
+            }
+            
+            ctx.font = `600 12px "Inter", sans-serif`;
+            ctx.fillStyle = "#667eea";
+            ctx.fillText(rightLabel, xLabelRight, yLabelRight);
+            
+            // Tick sa posisyon ng current bill
+            let xTickRight = centerX + outerR * Math.cos(needleAngle);
+            let yTickRight = centerY + outerR * Math.sin(needleAngle);
+            let xTickRightInner = centerX + innerR * Math.cos(needleAngle);
+            let yTickRightInner = centerY + innerR * Math.sin(needleAngle);
+            
+            ctx.beginPath();
+            ctx.moveTo(xTickRight, yTickRight);
+            ctx.lineTo(xTickRightInner, yTickRightInner);
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = "#667eea";
+            ctx.stroke();
+            
+            // ========== NEEDLE (mas maiksi) ==========
+            const needleLen = radius - 65;
+            const tipX = centerX + needleLen * Math.cos(needleAngle);
+            const tipY = centerY + needleLen * Math.sin(needleAngle);
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX - 7, centerY - 5);
+            ctx.lineTo(centerX, centerY - 18);
+            ctx.lineTo(centerX + 7, centerY - 5);
+            ctx.fillStyle = "#263e4e";
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 14);
+            ctx.lineTo(tipX, tipY);
+            ctx.lineWidth = 3.5;
+            ctx.strokeStyle = "#1f4a60";
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 13, 0, 2 * Math.PI);
+            ctx.fillStyle = "#2f5770";
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+        }
+    </script>
+<script src="{% static 'js/active-nav.js' %}"></script>
 </body>
 </html>
