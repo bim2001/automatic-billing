@@ -167,9 +167,15 @@ class Alert(models.Model):
         ('billing', 'Billing Alert'),
         ('tenant_assigned', 'Tenant Assigned'),
         ('tenant_removed', 'Tenant Removed'),
-        ('abnormal_usage', 'Abnormal Usage Detected'),  
-        ('late_payment', 'Late Payment Penalty'),       
-        ('high_consumption', 'High Consumption Alert'), 
+        ('abnormal_usage', 'Abnormal Usage Detected'),
+        ('late_payment', 'Late Payment Penalty'),
+        ('high_consumption', 'High Consumption Alert'),
+    ]
+    
+    VISIBILITY = [
+        ('both', 'Both Admin and Tenant'),
+        ('admin_only', 'Admin Only'),
+        ('tenant_only', 'Tenant Only'),
     ]
     
     room = models.ForeignKey(Room, on_delete=models.CASCADE, null=True, blank=True)
@@ -177,6 +183,16 @@ class Alert(models.Model):
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    visibility = models.CharField(max_length=20, choices=VISIBILITY, default='both')
+    action_url = models.CharField(max_length=200, null=True, blank=True)  # ✅ BAGO: link para sa action button
+    
+    def save(self, *args, **kwargs):
+        # Auto-set visibility based on alert_type
+        if self.alert_type in ['tenant_assigned', 'tenant_removed']:
+            self.visibility = 'admin_only'
+        elif self.alert_type in ['over_limit', 'power_off', 'power_on', 'billing', 'abnormal_usage', 'late_payment', 'high_consumption']:
+            self.visibility = 'both'
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.get_alert_type_display()} - {self.room.name if self.room else 'System'}"

@@ -1781,10 +1781,13 @@ def manual_paid_confirmation(request, bill_id):
         payment.notes = request.POST.get('notes', '')
         payment.save()
         
-        Alert.objects.create(
+        # ✅ CREATE ALERT WITH ACTION URL
+        alert = Alert.objects.create(
             room=bill.room,
             alert_type='billing',
-            message=f"Tenant {profile.user.username} has paid ₱{bill.cost} for {bill.billing_month} via CASH. Please verify and mark as paid."
+            visibility='admin_only',  # Owner lang makakakita
+            message=f"💵 Tenant {profile.user.username} has paid ₱{bill.cost} for {bill.billing_month} via CASH. Please verify and mark as paid.",
+            action_url=f"/billing/"  # ✅ Diretso sa billing page
         )
         
         messages.info(request, f"Your payment for {bill.billing_month} has been recorded. The owner will verify and update your bill status.")
