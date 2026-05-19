@@ -524,20 +524,20 @@
                     <div class="alert-title">
                         <span><i class="fas fa-tag"></i> {{ alert.get_alert_type_display }}</span>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    {% if alert.room %}
-                    <span class="alert-room">
-                        <i class="fas fa-door-open"></i> 
-                        {{ alert.room.name }}
-                        {% if alert.room.is_occupied %}
-                            <span style="margin: 0 4px;">•</span>
-                            <i class="fas fa-user"></i> 
-                            {{ alert.room.get_tenant_name }}
-                        {% else %}
-                            <span style="margin: 0 4px;">•</span>
-                            <span style="color: #999;"><i class="fas fa-user-slash"></i> Vacant</span>
-                        {% endif %}
-                    </span>
-                    {% endif %}
+                            {% if alert.room %}
+                            <span class="alert-room">
+                                <i class="fas fa-door-open"></i> 
+                                {{ alert.room.name }}
+                                {% if alert.room.is_occupied %}
+                                    <span style="margin: 0 4px;">•</span>
+                                    <i class="fas fa-user"></i> 
+                                    {{ alert.room.get_tenant_name }}
+                                {% else %}
+                                    <span style="margin: 0 4px;">•</span>
+                                    <span style="color: #999;"><i class="fas fa-user-slash"></i> Vacant</span>
+                                {% endif %}
+                            </span>
+                            {% endif %}
                             <!-- ✅ ACTION BUTTON FOR BILLING ALERTS -->
                             {% if alert.alert_type == 'billing' and alert.action_url %}
                             <a href="{{ alert.action_url }}" class="btn-view-bill">
