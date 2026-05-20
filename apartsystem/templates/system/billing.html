@@ -398,143 +398,156 @@
         </div>
     </div>
 
-    <script>
-        function openBillModal(billId) {
-            const modal = document.getElementById('billModal');
-            const modalBody = document.getElementById('billModalBody');
-            
-            modalBody.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-            modal.classList.add('show');
-            
-            fetch(`/api/bill-details/${billId}/`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        modalBody.innerHTML = `<div style="color: red; text-align: center;">Error: ${data.error}</div>`;
-                        return;
-                    }
+<script>
+    function openBillModal(billId) {
+        const modal = document.getElementById('billModal');
+        const modalBody = document.getElementById('billModalBody');
+        
+        modalBody.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        modal.classList.add('show');
+        
+        fetch(`/api/admin/bill-details/${billId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    modalBody.innerHTML = `<div style="color: red; text-align: center;">Error: ${data.error}</div>`;
+                    return;
+                }
+                
+                // Build payment history HTML
+                let paymentHistoryHtml = '<div style="color: #999; font-size: 12px;">No payment records yet</div>';
+                if (data.payment_history && data.payment_history.length > 0) {
+                    paymentHistoryHtml = data.payment_history.map(p => `
+                        <div class="payment-history-item">
+                            <div><strong>${p.payment_method.toUpperCase()}</strong> - ₱${p.amount}</div>
+                            <div style="font-size: 11px; color: #666;">${p.date} • ${p.reference_number}</div>
+                        </div>
+                    `).join('');
+                }
+                
+                modalBody.innerHTML = `
+                    <div class="detail-section">
+                        <h4><i class="fas fa-info-circle"></i> Bill Information</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Tenant:</span>
+                            <span class="detail-value">${data.tenant || 'No tenant'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Room:</span>
+                            <span class="detail-value">${data.room}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Billing Month:</span>
+                            <span class="detail-value">${data.billing_month}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Due Date:</span>
+                            <span class="detail-value">${data.due_date}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Days Occupied:</span>
+                            <span class="detail-value">${data.days_occupied} days</span>
+                        </div>
+                    </div>
                     
-                    modalBody.innerHTML = `
-                        <div class="detail-section">
-                            <h4><i class="fas fa-info-circle"></i> Bill Information</h4>
-                            <div class="detail-row">
-                                <span class="detail-label">Tenant:</span>
-                                <span class="detail-value">${data.tenant || 'No tenant'}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Room:</span>
-                                <span class="detail-value">${data.room}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Billing Month:</span>
-                                <span class="detail-value">${data.billing_month}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Due Date:</span>
-                                <span class="detail-value">${data.due_date}</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Days Occupied:</span>
-                                <span class="detail-value">${data.days_occupied} days</span>
-                            </div>
+                    <div class="detail-section">
+                        <h4><i class="fas fa-chart-line"></i> Consumption & Charges</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">kWh Used:</span>
+                            <span class="detail-value">${data.kwh} kWh</span>
                         </div>
-                        
-                        <div class="detail-section">
-                            <h4><i class="fas fa-chart-line"></i> Consumption & Charges</h4>
-                            <div class="detail-row">
-                                <span class="detail-label">kWh Used:</span>
-                                <span class="detail-value">${data.kwh} kWh</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Electricity Rate:</span>
-                                <span class="detail-value">₱${data.rate}/kWh</span>
-                            </div>
-                            <div class="detail-row">
-                                <span class="detail-label">Base Amount:</span>
-                                <span class="detail-value">₱${data.base_amount}</span>
-                            </div>
-                            ${data.late_penalty > 0 ? `
-                            <div class="detail-row" style="color: #dc3545;">
-                                <span class="detail-label">Late Penalty:</span>
-                                <span class="detail-value">+ ₱${data.late_penalty}</span>
-                            </div>
-                            ` : ''}
-                            <div class="detail-row total-amount">
-                                <span class="detail-label" style="font-weight: bold;">Total Amount Due:</span>
-                                <span class="detail-value" style="font-weight: bold; color: #dc3545;">₱${data.total_amount}</span>
-                            </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Electricity Rate:</span>
+                            <span class="detail-value">₱${data.rate}/kWh</span>
                         </div>
-                        
-                        <div class="detail-section">
-                            <h4><i class="fas fa-credit-card"></i> Payment Status</h4>
-                            <div class="detail-row">
-                                <span class="detail-label">Status:</span>
-                                <span class="detail-value">
-                                    ${data.is_paid ? '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> PAID</span>' : '<span style="color: #dc3545;"><i class="fas fa-clock"></i> UNPAID</span>'}
-                                </span>
-                            </div>
-                            ${data.paid_at ? `
-                            <div class="detail-row">
-                                <span class="detail-label">Paid On:</span>
-                                <span class="detail-value">${data.paid_at}</span>
-                            </div>
-                            ` : ''}
+                        <div class="detail-row">
+                            <span class="detail-label">Base Amount:</span>
+                            <span class="detail-value">₱${data.base_amount}</span>
                         </div>
-                        
-                        <div class="detail-section">
-                            <h4><i class="fas fa-history"></i> Payment History</h4>
-                            ${data.payment_history.length > 0 ? data.payment_history.map(p => `
-                            <div class="payment-history-item">
-                                <div><strong>${p.payment_method.toUpperCase()}</strong> - ₱${p.amount}</div>
-                                <div style="font-size: 11px; color: #666;">${p.date} • ${p.reference_number}</div>
-                            </div>
-                            `).join('') : '<div style="color: #999; font-size: 12px;">No payment records yet</div>'}
+                        ${data.late_penalty > 0 ? `
+                        <div class="detail-row" style="color: #dc3545;">
+                            <span class="detail-label">Late Penalty:</span>
+                            <span class="detail-value">+ ₱${data.late_penalty}</span>
                         </div>
-                        
-                        <div class="modal-actions">
-                            ${!data.is_paid ? `
-                            <form method="post" action="/billing/${data.id}/mark-paid/?next=/billing/" style="flex: 1;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-paid">
-                                    <i class="fas fa-check-circle"></i> Mark as Paid
-                                </button>
-                            </form>
-                            ` : ''}
-                            <button type="button" class="btn-unpaid" onclick="closeBillModal()">
-                                <i class="fas fa-times"></i> Close
+                        ` : ''}
+                        <div class="detail-row total-amount">
+                            <span class="detail-label" style="font-weight: bold;">Total Amount Due:</span>
+                            <span class="detail-value" style="font-weight: bold; color: #dc3545;">₱${data.total_amount}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4><i class="fas fa-credit-card"></i> Payment Status</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value">
+                                ${data.is_paid ? '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> PAID</span>' : '<span style="color: #dc3545;"><i class="fas fa-clock"></i> UNPAID</span>'}
+                            </span>
+                        </div>
+                        ${data.paid_at ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Paid On:</span>
+                            <span class="detail-value">${data.paid_at}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4><i class="fas fa-history"></i> Payment History</h4>
+                        ${paymentHistoryHtml}
+                    </div>
+                    
+                    <div class="modal-actions">
+                        ${!data.is_paid ? `
+                        <form method="post" action="/billing/${data.id}/mark-paid/?next=/billing/" style="flex: 1;" onsubmit="return confirm('Mark this bill as paid?')">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
+                            <button type="submit" class="btn-paid">
+                                <i class="fas fa-check-circle"></i> Mark as Paid
                             </button>
-                        </div>
-                    `;
-                })
-                .catch(error => {
-                    modalBody.innerHTML = `<div style="color: red; text-align: center;">Error loading bill details: ${error}</div>`;
-                });
+                        </form>
+                        ` : ''}
+                        <button type="button" class="btn-unpaid" onclick="closeBillModal()">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                modalBody.innerHTML = `<div style="color: red; text-align: center;">Error loading bill details. Please try again.</div>`;
+            });
+    }
+    
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+        const cookieValue = document.cookie.match('(^|; )csrftoken=([^;]*)');
+        return cookieValue ? cookieValue[2] : '';
+    }
+    
+    function closeBillModal() {
+        document.getElementById('billModal').classList.remove('show');
+    }
+    
+    window.onclick = function(event) {
+        const modal = document.getElementById('billModal');
+        if (event.target === modal) {
+            closeBillModal();
         }
-        
-        function closeBillModal() {
-            document.getElementById('billModal').classList.remove('show');
+    }
+    
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeBillModal();
         }
-        
-        window.onclick = function(event) {
-            const modal = document.getElementById('billModal');
-            if (event.target === modal) {
-                closeBillModal();
-            }
+    });
+    
+    // Active navigation highlight
+    document.addEventListener('DOMContentLoaded', function() {
+        const billingLink = document.querySelector('a[href*="billing"]');
+        if (billingLink) {
+            billingLink.classList.add('active');
         }
-        
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                closeBillModal();
-            }
-        });
-        
-        // Active navigation highlight
-        document.addEventListener('DOMContentLoaded', function() {
-            const billingLink = document.querySelector('a[href*="billing"]');
-            if (billingLink) {
-                billingLink.classList.add('active');
-            }
-        });
-    </script>
+    });
+</script>
 </body>
 </html>

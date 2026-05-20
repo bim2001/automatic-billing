@@ -3,7 +3,158 @@
 <html>
 <head>
     <title>Notifications - Smart Energy Monitor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+/* ============================================ */
+/* SIDEBAR                                      */
+/* ============================================ */
+
+.sidebar {
+    width: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+}
+
+.sidebar-header {
+    padding: 25px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 20px;
+}
+
+.sidebar-header .logo {
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.version {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 5px;
+}
+
+.nav-menu {
+    flex: 1;
+    padding: 0 15px;
+}
+
+.nav-item {
+    margin-bottom: 5px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    color: white;
+    text-decoration: none;
+    border-radius: 10px;
+    transition: all 0.3s;
+    font-size: 15px;
+}
+
+.nav-link i {
+    width: 22px;
+    font-size: 18px;
+}
+
+.nav-link:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.nav-link.active {
+    background: rgba(255,255,255,0.25);
+    font-weight: 600;
+}
+
+.nav-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 15px 0;
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.user-details {
+    flex: 1;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.user-role {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.alert-badge {
+    background: #dc3545;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    margin-left: auto;
+}
+
+/* ============================================ */
+/* MAIN CONTENT                                 */
+/* ============================================ */
+
+.container {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+    padding: 30px;
+    max-width: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+    }
+
+    .container {
+        margin-left: 0;
+        width: 100%;
+        padding: 15px;
+    }
+}
+
         * {
             margin: 0;
             padding: 0;
@@ -56,9 +207,9 @@
         }
 
         .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 0 20px 40px;
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            padding: 30px;
         }
 
         .header-card {
@@ -117,9 +268,10 @@
         }
 
         .alert-icon {
-            font-size: 24px;
+            font-size: 22px;
             min-width: 40px;
             text-align: center;
+            color: #555;
         }
 
         .alert-content {
@@ -257,39 +409,168 @@
                 text-align: center;
             }
         }
+
+        /* MODAL */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 18px 20px;
+    background: #dc3545;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+}
+
     </style>
 </head>
 <body>
 
-<div class="navbar">
-    <div class="navbar-brand">
-        ⚡ Smart Energy Monitor
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fas fa-bolt"></i>
+            <span>Smart Energy</span>
+        </div>
+        <div class="version">Tenant Portal</div>
     </div>
-    <div class="navbar-user">
-        <span>Welcome, <strong>{{ username }}</strong></span>
-        <a href="{% url 'logout_view' %}" class="logout-btn">Logout</a>
+
+    <div class="nav-menu">
+
+        <div class="nav-item">
+            <a href="{% url 'tenant_dashboard' %}" class="nav-link">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <div class="nav-item">
+            <a href="{% url 'payment_method' %}" class="nav-link">
+                <i class="fas fa-credit-card"></i>
+                <span>Payment</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="{% url 'tenant_notifications' %}" class="nav-link active">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+
+                {% if unread_count > 0 %}
+                <span class="alert-badge">
+                    {{ unread_count }}
+                </span>
+                {% endif %}
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="{% url 'tenant_billing_history' %}" class="nav-link">
+                <i class="fas fa-history"></i>
+                <span>Billing History</span>
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="{% url 'edit_profile' %}" class="nav-link">
+                <i class="fas fa-user-edit"></i>
+                <span>Edit Profile</span>
+            </a>
+        </div>
+
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+
+            <div class="user-details">
+                <div class="user-name">{{ username }}</div>
+                <div class="user-role">Tenant</div>
+            </div>
+        </div>
+
+        <a href="{% url 'logout_view' %}" class="nav-link" style="padding-left: 0;">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
     </div>
 </div>
 
 <div class="container">
+
     <!-- Header -->
     <div class="header-card">
-        <div class="header-title">
-            <h1>🔔 Notifications</h1>
-            <p>Room: {{ room.name }}</p>
-        </div>
-        <div>
+
+        <h1 style="color:#333; font-size: 24px;">
+            <i class="fas fa-bell"></i> Notifications
+        </h1>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+
             {% if unread_count > 0 %}
             <form method="post" style="display: inline;" class="mark-read-form">
                 {% csrf_token %}
+
                 <button type="submit" name="mark_all_read" class="btn btn-outline">
-                    ✓ Mark all as read
+                    <i class="fas fa-check"></i>
+                    Mark all as read
                 </button>
             </form>
             {% endif %}
-            <a href="{% url 'tenant_dashboard' %}" class="btn btn-primary" style="margin-left: 10px;">
-                ← Back to Dashboard
-            </a>
+
+            <button type="button" class="btn btn-outline" onclick="openDeleteModal()">
+                <i class="fas fa-trash-alt"></i>
+                Delete Alerts
+            </button>
         </div>
     </div>
 
@@ -299,13 +580,19 @@
             {% for alert in alerts %}
             <div class="alert-item {% if not alert.is_read %}unread{% endif %}">
                 <div class="alert-icon">
-                    {% if alert.alert_type == 'over_limit' %}⚠️
-                    {% elif alert.alert_type == 'power_off' %}🔌
-                    {% elif alert.alert_type == 'power_on' %}⚡
-                    {% elif alert.alert_type == 'billing' %}💰
-                    {% else %}📢
-                    {% endif %}
+                    {% if alert.alert_type == 'over_limit' %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                    {% elif alert.alert_type == 'power_off' %}
+                        <i class="fas fa-plug"></i>
+                    {% elif alert.alert_type == 'power_on' %}
+                        <i class="fas fa-bolt"></i>
+                    {% elif alert.alert_type == 'billing' %}
+                        <i class="fas fa-money-bill-wave"></i>
+                    {% else %}
+                        <i class="fas fa-bell"></i>
+                    {% endif %}    
                 </div>
+
                 <div class="alert-content">
                     <div class="alert-title">
                         {{ alert.get_alert_type_display }}
@@ -355,5 +642,67 @@
     </div>
 </div>
 
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h3>
+                <i class="fas fa-trash-alt"></i>
+                Delete Notifications
+            </h3>
+
+            <button class="modal-close" onclick="closeDeleteModal()">
+                &times;
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <p>
+                Are you sure you want to delete all notifications?
+            </p>
+
+            <p style="color:#888; font-size:14px; margin-top:10px;">
+                This action cannot be undone.
+            </p>
+        </div>
+
+        <div class="modal-footer">
+
+            <button class="btn btn-outline" onclick="closeDeleteModal()">
+                Cancel
+            </button>
+
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" name="delete_all_alerts" class="btn btn-primary">
+                    <i class="fas fa-trash-alt"></i>
+                    Delete All
+                </button>
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+function openDeleteModal() {
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+
+    if (event.target === modal) {
+        closeDeleteModal();
+    }
+}
+</script>
 </body>
 </html>

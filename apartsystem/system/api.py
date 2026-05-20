@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from .models import EnergyUsage, Room, Alert, Billing
+from .models import EnergyUsage, Room, Alert, Billing, Payment
 
 import logging
 
@@ -485,3 +485,58 @@ def get_building_stats(request):
         'current_bill_total': float(total_bill),           # ✅ BAGO
         'total_kwh_this_month': round(total_building_usage, 2),  # ✅ BAGO
     })
+
+@login_required
+def bill_details(request, bill_id):
+    """API endpoint para makuha ang detailed breakdown ng bill"""
+    try:
+        bill = Billing.objects.get(id=bill_id)
+        
+        # I-check kung ang user ay may access sa bill na ito
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'Authentication required'}, status=401)
+        
+        # Kung tenant, i-check kung sa kanila ang bill
+        if hasattr(request.user, 'userprofile') and request.user.userprofile.user_type == 'tenant':
+            if bill.room != request.user.userprofile.room:
+                return JsonResponse({'error': 'Unauthorized - This bill does not belong to you'}, status=403)
+        
+        # Compute late fee (kung overdue at unpaid)
+        late_fee = 0
+        if not bill.is_paid and bill.due_date and bill.due_date < timezone.now().date():
+            late_fee = 50
+            total = bill.cost + late_fee
+        else:
+            total = bill.cost
+        
+        # Kunin ang payment record kung paid
+        paid_date = None
+        if bill.is_paid:
+            payment = Payment.objects.filter(bill=bill, status='paid').first()
+            if payment and payment.paid_at:
+                paid_date = payment.paid_at.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Kunin ang electricity rate mula sa settings
+        from .models import SystemSettings
+        settings = SystemSettings.get_settings()
+        electricity_rate = settings.electricity_rate
+        
+        return JsonResponse({
+            'bill_id': bill.id,
+            'billing_month': bill.billing_month,
+            'room_name': bill.room.name,
+            'kwh': bill.kwh,
+            'rate': electricity_rate,
+            'base_amount': bill.cost,
+            'late_fee': late_fee,
+            'total_amount': total,
+            'due_date': bill.due_date.strftime('%Y-%m-%d') if bill.due_date else 'N/A',
+            'is_paid': bill.is_paid,
+            'paid_date': paid_date,
+            'days_occupied': bill.days_occupied if hasattr(bill, 'days_occupied') else 30
+        })
+        
+    except Billing.DoesNotExist:
+        return JsonResponse({'error': 'Bill not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

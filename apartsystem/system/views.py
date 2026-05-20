@@ -234,6 +234,7 @@ def get_room_usage_data(request):
     """API endpoint para kunin ang usage data for graphs"""
     profile = request.user.userprofile
     
+    # Check if tenant
     if profile.user_type != 'tenant':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
@@ -241,19 +242,23 @@ def get_room_usage_data(request):
     if not room:
         return JsonResponse({'error': 'No room assigned'}, status=404)
     
+    # Kunin ang current month
     today = datetime.now()
     year = today.year
     month = today.month
     
+    # Kunin ang daily usage for the month
     daily_usage = []
     days_in_month = []
     
+    # Get all readings for this month
     readings = EnergyUsage.objects.filter(
         room=room,
         timestamp__year=year,
         timestamp__month=month
     ).order_by('timestamp')
     
+    # Group by day
     from collections import defaultdict
     daily_totals = defaultdict(float)
     
@@ -261,11 +266,13 @@ def get_room_usage_data(request):
         day = reading.timestamp.day
         daily_totals[day] += reading.kwh
     
+    # Create arrays for Chart.js
     for day in range(1, 32):
         if day in daily_totals:
             daily_usage.append(round(daily_totals[day], 2))
             days_in_month.append(f"Day {day}")
     
+    # Kunin din ang previous month for comparison
     if month == 1:
         prev_month = 12
         prev_year = year - 1
@@ -280,6 +287,8 @@ def get_room_usage_data(request):
     ).aggregate(total=Sum('kwh'))['total'] or 0
     
     current_month_total = sum(daily_usage)
+    
+    print(f"DEBUG: Room {room.name} - Current month total: {current_month_total}")  # Debug
     
     return JsonResponse({
         'room': room.name,
@@ -717,11 +726,46 @@ def tenant_dashboard(request):
     current_usage = room.get_current_usage()
     room.current_usage = current_usage
     room.cost = current_usage * ELECTRICITY_RATE
+    room.usage = current_usage 
 
     bills = Billing.objects.filter(room=room).order_by('-created_at')
     current_month = timezone.now().strftime("%B %Y")
     current_date = timezone.now()
     current_bill = bills.filter(billing_month=current_month).first()
+
+    # ✅ GET MOVE-IN DATE AT COMPUTE NG MGA DUE DATES
+    from .models import TenantAssignment
+    from dateutil.relativedelta import relativedelta
+    
+    move_in_date = None
+    may_bill_due_date = None
+    next_due_date = None
+    may_bill_is_paid = False
+    may_bill_amount = 0
+    late_penalty = 0
+    
+    try:
+        assignment = TenantAssignment.objects.get(room=room, is_active=True)
+        move_in_date = assignment.move_in_date
+        
+        # Due date para sa May bill (1 month after move-in)
+        may_bill_due_date = move_in_date + relativedelta(months=1)
+        
+        # Next due date (2 months after move-in, for June bill)
+        next_due_date = move_in_date + relativedelta(months=2)
+        
+        # Kunin ang May bill
+        may_bill = Billing.objects.filter(room=room, billing_month='May 2026').first()
+        if may_bill:
+            may_bill_is_paid = may_bill.is_paid
+            may_bill_amount = may_bill.cost
+            
+            # Compute late penalty kung unpaid at overdue
+            if not may_bill.is_paid and may_bill.due_date and may_bill.due_date < timezone.now().date():
+                late_penalty = 50
+                
+    except TenantAssignment.DoesNotExist:
+        pass
 
     tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing']
     recent_alerts = Alert.objects.filter(
@@ -766,10 +810,80 @@ def tenant_dashboard(request):
         'avg_daily_usage': avg_daily_usage,
         'total_kwh': total_kwh,
         'total_paid': total_paid,
+        'move_in_date': move_in_date,
+        'may_bill_due_date': may_bill_due_date,
+        'next_due_date': next_due_date,
+        'may_bill_is_paid': may_bill_is_paid,
+        'may_bill_amount': may_bill_amount,
+        'late_penalty': late_penalty,
     })
 
 @login_required
 def tenant_notifications(request):
+
+    profile = request.user.userprofile
+
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+
+    room = profile.room
+
+    if not room:
+        return redirect('tenant_dashboard')
+
+    tenant_alert_types = [
+        'over_limit',
+        'power_off',
+        'power_on',
+        'billing',
+        'late_payment',
+        'abnormal_usage',
+        'high_consumption'
+    ]
+
+    all_alerts = Alert.objects.filter(
+        room=room,
+        alert_type__in=tenant_alert_types
+    ).order_by('-created_at')
+
+    # ============================================
+    # HANDLE POST ACTIONS
+    # ============================================
+
+    if request.method == 'POST':
+
+        if 'mark_all_read' in request.POST:
+            all_alerts.filter(is_read=False).update(is_read=True)
+
+        elif 'delete_all_alerts' in request.POST:
+            all_alerts.delete()
+
+        return redirect('tenant_notifications')
+
+    # ============================================
+    # PAGINATION
+    # ============================================
+
+    from django.core.paginator import Paginator
+
+    paginator = Paginator(all_alerts, 20)
+
+    page_number = request.GET.get('page')
+
+    alerts = paginator.get_page(page_number)
+
+    unread_count = all_alerts.filter(is_read=False).count()
+
+    return render(request, 'user/tenant_notifications.html', {
+        'alerts': alerts,
+        'unread_count': unread_count,
+        'room': room,
+        'username': request.user.username,
+    })
+    
+@login_required
+def tenant_billing_history(request):
+    """Tenant billing history page"""
     profile = request.user.userprofile
     
     if profile.user_type != 'tenant':
@@ -780,31 +894,39 @@ def tenant_notifications(request):
     if not room:
         return redirect('tenant_dashboard')
     
-    tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing', 'late_payment', 'abnormal_usage', 'high_consumption']
+    # Get all bills for this tenant's room
+    bills = Billing.objects.filter(room=room).order_by('-billing_month', '-created_at')
     
-    all_alerts = Alert.objects.filter(
+    # Get summary statistics
+    total_bills = bills.count()
+    total_kwh = sum(bill.kwh for bill in bills)
+    total_amount = sum(bill.cost for bill in bills)
+    paid_bills = bills.filter(is_paid=True).count()
+    unpaid_bills = total_bills - paid_bills
+    
+    settings = get_settings()
+    electricity_rate = settings.electricity_rate
+    
+    # Get unread alerts count for badge
+    tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing']
+    unread_alerts_count = Alert.objects.filter(
         room=room,
-        alert_type__in=tenant_alert_types
-    ).order_by('-created_at')
+        alert_type__in=tenant_alert_types,
+        is_read=False
+    ).count()
     
-    from django.core.paginator import Paginator
-    paginator = Paginator(all_alerts, 20)
-    page_number = request.GET.get('page')
-    alerts = paginator.get_page(page_number)
-    
-    if request.method == 'POST' and 'mark_all_read' in request.POST:
-        all_alerts.filter(is_read=False).update(is_read=True)
-        return redirect('tenant_notifications')
-    
-    unread_count = all_alerts.filter(is_read=False).count()
-    
-    return render(request, 'user/tenant_notifications.html', {
-        'alerts': alerts,
-        'unread_count': unread_count,
+    return render(request, 'user/tenant_billing_history.html', {
+        'bills': bills,
+        'total_bills': total_bills,
+        'total_kwh': total_kwh,
+        'total_amount': total_amount,
+        'paid_bills': paid_bills,
+        'unpaid_bills': unpaid_bills,
+        'electricity_rate': electricity_rate,
         'room': room,
         'username': request.user.username,
+        'unread_alerts_count': unread_alerts_count,
     })
-
 
 # ============== ROOM MANAGEMENT ==============
 @login_required

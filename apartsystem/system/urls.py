@@ -29,6 +29,7 @@ urlpatterns = [
     path('room/<int:room_id>/assign-tenant/', views.assign_tenant, name='assign_tenant'),
     path('room/<int:room_id>/remove-tenant/', views.remove_tenant, name='remove_tenant'),
     path('tenants/', views.tenant_list, name='tenant_list'),
+    path('tenant/billing-history/', views.tenant_billing_history, name='tenant_billing_history'),
     
     # ==================== BILLING ====================
     path('billing/', views.billing_view, name='billing_view'),
@@ -58,7 +59,9 @@ urlpatterns = [
     path('api/system-health/', views.system_health, name='system_health'),
     path('api/paymongo-webhook/', api.paymongo_webhook, name='paymongo_webhook'),
     path('api/room-status/<str:room_name>/', api.room_status, name='room_status'),
-    path('api/bill-details/<int:bill_id>/', views.bill_details_api, name='bill_details_api'),
+    path('api/admin/bill-details/<int:bill_id>/', views.bill_details_api, name='admin_bill_details_api'),
+    
+    path('api/bill-details/<int:bill_id>/', api.bill_details, name='bill_details_api'),
 
     # ==================== PAYMENT URLs ====================
     path('payment/gcash/<int:bill_id>/', views.create_gcash_payment, name='create_gcash_payment'),
