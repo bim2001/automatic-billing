@@ -358,6 +358,166 @@
             color: #666;
         }
 
+        .compact-card {
+            padding: 22px;
+        }
+
+        .compact-card .card-header {
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+        }
+
+        .compact-card .card-header h2 {
+            font-size: 18px;
+        }
+
+        .compact-table {
+            font-size: 12px;
+        }
+
+        .compact-table th {
+            padding: 10px 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .compact-table td {
+            padding: 10px 8px;
+            font-size: 12px;
+            vertical-align: top;
+        }
+
+        .compact-muted {
+            color: #8a94a6;
+            font-size: 11px;
+        }
+
+        .reference-code {
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 11px;
+            color: #2c3e50;
+            word-break: break-all;
+        }
+
+        .receipt-code {
+            display: inline-block;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: #155724;
+            background: #e9f8ee;
+            padding: 3px 7px;
+            border-radius: 999px;
+        }
+
+        .empty-compact {
+            text-align: center;
+            color: #8a94a6;
+            font-size: 12px;
+            padding: 24px 10px;
+        }
+
+        .history-panel {
+            display: none;
+        }
+
+        .download-bill-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: white;
+            background: #667eea;
+            text-decoration: none;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            margin: 2px 0;
+        }
+
+        .print-receipt-btn {
+            background: #2c3e50;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detail-section h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 5px 0;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 13px;
+        }
+
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .total-amount {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .total-amount .detail-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .transaction-table th,
+        .transaction-table td {
+            padding: 8px;
+            border-bottom: 1px solid #edf2f8;
+            text-align: left;
+        }
+
+        .transaction-table th {
+            background: #f8f9fa;
+            color: #2c3e50;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .transaction-empty {
+            color: #8a94a6;
+            font-size: 12px;
+            padding: 8px 0;
+        }
+
         .payment-status {
             display: inline-block;
             padding: 5px 12px;
@@ -507,12 +667,14 @@
         /* Bill Breakdown */
         .bill-breakdown {
             margin: 15px 0;
+            font-size: 12px;
         }
 
         .breakdown-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            gap: 14px;
+            padding: 7px 0;
             border-bottom: 1px solid #f0f0f0;
         }
 
@@ -521,16 +683,19 @@
             margin-top: 10px;
             padding-top: 10px;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 14px;
         }
 
         .breakdown-label {
             color: #666;
+            font-size: 12px;
         }
 
         .breakdown-value {
             font-weight: 600;
             color: #333;
+            font-size: 12px;
+            text-align: right;
         }
 
         .late-fee {
@@ -616,19 +781,19 @@
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
-                        <tr class="bill-row" data-status="{% if bill.is_paid %}paid{% else %}latest{% endif %}">
+                        <tr>
                             <th>Billing Month</th>
                             <th>kWh Used</th>
                             <th>Rate</th>
                             <th>Amount</th>
                             <th>Status</th>
                             <th>Date</th>
-                            <th></th>
+                            <th>Transaction</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for bill in bills %}
-                        <tr>
+                        <tr class="bill-row" data-status="{% if bill.is_paid %}paid{% else %}latest{% endif %}">
                             <td><strong>{{ bill.billing_month }}</strong></td>
                             <td>{{ bill.kwh|floatformat:2 }}</td>
                             <td>₱{{ electricity_rate }}</td>
@@ -641,7 +806,7 @@
                             <td>{{ bill.created_at|date:"M d, Y" }}</td>
                             <td>
                                 <button class="btn-view-bill" onclick="showBillDetails('{{ bill.id }}')">
-                                    <i class="fas fa-eye"></i> View Details
+                                    <i class="fas fa-receipt"></i> View Transaction
                                 </button>
                             </td>
                         </tr>
@@ -653,6 +818,77 @@
             <div style="text-align: center; padding: 60px 20px; color: #666;">
                 <i class="fas fa-folder-open" style="font-size: 48px; margin-bottom: 15px;"></i>
                 <p>No billing records found.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card compact-card history-panel" data-history-panel="paid">
+            <div class="card-header">
+                <h2><i class="fas fa-receipt"></i> Digital Official Receipt</h2>
+                <span class="badge badge-info">{{ receipt_records|length }} receipts</span>
+            </div>
+            {% if receipt_records %}
+            <div style="overflow-x: auto;">
+                <table class="compact-table">
+                    <thead>
+                        <tr>
+                            <th>OR No.</th>
+                            <th>Billing Month</th>
+                            <th>Mode of Payment</th>
+                            <th>Date Paid</th>
+                            <th>Reference ID/Number</th>
+                            <th>Transaction ID</th>
+                            <th>Status</th>
+                            <th>Amount Paid</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in receipt_records %}
+                        <tr>
+                            <td><span class="receipt-code">OR-{{ payment.id|stringformat:"06d" }}</span></td>
+                            <td>{{ payment.bill.billing_month }}</td>
+                            <td>{{ payment.get_payment_method_display }}</td>
+                            <td>
+                                {{ payment.paid_at|date:"M d, Y" }}
+                                <div class="compact-muted">{{ payment.paid_at|date:"h:i A" }}</div>
+                            </td>
+                            <td><span class="reference-code">{{ payment.reference_number }}</span></td>
+                            <td>
+                                {% if payment.transaction_id %}
+                                    <span class="reference-code">{{ payment.transaction_id }}</span>
+                                {% else %}
+                                    <span class="compact-muted">No transaction ID</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="payment-status paid">{{ payment.status|upper }}</span></td>
+                            <td><strong>₱{{ payment.amount|floatformat:2 }}</strong></td>
+                            <td>
+                                <a href="{% url 'tenant_download_bill' payment.bill.id %}" class="download-bill-btn">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                                <button type="button"
+                                        class="download-bill-btn print-receipt-btn"
+                                        onclick="printReceipt(this)"
+                                        data-or="OR-{{ payment.id|stringformat:'06d' }}"
+                                        data-month="{{ payment.bill.billing_month }}"
+                                        data-method="{{ payment.get_payment_method_display }}"
+                                        data-paid-date="{{ payment.paid_at|date:'M d, Y h:i A' }}"
+                                        data-reference="{{ payment.reference_number }}"
+                                        data-transaction="{{ payment.transaction_id|default:'No transaction ID' }}"
+                                        data-status="{{ payment.status|upper }}"
+                                        data-amount="₱{{ payment.amount|floatformat:2 }}">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-compact">
+                <i class="fas fa-circle-info"></i> No official receipts yet. Paid payments will appear here.
             </div>
             {% endif %}
         </div>
@@ -675,7 +911,7 @@
     </div>
 
     <script>
-    function showBillDetails(billId) {
+    function showBillDetailsLegacy(billId) {
         const modal = document.getElementById('billModal');
         const contentDiv = document.getElementById('billDetailsContent');
         contentDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
@@ -684,10 +920,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.error) { contentDiv.innerHTML = `<div style="color: red; text-align: center;">Error: ${data.error}</div>`; return; }
-                let lateFeeHtml = data.late_fee > 0 ? `<div class="breakdown-row"><span class="breakdown-label">Late Penalty</span><span class="breakdown-value late-fee">₱${data.late_fee.toFixed(2)}</span></div>` : '';
+                const previousBillHtml = data.previous_bill ? `<div class="breakdown-row"><span class="breakdown-label">Previous Bill</span><span class="breakdown-value">${data.previous_bill.billing_month} - PHP ${data.previous_bill.amount.toFixed(2)} (${data.previous_bill.status})</span></div>` : `<div class="breakdown-row"><span class="breakdown-label">Previous Bill</span><span class="breakdown-value">No previous bill</span></div>`;
                 contentDiv.innerHTML = `
                     <div class="bill-breakdown">
                         <div class="breakdown-row"><span class="breakdown-label">Billing Month</span><span class="breakdown-value">${data.billing_month}</span></div>
+                        ${previousBillHtml}
                         <div class="breakdown-row"><span class="breakdown-label">Room</span><span class="breakdown-value">${data.room_name}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Move-in Date</span><span class="breakdown-value">${data.move_in_date}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Days Occupied</span><span class="breakdown-value">${data.days_occupied} days</span></div>
@@ -695,7 +932,6 @@
                         <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${data.rate}/kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Formula</span><span class="breakdown-value">${data.formula}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Base Amount</span><span class="breakdown-value">₱${data.base_amount.toFixed(2)}</span></div>
-                        ${lateFeeHtml}
                         <div class="breakdown-row total"><span class="breakdown-label">TOTAL AMOUNT</span><span class="breakdown-value">₱${data.total_amount.toFixed(2)}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Due Date</span><span class="breakdown-value">${data.due_date}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Status</span><span class="breakdown-value" style="color: ${data.is_paid ? '#28a745' : '#dc3545'}">${data.is_paid ? 'PAID' : 'UNPAID'}</span></div>
@@ -703,6 +939,152 @@
                     </div>
                 `;
             }).catch(error => { contentDiv.innerHTML = '<div style="color: red; text-align: center;">Error loading bill details</div>'; });
+    }
+
+    function showBillDetails(billId) {
+        const modal = document.getElementById('billModal');
+        const contentDiv = document.getElementById('billDetailsContent');
+        contentDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        modal.classList.add('show');
+        fetch(`/api/bill-details/${billId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    contentDiv.innerHTML = `<div style="color: red; text-align: center;">Error: ${data.error}</div>`;
+                    return;
+                }
+
+                const roomName = data.room_name || data.room || 'N/A';
+                const paidDate = data.paid_date || data.paid_at || '';
+                const moveInDate = data.move_in_date || 'N/A';
+                const cycleStart = data.cycle_start || 'N/A';
+                const transactionTableHtml = data.payment_history && data.payment_history.length ? `
+                    <table class="transaction-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th>Status</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${data.payment_history.map(payment => {
+                                const date = payment.paid_at || payment.created_at || payment.date || 'N/A';
+                                const method = payment.method || payment.payment_method || 'N/A';
+                                const reference = payment.reference_number || payment.transaction_id || 'No reference';
+                                const status = payment.status || 'Pending';
+                                const amount = Number(payment.amount || 0).toFixed(2);
+                                return `
+                                    <tr>
+                                        <td>${date}</td>
+                                        <td>${String(method).toUpperCase()}</td>
+                                        <td>${reference}</td>
+                                        <td>${String(status).toUpperCase()}</td>
+                                        <td>PHP ${amount}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                ` : '<div class="transaction-empty">No transaction records yet</div>';
+                const previousBillHtml = data.previous_bill ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Previous Bill:</span>
+                        <span class="detail-value">${data.previous_bill.billing_month} - PHP ${data.previous_bill.amount.toFixed(2)} (${data.previous_bill.status})</span>
+                    </div>
+                ` : `
+                    <div class="detail-row">
+                        <span class="detail-label">Previous Bill:</span>
+                        <span class="detail-value">No previous bill</span>
+                    </div>
+                `;
+
+                contentDiv.innerHTML = `
+                    <div class="detail-section">
+                        <h4><i class="fas fa-info-circle"></i> Bill Information</h4>
+                        <div class="detail-row"><span class="detail-label">Billing Month:</span><span class="detail-value">${data.billing_month}</span></div>
+                        ${previousBillHtml}
+                        <div class="detail-row"><span class="detail-label">Room:</span><span class="detail-value">${roomName}</span></div>
+                        <div class="detail-row"><span class="detail-label">Move-in Date:</span><span class="detail-value">${moveInDate}</span></div>
+                        <div class="detail-row"><span class="detail-label">Cycle Start:</span><span class="detail-value">${cycleStart}</span></div>
+                        <div class="detail-row"><span class="detail-label">Due Date:</span><span class="detail-value">${data.due_date}</span></div>
+                        <div class="detail-row"><span class="detail-label">Days Occupied:</span><span class="detail-value">${data.days_occupied} days</span></div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4><i class="fas fa-chart-line"></i> Consumption & Charges</h4>
+                        <div class="detail-row"><span class="detail-label">kWh Used:</span><span class="detail-value">${data.kwh} kWh</span></div>
+                        <div class="detail-row"><span class="detail-label">Electricity Rate:</span><span class="detail-value">PHP ${data.rate}/kWh</span></div>
+                        <div class="detail-row"><span class="detail-label">Formula:</span><span class="detail-value">${data.formula}</span></div>
+                        <div class="detail-row"><span class="detail-label">Base Amount:</span><span class="detail-value">PHP ${Number(data.base_amount).toFixed(2)}</span></div>
+                        <div class="detail-row total-amount"><span class="detail-label">Total Amount Due:</span><span class="detail-value">PHP ${Number(data.total_amount).toFixed(2)}</span></div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4><i class="fas fa-credit-card"></i> Payment Status</h4>
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value">
+                                ${data.is_paid ? '<span style="color: #28a745;"><i class="fas fa-check-circle"></i> PAID</span>' : '<span style="color: #dc3545;"><i class="fas fa-clock"></i> UNPAID</span>'}
+                            </span>
+                        </div>
+                        ${paidDate ? `<div class="detail-row"><span class="detail-label">Paid On:</span><span class="detail-value">${paidDate}</span></div>` : ''}
+                    </div>
+
+                    <div class="detail-section">
+                        <h4><i class="fas fa-receipt"></i> Transaction Per Bill</h4>
+                        ${transactionTableHtml}
+                    </div>
+                `;
+            })
+            .catch(error => {
+                contentDiv.innerHTML = '<div style="color: red; text-align: center;">Error loading bill details</div>';
+            });
+    }
+
+    function printReceipt(button) {
+        const receipt = button.dataset;
+        const printWindow = window.open('', '_blank', 'width=720,height=800');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Digital Official Receipt - ${receipt.or}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; color: #1f2937; padding: 28px; }
+                    .receipt { max-width: 680px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 24px; }
+                    h1 { font-size: 22px; margin: 0 0 6px; }
+                    .muted { color: #6b7280; font-size: 12px; margin-bottom: 22px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                    td { padding: 10px 0; border-bottom: 1px solid #eef2f7; }
+                    td:last-child { text-align: right; font-weight: 700; }
+                    .total td { font-size: 16px; border-top: 2px solid #667eea; padding-top: 14px; }
+                    @media print { body { padding: 0; } .receipt { border: none; } }
+                </style>
+            </head>
+            <body>
+                <div class="receipt">
+                    <h1>Digital Official Receipt</h1>
+                    <div class="muted">Smart Energy Monitor</div>
+                    <table>
+                        <tr><td>OR No.</td><td>${receipt.or}</td></tr>
+                        <tr><td>Billing Month</td><td>${receipt.month}</td></tr>
+                        <tr><td>Mode of Payment</td><td>${receipt.method}</td></tr>
+                        <tr><td>Date Paid</td><td>${receipt.paidDate}</td></tr>
+                        <tr><td>Reference ID/Number</td><td>${receipt.reference}</td></tr>
+                        <tr><td>Transaction ID</td><td>${receipt.transaction}</td></tr>
+                        <tr><td>Status</td><td>${receipt.status}</td></tr>
+                        <tr class="total"><td>Amount Paid</td><td>${receipt.amount}</td></tr>
+                    </table>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
     }
 
     function closeBillModal() { document.getElementById('billModal').classList.remove('show'); }
@@ -715,11 +1097,17 @@
         document.querySelectorAll('.bill-row').forEach(row => {
             row.style.display = row.dataset.status === tab ? '' : 'none';
         });
+        document.querySelectorAll('.history-panel').forEach(panel => {
+            panel.style.display = panel.dataset.historyPanel === tab ? '' : 'none';
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.bill-row').forEach(row => {
             row.style.display = row.dataset.status === 'latest' ? '' : 'none';
+        });
+        document.querySelectorAll('.history-panel').forEach(panel => {
+            panel.style.display = 'none';
         });
     });
     </script>

@@ -115,6 +115,25 @@ def attach_bill_display_data(bill, assignment=None):
     bill.days_occupied_display = cycle['days_occupied'] or bill.days_occupied
     return bill
 
+
+def get_previous_bill_summary(bill):
+    previous = Billing.objects.filter(
+        room=bill.room,
+        created_at__lt=bill.created_at
+    ).order_by('-created_at').first()
+
+    if not previous:
+        return None
+
+    return {
+        'id': previous.id,
+        'billing_month': previous.billing_month,
+        'kwh': round(previous.kwh, 2),
+        'amount': round(previous.cost, 2),
+        'status': 'PAID' if previous.is_paid else 'UNPAID',
+        'is_paid': previous.is_paid,
+    }
+
 def get_last_day_of_month(year, month):
     return calendar.monthrange(year, month)[1]
 
@@ -581,7 +600,7 @@ Due Date: {bill.due_date}
 Days Remaining: {days_remaining}
 ━━━━━━━━━━━━━━━━━━━━━━━━
 
-Please settle your payment before the due date to avoid late payment penalties.
+Please settle your payment before the due date.
 
 If you have already paid, please ignore this message.
 
@@ -817,6 +836,8 @@ def tenant_dashboard(request):
     current_month = timezone.now().strftime("%B %Y")
     current_date = timezone.now()
     current_bill = bills.filter(billing_month=current_month).first()
+    if current_bill:
+        current_bill = attach_bill_display_data(current_bill)
 
     # ✅ GET MOVE-IN DATE AT COMPUTE NG MGA DUE DATES
     from .models import TenantAssignment
@@ -844,11 +865,7 @@ def tenant_dashboard(request):
         if may_bill:
             may_bill_is_paid = may_bill.is_paid
             may_bill_amount = may_bill.cost
-            
-            # Compute late penalty kung unpaid at overdue
-            if not may_bill.is_paid and may_bill.due_date and may_bill.due_date < timezone.now().date():
-                late_penalty = 50
-                
+
     except TenantAssignment.DoesNotExist:
         pass
 
@@ -874,6 +891,9 @@ def tenant_dashboard(request):
 
     days_in_month = 30
     avg_daily_usage = current_usage / days_in_month if current_usage else 0
+    bill_kwh = current_bill.kwh if current_bill else current_usage
+    bill_amount = current_bill.cost if current_bill else room.cost
+    bill_formula = f"{round(bill_kwh, 2)} kWh x PHP {ELECTRICITY_RATE}/kWh"
 
     due_date = None
     if current_bill and current_bill.due_date:
@@ -893,6 +913,9 @@ def tenant_dashboard(request):
         'unread_alerts_count': unread_alerts_count,
         'admin_info': admin_info,
         'avg_daily_usage': avg_daily_usage,
+        'bill_kwh': bill_kwh,
+        'bill_amount': bill_amount,
+        'bill_formula': bill_formula,
         'total_kwh': total_kwh,
         'total_paid': total_paid,
         'move_in_date': move_in_date,
@@ -979,8 +1002,13 @@ def tenant_billing_history(request):
     if not room:
         return redirect('tenant_dashboard')
     
-    # Get all bills for this tenant's room
+    # Get all bills and payment records for this tenant's room
     bills = Billing.objects.filter(room=room).order_by('-billing_month', '-created_at')
+    payment_records = Payment.objects.filter(
+        bill__room=room,
+        tenant=profile
+    ).select_related('bill', 'bill__room').order_by('-created_at')
+    receipt_records = payment_records.filter(status='paid').order_by('-paid_at', '-created_at')
     
     # Get summary statistics
     total_bills = bills.count()
@@ -1007,11 +1035,66 @@ def tenant_billing_history(request):
         'total_amount': total_amount,
         'paid_bills': paid_bills,
         'unpaid_bills': unpaid_bills,
+        'payment_records': payment_records,
+        'receipt_records': receipt_records,
         'electricity_rate': electricity_rate,
         'room': room,
         'username': request.user.username,
         'unread_alerts_count': unread_alerts_count,
     })
+
+
+@login_required
+def tenant_download_bill(request, bill_id):
+    """Download a simple HTML bill summary for tenant receipts."""
+    profile = request.user.userprofile
+
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+
+    bill = get_object_or_404(Billing, id=bill_id, room=profile.room)
+    settings = get_settings()
+    paid_payment = Payment.objects.filter(bill=bill, status='paid').order_by('-paid_at').first()
+    filename = f"bill_{bill.room.name}_{bill.billing_month.replace(' ', '_')}.html"
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Bill Summary - {bill.billing_month}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; color: #1f2937; padding: 32px; }}
+        .receipt {{ max-width: 720px; margin: 0 auto; border: 1px solid #e5e7eb; padding: 24px; }}
+        h1 {{ margin: 0 0 4px; font-size: 22px; }}
+        .muted {{ color: #6b7280; font-size: 12px; margin-bottom: 24px; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+        td {{ padding: 10px 0; border-bottom: 1px solid #f1f5f9; }}
+        td:last-child {{ text-align: right; font-weight: 700; }}
+        .total td {{ font-size: 16px; border-top: 2px solid #667eea; padding-top: 14px; }}
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <h1>Digital Official Receipt</h1>
+        <div class="muted">Smart Energy Monitor Bill Summary</div>
+        <table>
+            <tr><td>Receipt No.</td><td>OR-{paid_payment.id if paid_payment else bill.id:06d}</td></tr>
+            <tr><td>Billing Month</td><td>{bill.billing_month}</td></tr>
+            <tr><td>Room</td><td>{bill.room.name}</td></tr>
+            <tr><td>Reference</td><td>{paid_payment.reference_number if paid_payment else 'N/A'}</td></tr>
+            <tr><td>Paid Date</td><td>{paid_payment.paid_at.strftime('%Y-%m-%d %H:%M') if paid_payment and paid_payment.paid_at else 'N/A'}</td></tr>
+            <tr><td>Consumption</td><td>{bill.kwh:.2f} kWh</td></tr>
+            <tr><td>Rate</td><td>PHP {settings.electricity_rate:.2f}/kWh</td></tr>
+            <tr><td>Status</td><td>{'PAID' if bill.is_paid else 'UNPAID'}</td></tr>
+            <tr class="total"><td>Total Amount</td><td>PHP {bill.cost:.2f}</td></tr>
+        </table>
+    </div>
+</body>
+</html>"""
+
+    response = HttpResponse(html, content_type='text/html')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 # ============== ROOM MANAGEMENT ==============
 @login_required
@@ -1509,6 +1592,9 @@ def billing_history(request):
 # ============== ALERTS VIEWS ==============
 @login_required
 def alerts_view(request):
+    if request.user.userprofile.user_type != 'owner':
+        return redirect('tenant_dashboard')
+
     all_alerts = Alert.objects.order_by('-created_at')
 
     if request.method == 'POST' and 'mark_all_read' in request.POST:
@@ -1527,6 +1613,9 @@ def alerts_view(request):
 
 @login_required
 def mark_alert_read(request, alert_id):
+    if request.user.userprofile.user_type != 'owner':
+        return redirect('tenant_dashboard')
+
     alert = get_object_or_404(Alert, id=alert_id)
     alert.is_read = True
     alert.save()
@@ -1648,34 +1737,8 @@ def check_high_consumption():
     return alerts_created
 
 def apply_late_payment_penalty(penalty_amount=50):
-    """Apply late payment penalty to overdue bills"""
-    print("\n💰 Checking for late payments...")
-    print("-" * 50)
-    
-    today = timezone.now().date()
-    
-    overdue_bills = Billing.objects.filter(
-        is_paid=False,
-        due_date__lt=today
-    )
-    
-    penalties_applied = 0
-    
-    for bill in overdue_bills:
-        days_late = (today - bill.due_date).days
-        
-        Alert.objects.create(
-            room=bill.room,
-            alert_type='late_payment',
-            message=f"⚠️ Your bill for {bill.billing_month} is {days_late} days late. A penalty of ₱{penalty_amount} will be applied to your next bill."
-        )
-        
-        penalties_applied += 1
-        print(f"  ⚠️ {bill.room.name}: {bill.billing_month} - {days_late} days late")
-    
-    print("-" * 50)
-    print(f"✅ Created {penalties_applied} late payment alerts")
-    return penalties_applied
+    """Late penalties are disabled per client request."""
+    return 0
 
 def run_smart_features_daily():
     """Run all smart features in one go"""
@@ -1685,16 +1748,16 @@ def run_smart_features_daily():
     
     abnormal = detect_abnormal_usage()
     high_cons = check_high_consumption()
-    late = apply_late_payment_penalty()
+    late = 0
     
     print("\n" + "="*60)
-    print(f"📊 SUMMARY: {abnormal} abnormal, {high_cons} high consumption, {late} late payments")
+    print(f"📊 SUMMARY: {abnormal} abnormal, {high_cons} high consumption")
     print("="*60)
     
     return {
         'abnormal': abnormal,
         'high_consumption': high_cons,
-        'late_payments': late
+        'late_payments': 0
     }    
 
 @login_required
@@ -1748,8 +1811,6 @@ def system_settings(request):
         
         if request.POST.get('electricity_rate'):
             settings.electricity_rate = float(request.POST.get('electricity_rate'))
-        if request.POST.get('late_penalty_amount'):
-            settings.late_penalty_amount = float(request.POST.get('late_penalty_amount'))
         if request.POST.get('reminder_days_before'):
             settings.reminder_days_before = int(request.POST.get('reminder_days_before'))
         if request.POST.get('abnormal_threshold'):
@@ -1824,10 +1885,9 @@ def activity_log(request):
     if profile.user_type != 'owner':
         return redirect('tenant_dashboard')
 
-    logs = ActivityLog.objects.select_related('user').all()
+    logs = ActivityLog.objects.select_related('user').filter(user_type='owner')
     search = request.GET.get('search', '').strip()
     current_filter = request.GET.get('action', '').strip()
-    user_type_filter = request.GET.get('user_type', '').strip()
 
     if search:
         logs = logs.filter(
@@ -1839,21 +1899,19 @@ def activity_log(request):
     if current_filter:
         logs = logs.filter(action=current_filter)
 
-    if user_type_filter:
-        logs = logs.filter(user_type=user_type_filter)
-
     from django.core.paginator import Paginator
     from django.db.models import Count
     paginator = Paginator(logs, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    total_actions = ActivityLog.objects.count()
+    total_actions = ActivityLog.objects.filter(user_type='owner').count()
     recent_24h = ActivityLog.objects.filter(
+        user_type='owner',
         created_at__gte=timezone.now() - timedelta(hours=24)
     ).count()
     action_counts = {
         row['action']: row['total']
-        for row in ActivityLog.objects.values('action').annotate(total=Count('id'))
+        for row in ActivityLog.objects.filter(user_type='owner').values('action').annotate(total=Count('id'))
     }
 
     return render(request, 'system/activity_log.html', {
@@ -1864,7 +1922,7 @@ def activity_log(request):
         'action_counts': action_counts,
         'search': search,
         'current_filter': current_filter,
-        'user_type_filter': user_type_filter,
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })
 
 
@@ -1995,7 +2053,7 @@ def create_gcash_payment(request, bill_id):
         messages.warning(request, "This bill is already paid.")
         return redirect('tenant_dashboard')
     
-    payment = Payment.objects.filter(bill=bill, status='pending').first()
+    payment = Payment.objects.filter(bill=bill, status='pending', payment_method='gcash').first()
     if not payment:
         payment = create_payment_record(bill, profile, 'gcash')
         print(f"✅ Created new payment with reference: {payment.reference_number}")
@@ -2053,13 +2111,21 @@ def create_gcash_payment(request, bill_id):
 
 @login_required
 def payment_success(request, reference_number):
-    """Handle successful payment callback - ONLY webhook should update payment status"""
+    """Handle successful payment callback and sync the local bill status."""
     payment = get_object_or_404(Payment, reference_number=reference_number)
     profile = request.user.userprofile
 
     if profile.user_type == 'tenant' and payment.tenant_id != profile.id:
         messages.error(request, "You do not have access to this payment.")
         return redirect('tenant_dashboard')
+
+    if payment.status != 'paid':
+        mark_payment_as_paid(payment, payment.checkout_session_id or f"SUCCESS_{reference_number}")
+        payment.payment_method = 'gcash'
+        payment.save(update_fields=['payment_method'])
+
+    messages.success(request, f"Payment of PHP {payment.amount:.2f} for {payment.bill.billing_month} has been received!")
+    return redirect('tenant_dashboard')
     
     if payment.status == 'paid':
         messages.success(request, f"✅ Payment of ₱{payment.amount} for {payment.bill.billing_month} has been received!")
@@ -2079,7 +2145,7 @@ def manual_paid_confirmation(request, bill_id):
     bill = get_object_or_404(Billing, id=bill_id, room=profile.room)
     
     if request.method == 'POST':
-        payment = Payment.objects.filter(bill=bill, status='pending').first()
+        payment = Payment.objects.filter(bill=bill, status='pending', payment_method='cash').first()
         if not payment:
             payment = create_payment_record(bill, profile, 'cash')
         
@@ -2125,9 +2191,6 @@ def payment_method(request):
     current_bill = attach_bill_display_data(current_bill)
     
     pending_payment = Payment.objects.filter(bill=current_bill, status='pending').first()
-    
-    if not pending_payment and not current_bill.is_paid:
-        pending_payment = create_payment_record(current_bill, profile, 'cash')
     
     return render(request, 'user/payment_method.html', {
         'bill': current_bill,
@@ -2419,16 +2482,7 @@ def bill_details_api(request, bill_id):
     # ✅ Get actual occupied days from database
     days_occupied = bill.days_occupied_display
     
-    # ✅ Calculate late penalty
     late_penalty = 0
-    today = timezone.now().date()
-    
-    if (
-        not bill.is_paid and
-        bill.due_date and
-        bill.due_date < today
-    ):
-        late_penalty = settings.late_penalty_amount
     
     # Tenant name
     tenant_name = bill.tenant_name
@@ -2448,6 +2502,7 @@ def bill_details_api(request, bill_id):
         'room': bill.room.name,
         'tenant': tenant_name,
         'billing_month': bill.billing_month,
+        'previous_bill': get_previous_bill_summary(bill),
         'move_in_date': bill.move_in_date_display.strftime('%Y-%m-%d') if bill.move_in_date_display else 'Not set',
         'cycle_start': bill.cycle_start_display.strftime('%Y-%m-%d') if bill.cycle_start_display else 'Not set',
         'due_date': due_date_str,
@@ -2456,11 +2511,8 @@ def bill_details_api(request, bill_id):
         'rate': electricity_rate,
         'base_amount': round(bill.cost, 2),
         'formula': f"{round(bill.kwh, 2)} kWh x PHP {electricity_rate}/kWh",
-        'late_penalty': late_penalty,
-        'total_amount': round(
-            bill.cost + late_penalty,
-            2
-        ),
+        'late_penalty': 0,
+        'total_amount': round(bill.cost, 2),
         'is_paid': bill.is_paid,
         'paid_at': (
             paid_at.strftime('%Y-%m-%d %H:%M')

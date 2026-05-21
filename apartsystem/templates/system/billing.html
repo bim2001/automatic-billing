@@ -484,6 +484,18 @@
                         </table>
                     `;
                 }
+
+                const previousBillHtml = data.previous_bill ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Previous Bill:</span>
+                        <span class="detail-value">${data.previous_bill.billing_month} - PHP ${data.previous_bill.amount.toFixed(2)} (${data.previous_bill.status})</span>
+                    </div>
+                ` : `
+                    <div class="detail-row">
+                        <span class="detail-label">Previous Bill:</span>
+                        <span class="detail-value">No previous bill</span>
+                    </div>
+                `;
                 
                 modalBody.innerHTML = `
                     <div class="detail-section">
@@ -500,6 +512,7 @@
                             <span class="detail-label">Billing Month:</span>
                             <span class="detail-value">${data.billing_month}</span>
                         </div>
+                        ${previousBillHtml}
                         <div class="detail-row">
                             <span class="detail-label">Move-in Date:</span>
                             <span class="detail-value">${data.move_in_date}</span>
@@ -536,12 +549,6 @@
                             <span class="detail-label">Base Amount:</span>
                             <span class="detail-value">PHP ${data.base_amount}</span>
                         </div>
-                        ${data.late_penalty > 0 ? `
-                        <div class="detail-row" style="color: #dc3545;">
-                            <span class="detail-label">Late Penalty:</span>
-                            <span class="detail-value">+ ₱${data.late_penalty}</span>
-                        </div>
-                        ` : ''}
                         <div class="detail-row total-amount">
                             <span class="detail-label" style="font-weight: bold;">Total Amount Due:</span>
                             <span class="detail-value" style="font-weight: bold; color: #dc3545;">₱${data.total_amount}</span>

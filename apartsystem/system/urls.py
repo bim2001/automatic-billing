@@ -30,6 +30,7 @@ urlpatterns = [
     path('room/<int:room_id>/remove-tenant/', views.remove_tenant, name='remove_tenant'),
     path('tenants/', views.tenant_list, name='tenant_list'),
     path('tenant/billing-history/', views.tenant_billing_history, name='tenant_billing_history'),
+    path('tenant/billing-history/download/<int:bill_id>/', views.tenant_download_bill, name='tenant_download_bill'),
     
     # ==================== BILLING ====================
     path('billing/', views.billing_view, name='billing_view'),

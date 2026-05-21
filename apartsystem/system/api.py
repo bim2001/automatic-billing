@@ -457,6 +457,61 @@ def paymongo_webhook(request):
         except json.JSONDecodeError:
             return _bad_json_response()
         event_type = data.get('data', {}).get('attributes', {}).get('type', '')
+
+        event_data = data.get('data', {}).get('attributes', {}).get('data', {}) or {}
+        event_attrs = event_data.get('attributes', {}) or {}
+        checkout_id = event_data.get('id') or event_attrs.get('checkout_session_id')
+        description = event_attrs.get('description', '') or ''
+        status = event_attrs.get('status', '') or ''
+        reference_number = (
+            event_attrs.get('reference_number')
+            or event_attrs.get('external_reference_number')
+            or event_attrs.get('metadata', {}).get('reference_number')
+        )
+
+        if not reference_number and description:
+            match = re.search(r'Ref:\s*(PAY-[A-Z0-9]+-\d+-[a-f0-9]+)', description, re.IGNORECASE)
+            if match:
+                reference_number = match.group(1)
+
+        paid_event = (
+            event_type in ['checkout_session.payment.paid', 'payment.paid']
+            or status == 'paid'
+        )
+
+        if paid_event:
+            payment = None
+            if reference_number:
+                payment = Payment.objects.filter(reference_number=reference_number).first()
+            if not payment and checkout_id:
+                payment = Payment.objects.filter(checkout_session_id=checkout_id).first()
+
+            if payment:
+                was_paid = payment.status == 'paid'
+                payment.status = 'paid'
+                payment.paid_at = payment.paid_at or timezone.now()
+                payment.transaction_id = event_data.get('id') or checkout_id or payment.transaction_id
+                payment.payment_method = 'gcash'
+                payment.webhook_received = True
+                payment.webhook_data = data
+                payment.save()
+
+                bill = payment.bill
+                bill.is_paid = True
+                bill.save(update_fields=['is_paid'])
+
+                if not was_paid:
+                    Alert.objects.create(
+                        room=bill.room,
+                        alert_type='billing',
+                        message=f"Payment of PHP {payment.amount:.2f} for {bill.billing_month} has been confirmed via GCash. Reference: {payment.reference_number}"
+                    )
+
+                print(f"Payment {payment.reference_number} marked as paid via webhook.")
+            else:
+                print(f"Payment not found. Reference: {reference_number}, Checkout: {checkout_id}")
+
+            return JsonResponse({'status': 'success'}, status=200)
         
         print(f"📡 Webhook received: {event_type}")
         
@@ -624,13 +679,8 @@ def bill_details(request, bill_id):
             if bill.room != request.user.userprofile.room:
                 return JsonResponse({'error': 'Unauthorized - This bill does not belong to you'}, status=403)
         
-        # Compute late fee (kung overdue at unpaid)
         late_fee = 0
-        if not bill.is_paid and bill.due_date and bill.due_date < timezone.now().date():
-            late_fee = 50
-            total = bill.cost + late_fee
-        else:
-            total = bill.cost
+        total = bill.cost
         
         # Kunin ang payment record kung paid
         paid_date = None
@@ -652,10 +702,27 @@ def bill_details(request, bill_id):
             days_occupied = max((cycle_end - move_in_date).days + 1, 0)
         else:
             days_occupied = bill.days_occupied if hasattr(bill, 'days_occupied') else 30
+
+        previous = Billing.objects.filter(
+            room=bill.room,
+            created_at__lt=bill.created_at
+        ).order_by('-created_at').first()
+        previous_bill = None
+        if previous:
+            previous_bill = {
+                'billing_month': previous.billing_month,
+                'kwh': round(previous.kwh, 2),
+                'amount': round(previous.cost, 2),
+                'status': 'PAID' if previous.is_paid else 'UNPAID',
+                'is_paid': previous.is_paid,
+            }
+
+        payments = Payment.objects.filter(bill=bill).order_by('-created_at')
         
         return JsonResponse({
             'bill_id': bill.id,
             'billing_month': bill.billing_month,
+            'previous_bill': previous_bill,
             'room_name': bill.room.name,
             'kwh': bill.kwh,
             'rate': electricity_rate,
@@ -667,7 +734,19 @@ def bill_details(request, bill_id):
             'due_date': due_date.strftime('%Y-%m-%d') if due_date else 'N/A',
             'is_paid': bill.is_paid,
             'paid_date': paid_date,
-            'days_occupied': days_occupied
+            'days_occupied': days_occupied,
+            'payment_history': [
+                {
+                    'method': payment.get_payment_method_display(),
+                    'reference_number': payment.reference_number,
+                    'transaction_id': payment.transaction_id or '',
+                    'status': payment.status.upper(),
+                    'amount': round(payment.amount, 2),
+                    'created_at': payment.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'paid_at': payment.paid_at.strftime('%Y-%m-%d %H:%M') if payment.paid_at else '',
+                }
+                for payment in payments
+            ]
         })
         
     except Billing.DoesNotExist:

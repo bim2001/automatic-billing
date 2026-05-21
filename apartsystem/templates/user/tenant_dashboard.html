@@ -252,6 +252,33 @@
             margin-top: 5px;
         }
 
+        .pay-status-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #dc3545;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 7px;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #fff1f1;
+            transition: all 0.2s ease;
+        }
+
+        .pay-status-link:hover {
+            background: #ffe3e3;
+            transform: translateY(-1px);
+        }
+
+        .pay-status-hint {
+            display: block;
+            color: #856404;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
         /* ============================================ */
         /* CARDS                                       */
         /* ============================================ */
@@ -624,6 +651,84 @@
             color: #dc3545;
         }
 
+        .energy-overview-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+            gap: 25px;
+            align-items: stretch;
+        }
+
+        .energy-overview-grid .card {
+            margin-bottom: 25px;
+        }
+
+        .computation-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .computation-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 11px 0;
+            border-bottom: 1px solid #eef1f5;
+            color: #667085;
+        }
+
+        .computation-row strong {
+            color: #2c3e50;
+            text-align: right;
+        }
+
+        .computation-formula {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px;
+            color: #4f5f75;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .computation-total {
+            margin-top: 4px;
+            padding: 14px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .computation-total span {
+            display: block;
+            font-size: 12px;
+            opacity: 0.85;
+            margin-bottom: 4px;
+        }
+
+        .computation-total strong {
+            font-size: 22px;
+        }
+
+        .bill-breakdown {
+            font-size: 12px;
+        }
+
+        .breakdown-row {
+            gap: 14px;
+            padding: 7px 0;
+        }
+
+        .breakdown-row.total {
+            font-size: 14px;
+        }
+
+        .breakdown-label,
+        .breakdown-value {
+            font-size: 12px;
+        }
+
         /* Chart container */
         .chart-container {
             position: relative;
@@ -636,6 +741,9 @@
                 grid-template-columns: 1fr;
             }
             .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .energy-overview-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -685,7 +793,10 @@
                     {% if current_bill.is_paid %}
                     <div style="color: #28a745; font-size: 12px; margin-top: 5px;"><i class="fas fa-check-circle"></i> Paid</div>
                     {% else %}
-                    <div style="color: #dc3545; font-size: 12px; margin-top: 5px;"><i class="fas fa-exclamation-circle"></i> Unpaid</div>
+                    <a href="{% url 'payment_method' %}" class="pay-status-link" title="Go to payment">
+                        <i class="fas fa-exclamation-circle"></i> Unpaid
+                    </a>
+                    <span class="pay-status-hint">Want to pay?</span>
                     {% endif %}
                 {% endif %}
             </div>
@@ -698,7 +809,7 @@
                 <div class="stat-sub">Last 30 days</div>
             </div>
 
-            <!-- Power Status Card (simple - hindi mukhang pindot) -->
+            <!-- Power Status Card  -->
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-plug"></i></div>
                 <div class="stat-value">
@@ -749,30 +860,68 @@
 
         </div>
 
-        <!-- Energy Usage Graph Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2><i class="fas fa-chart-line"></i> Daily Energy Consumption</h2>
-                <span class="badge badge-info" id="usage-month"><i class="fas fa-calendar-alt"></i> {{ current_month }}</span>
-            </div>
-            <div class="chart-container">
-                <canvas id="usageChart"></canvas>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; text-align: center;">
-                <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
-                    <div style="color: #666; font-size: 12px;"><i class="fas fa-calendar-week"></i> This Month</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #28a745;" id="total-current">0</div>
-                    <div style="color: #999; font-size: 11px;">kWh</div>
+        <div class="energy-overview-grid">
+            <!-- Energy Usage Graph Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-line"></i> Daily Energy Consumption</h2>
+                    <span class="badge badge-info" id="usage-month"><i class="fas fa-calendar-alt"></i> {{ current_month }}</span>
                 </div>
-                <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
-                    <div style="color: #666; font-size: 12px;"><i class="fas fa-calendar-alt"></i> Last Month</div>
-                    <div style="font-size: 22px; font-weight: bold; color: #667eea;" id="total-previous">0</div>
-                    <div style="color: #999; font-size: 11px;">kWh</div>
+                <div class="chart-container">
+                    <canvas id="usageChart"></canvas>
                 </div>
-                <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
-                    <div style="color: #666; font-size: 12px;"><i class="fas fa-chart-line"></i> Change</div>
-                    <div style="font-size: 22px; font-weight: bold;" id="total-change">0</div>
-                    <div style="color: #999; font-size: 11px;" id="change-label">vs last month</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
+                        <div style="color: #666; font-size: 12px;"><i class="fas fa-calendar-week"></i> This Month</div>
+                        <div style="font-size: 22px; font-weight: bold; color: #28a745;" id="total-current">0</div>
+                        <div style="color: #999; font-size: 11px;">kWh</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
+                        <div style="color: #666; font-size: 12px;"><i class="fas fa-calendar-alt"></i> Last Month</div>
+                        <div style="font-size: 22px; font-weight: bold; color: #667eea;" id="total-previous">0</div>
+                        <div style="color: #999; font-size: 11px;">kWh</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 10px;">
+                        <div style="color: #666; font-size: 12px;"><i class="fas fa-chart-line"></i> Change</div>
+                        <div style="font-size: 22px; font-weight: bold;" id="total-change">0</div>
+                        <div style="color: #999; font-size: 11px;" id="change-label">vs last month</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-calculator"></i> Bill Computation</h2>
+                    <span class="badge badge-info">Formula</span>
+                </div>
+                <div class="computation-panel">
+                    <div class="computation-row">
+                        <span>Billing Month</span>
+                        <strong>{{ current_month }}</strong>
+                    </div>
+                    <div class="computation-row">
+                        <span>Consumption</span>
+                        <strong>{{ bill_kwh|floatformat:2 }} kWh</strong>
+                    </div>
+                    <div class="computation-row">
+                        <span>Rate</span>
+                        <strong>PHP {{ electricity_rate|floatformat:2 }} / kWh</strong>
+                    </div>
+                    {% if current_bill %}
+                    <div class="computation-row">
+                        <span>Due Date</span>
+                        <strong>{{ current_bill.due_date_display|date:"M d, Y" }}</strong>
+                    </div>
+                    <div class="computation-row">
+                        <span>Days Occupied</span>
+                        <strong>{{ current_bill.days_occupied_display }} days</strong>
+                    </div>
+                    {% endif %}
+                    <div class="computation-formula">{{ bill_formula }}</div>
+                    <div class="computation-total">
+                        <span>Total Amount</span>
+                        <strong>PHP {{ bill_amount|floatformat:2 }}</strong>
+                    </div>
                 </div>
             </div>
         </div>
@@ -911,15 +1060,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.error) { contentDiv.innerHTML = `<div style="color: red; text-align: center;">Error: ${data.error}</div>`; return; }
-                let lateFeeHtml = data.late_fee > 0 ? `<div class="breakdown-row"><span class="breakdown-label">Late Penalty</span><span class="breakdown-value late-fee">₱${data.late_fee.toFixed(2)}</span></div>` : '';
+                const previousBillHtml = data.previous_bill ? `<div class="breakdown-row"><span class="breakdown-label">Previous Bill</span><span class="breakdown-value">${data.previous_bill.billing_month} - PHP ${data.previous_bill.amount.toFixed(2)} (${data.previous_bill.status})</span></div>` : `<div class="breakdown-row"><span class="breakdown-label">Previous Bill</span><span class="breakdown-value">No previous bill</span></div>`;
                 contentDiv.innerHTML = `
                     <div class="bill-breakdown">
                         <div class="breakdown-row"><span class="breakdown-label">Billing Month</span><span class="breakdown-value">${data.billing_month}</span></div>
+                        ${previousBillHtml}
                         <div class="breakdown-row"><span class="breakdown-label">Room</span><span class="breakdown-value">${data.room_name}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${data.kwh} kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${data.rate}/kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Base Amount</span><span class="breakdown-value">₱${data.base_amount.toFixed(2)}</span></div>
-                        ${lateFeeHtml}
                         <div class="breakdown-row total"><span class="breakdown-label">TOTAL AMOUNT</span><span class="breakdown-value">₱${data.total_amount.toFixed(2)}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Due Date</span><span class="breakdown-value">${data.due_date}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Status</span><span class="breakdown-value" style="color: ${data.is_paid ? '#28a745' : '#dc3545'}">${data.is_paid ? 'PAID' : 'UNPAID'}</span></div>
