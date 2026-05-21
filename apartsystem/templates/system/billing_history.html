@@ -387,6 +387,12 @@
                     </a>
                 </div>
                 
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                    <a href="{% url 'billing_history' %}" class="btn-clear"><i class="fas fa-list"></i> All</a>
+                    <a href="{% url 'billing_history' %}?status=paid" class="btn-search" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fas fa-check-circle"></i> Paid</a>
+                    <a href="{% url 'billing_history' %}?status=unpaid" class="btn-clear" style="background: #dc3545;"><i class="fas fa-hourglass-half"></i> Unpaid</a>
+                </div>
+
                 <!-- Advanced Filters -->
                 <div class="advanced-filters">
                     <details>
@@ -462,15 +468,21 @@
                         <td>{{ bill.created_at|date:"h:i A" }}</td>
                         <td>
                             {% if not bill.is_paid %}
-                            <a href="{% url 'mark_as_paid' bill.id %}?next={% url 'billing_history' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" 
-                               class="action-link action-paid">
-                                <i class="fas fa-check-circle"></i> Mark Paid
-                            </a>
+                            <form method="post" action="{% url 'mark_as_paid' bill.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'billing_history' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
+                                <button type="submit" class="action-link action-paid" style="border:0; cursor:pointer;">
+                                    <i class="fas fa-check-circle"></i> Mark Paid
+                                </button>
+                            </form>
                             {% else %}
-                            <a href="{% url 'mark_as_paid' bill.id %}?next={% url 'billing_history' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}" 
-                               class="action-link action-unpaid">
-                                <i class="fas fa-undo-alt"></i> Mark Unpaid
-                            </a>
+                            <form method="post" action="{% url 'mark_as_paid' bill.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{% url 'billing_history' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
+                                <button type="submit" class="action-link action-unpaid" style="border:0; cursor:pointer;">
+                                    <i class="fas fa-undo-alt"></i> Mark Unpaid
+                                </button>
+                            </form>
                             {% endif %}
                         </td>
                     </tr>

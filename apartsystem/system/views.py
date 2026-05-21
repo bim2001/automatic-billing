@@ -18,7 +18,7 @@ import json
 import secrets
 import hashlib
 from django.db import models 
-from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment
+from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment, ActivityLog, APIToken
 from django.http import HttpResponse
 import csv
 from django.db import connection
@@ -37,6 +37,83 @@ logger = logging.getLogger(__name__)
 # ============== HELPER FUNCTIONS ==============
 def get_settings():
     return SystemSettings.get_settings()
+
+
+def get_client_ip(request):
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
+def log_activity(request, action, description, user=None):
+    """Record important owner/tenant actions without interrupting the main workflow."""
+    try:
+        actor = user or getattr(request, 'user', None)
+        if not actor or not actor.is_authenticated:
+            actor = None
+
+        user_type = 'tenant'
+        if actor and hasattr(actor, 'userprofile'):
+            user_type = actor.userprofile.user_type
+        elif actor and (actor.is_staff or actor.is_superuser):
+            user_type = 'owner'
+
+        ActivityLog.objects.create(
+            user=actor,
+            user_type=user_type,
+            action=action,
+            description=description,
+            ip_address=get_client_ip(request)
+        )
+    except Exception as exc:
+        logger.warning("Activity log skipped: %s", exc)
+
+
+def get_active_assignment(room):
+    return TenantAssignment.objects.filter(room=room, is_active=True).select_related('tenant__user').first()
+
+
+def get_bill_cycle_details(assignment, target_date=None):
+    target_date = target_date or timezone.now().date()
+    if not assignment:
+        return {
+            'move_in_date': None,
+            'cycle_start': None,
+            'cycle_due_date': None,
+            'days_occupied': 0,
+        }
+
+    cycle_start = assignment.move_in_date
+    cycle_due_date = assignment.get_due_date()
+    while cycle_due_date and target_date >= cycle_due_date + relativedelta(months=1):
+        cycle_start = cycle_due_date
+        cycle_due_date = cycle_due_date + relativedelta(months=1)
+
+    cycle_end = min(target_date, cycle_due_date) if cycle_due_date else target_date
+    days_occupied = max((cycle_end - cycle_start).days + 1, 0)
+
+    return {
+        'move_in_date': assignment.move_in_date,
+        'cycle_start': cycle_start,
+        'cycle_due_date': cycle_due_date,
+        'days_occupied': days_occupied,
+    }
+
+
+def attach_bill_display_data(bill, assignment=None):
+    assignment = assignment or bill.tenant_assignment or get_active_assignment(bill.room)
+    cycle = get_bill_cycle_details(assignment, timezone.now().date())
+    bill.active_assignment = assignment
+    if assignment:
+        bill.tenant_name = assignment.tenant.user.get_full_name() or assignment.tenant.user.username
+    else:
+        bill.tenant_name = bill.room.get_tenant_name()
+    bill.move_in_date_display = cycle['move_in_date']
+    bill.cycle_start_display = cycle['cycle_start']
+    bill.due_date_display = cycle['cycle_due_date'] or bill.due_date
+    bill.days_occupied_display = cycle['days_occupied'] or bill.days_occupied
+    return bill
 
 def get_last_day_of_month(year, month):
     return calendar.monthrange(year, month)[1]
@@ -93,6 +170,10 @@ def paymongo_webhook(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
     try:
+        from .api import verify_paymongo_signature
+        if not verify_paymongo_signature(request):
+            return JsonResponse({"error": "Invalid webhook signature"}, status=401)
+
         payload = json.loads(request.body)
         
         print(f"\n{'='*60}")
@@ -451,7 +532,7 @@ def send_payment_reminders(days_before_due=3, test_mode=False):
     today = timezone.now().date()
     reminder_date = today + timedelta(days=days_before_due)
     
-    print(f"\n📧 CHECKING BILLS DUE ON: {reminder_date} (in {days_before_due} days)")
+    print(f"\\nCHECKING BILLS DUE ON: {reminder_date} (in {days_before_due} days)")
     print("=" * 60)
     
     bills = Billing.objects.filter(
@@ -461,10 +542,10 @@ def send_payment_reminders(days_before_due=3, test_mode=False):
     )
     
     if not bills.exists():
-        print("❌ No bills to process")
+        print("No bills to process")
         return {'sent': 0, 'failed': 0, 'skipped': 0}
     
-    print(f"📊 Found {bills.count()} bill(s) to process")
+    print(f"Found {bills.count()} bill(s) to process")
     print("-" * 60)
     
     sent_count = 0
@@ -479,7 +560,7 @@ def send_payment_reminders(days_before_due=3, test_mode=False):
             tenant_name = tenant.get_full_name() or tenant.username
             
             if not tenant_email:
-                print(f"⚠️ SKIPPED: {bill.room.name} - No email for {tenant_name}")
+                print(f"SKIPPED: {bill.room.name} - No email for {tenant_name}")
                 skipped_count += 1
                 continue
             
@@ -509,7 +590,7 @@ Smart Energy Monitor System
             """
             
             if test_mode:
-                print(f"📧 TEST MODE - Would send to: {tenant_email}")
+                print(f"TEST MODE - Would send to: {tenant_email}")
                 print(f"   Subject: {subject}")
                 print(f"   Message: {message[:100]}...")
                 sent_count += 1
@@ -525,18 +606,18 @@ Smart Energy Monitor System
                 bill.reminder_sent = True
                 bill.save(update_fields=['reminder_sent'])
                 
-                print(f"✅ SENT: {bill.room.name} - {tenant_email}")
+                print(f"SENT: {bill.room.name} - {tenant_email}")
                 sent_count += 1
             
         except UserProfile.DoesNotExist:
-            print(f"❌ FAILED: {bill.room.name} - No tenant assigned")
+            print(f"FAILED: {bill.room.name} - No tenant assigned")
             failed_count += 1
         except Exception as e:
-            print(f"❌ FAILED: {bill.room.name} - {str(e)}")
+            print(f"FAILED: {bill.room.name} - {str(e)}")
             failed_count += 1
     
     print("-" * 60)
-    print(f"📊 SUMMARY: Sent: {sent_count}, Failed: {failed_count}, Skipped: {skipped_count}")
+    print(f"SUMMARY: Sent: {sent_count}, Failed: {failed_count}, Skipped: {skipped_count}")
     
     return {
         'sent': sent_count,
@@ -614,6 +695,8 @@ def login_view(request):
                 except UserProfile.DoesNotExist:
                     user_type = 'owner' if user.is_staff or user.is_superuser else 'tenant'
                     profile = UserProfile.objects.create(user=user, user_type=user_type)
+
+                log_activity(request, 'login', f"{profile.user_type.title()} logged in.", user=user)
                 
                 if profile.user_type == 'tenant':
                     return redirect('tenant_dashboard')
@@ -625,6 +708,8 @@ def login_view(request):
     return render(request, 'system/login.html', {'error': error, 'login_error': error})
 
 def logout_view(request):
+    if request.user.is_authenticated:
+        log_activity(request, 'logout', "User logged out.")
     logout(request)
     return redirect('login_view')
 
@@ -952,6 +1037,7 @@ def toggle_power(request, room_id):
         alert_type=alert_type,
         message=message
     )
+    log_activity(request, 'toggle', message)
     
     return redirect('dashboard')
 
@@ -983,6 +1069,7 @@ def add_room(request):
         )
         
         messages.success(request, f"Room '{name}' added successfully!")
+        log_activity(request, 'create', f"Created room {name} with {limit} kWh limit.")
         return redirect('dashboard')
     
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
@@ -1013,6 +1100,7 @@ def edit_room(request, room_id):
         )
         
         messages.success(request, f"Room '{room.name}' updated successfully!")
+        log_activity(request, 'update', f"Updated room {old_name} to {room.name} with {room.limit} kWh limit.")
         return redirect('dashboard')
     
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
@@ -1045,6 +1133,7 @@ def delete_room(request, room_id):
     
     room.delete()
     messages.success(request, f"Room '{room_name}' deleted successfully!")
+    log_activity(request, 'delete', f"Deleted room {room_name}.")
     return redirect('dashboard')
 
 
@@ -1129,6 +1218,11 @@ def assign_tenant(request, room_id):
                 f"assigned to {room.name} "
                 f"starting {assignment.move_in_date}"
             )
+            log_activity(
+                request,
+                'assign',
+                f"Assigned tenant {tenant_profile.user.username} to {room.name} starting {assignment.move_in_date}."
+            )
 
         else:
 
@@ -1155,6 +1249,7 @@ def assign_tenant(request, room_id):
                 request,
                 f"Tenant removed from {room.name}."
             )
+            log_activity(request, 'remove', f"Removed tenant from {room.name}.")
 
     return redirect('dashboard')
 
@@ -1177,6 +1272,7 @@ def remove_tenant(request, room_id):
             alert_type='tenant_removed',
             message=f"Tenant {tenant_name} removed from room {room.name}"
         )
+        log_activity(request, 'remove', f"Removed tenant {tenant_name} from {room.name}.")
     
     return redirect('dashboard')
 
@@ -1219,18 +1315,16 @@ def billing_view(request):
     
     current_month = timezone.now().strftime("%B %Y")
     
-    from datetime import date
-    import calendar
-    today = date.today()
-    last_day = calendar.monthrange(today.year, today.month)[1]
-    due_date = date(today.year, today.month, last_day)
+    today = timezone.now().date()
     
     rooms = Room.objects.all()
     for room in rooms:
-        has_tenant = UserProfile.objects.filter(room=room, user_type='tenant').exists()
+        assignment = get_active_assignment(room)
+        has_tenant = assignment is not None
         
         if has_tenant:
             current_usage = room.get_current_usage()
+            cycle = get_bill_cycle_details(assignment, today)
             bill, created = Billing.objects.get_or_create(
                 room=room,
                 billing_month=current_month,
@@ -1238,14 +1332,19 @@ def billing_view(request):
                     'kwh': current_usage,
                     'cost': current_usage * settings.electricity_rate,
                     'is_paid': False,
-                    'due_date': due_date,
-                    'reminder_sent': False
+                    'due_date': cycle['cycle_due_date'] or today,
+                    'reminder_sent': False,
+                    'tenant_assignment': assignment,
+                    'days_occupied': cycle['days_occupied'],
                 }
             )
             
             if not created:
                 bill.kwh = current_usage
                 bill.cost = current_usage * settings.electricity_rate
+                bill.due_date = cycle['cycle_due_date'] or bill.due_date
+                bill.tenant_assignment = assignment
+                bill.days_occupied = cycle['days_occupied']
                 bill.save()
         else:
             Billing.objects.filter(room=room, billing_month=current_month).delete()
@@ -1255,25 +1354,33 @@ def billing_view(request):
         room__userprofile__user_type='tenant',
         room__userprofile__isnull=False
     ).select_related('room').distinct()
+    bills = [attach_bill_display_data(bill) for bill in bills]
+    unpaid_bills = [bill for bill in bills if not bill.is_paid]
+    paid_bills = [bill for bill in bills if bill.is_paid]
     
     total_kwh = sum(bill.kwh for bill in bills)
     total_cost = sum(bill.cost for bill in bills)
     paid_count = sum(1 for bill in bills if bill.is_paid)
+    unpaid_count = len(unpaid_bills)
     
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
     return render(request, 'system/billing.html', {
         'bills': bills,
+        'unpaid_bills': unpaid_bills,
+        'paid_bills': paid_bills,
         'current_month': current_month,
         'total_kwh': total_kwh,
         'total_cost': total_cost,
         'paid_count': paid_count,
+        'unpaid_count': unpaid_count,
         'username': request.user.username,
         'electricity_rate': settings.electricity_rate,
         'unread_alerts_count': unread_alerts_count
     })
 
 @login_required
+@require_POST
 def mark_as_paid(request, bill_id):
     if request.user.userprofile.user_type != 'owner':
         return redirect('tenant_dashboard')
@@ -1284,15 +1391,17 @@ def mark_as_paid(request, bill_id):
     
     if not has_tenant:
         messages.error(request, f"Cannot mark bill for {bill.room.name} as paid - no tenant assigned to this room.")
-        next_url = request.GET.get('next', 'billing_view')
+        next_url = request.POST.get('next') or request.GET.get('next', 'billing_view')
         return redirect(next_url)
     
     bill.is_paid = not bill.is_paid
     bill.save()
     
     messages.success(request, f"Payment status updated for {bill.room.name}.")
+    status = "paid" if bill.is_paid else "unpaid"
+    log_activity(request, 'payment', f"Marked {bill.room.name} {bill.billing_month} bill as {status}.")
     
-    next_url = request.GET.get('next', 'billing_view')
+    next_url = request.POST.get('next') or request.GET.get('next', 'billing_view')
     return redirect(next_url)
 
 
@@ -1314,7 +1423,12 @@ def billing_history(request):
     ).select_related('room').distinct()
     
     if room_name:
-        bills_query = bills_query.filter(room__name__icontains=room_name)
+        bills_query = bills_query.filter(
+            Q(room__name__icontains=room_name) |
+            Q(room__userprofile__user__username__icontains=room_name) |
+            Q(room__userprofile__user__first_name__icontains=room_name) |
+            Q(room__userprofile__user__last_name__icontains=room_name)
+        )
     if month_filter:
         bills_query = bills_query.filter(billing_month=month_filter)
     if status_filter == 'paid':
@@ -1701,6 +1815,59 @@ def system_health(request):
         'timestamp': timezone.now()
     })
 
+
+@login_required
+def activity_log(request):
+    """Owner audit trail for important system actions."""
+    profile = request.user.userprofile
+
+    if profile.user_type != 'owner':
+        return redirect('tenant_dashboard')
+
+    logs = ActivityLog.objects.select_related('user').all()
+    search = request.GET.get('search', '').strip()
+    current_filter = request.GET.get('action', '').strip()
+    user_type_filter = request.GET.get('user_type', '').strip()
+
+    if search:
+        logs = logs.filter(
+            Q(user__username__icontains=search) |
+            Q(description__icontains=search) |
+            Q(ip_address__icontains=search)
+        )
+
+    if current_filter:
+        logs = logs.filter(action=current_filter)
+
+    if user_type_filter:
+        logs = logs.filter(user_type=user_type_filter)
+
+    from django.core.paginator import Paginator
+    from django.db.models import Count
+    paginator = Paginator(logs, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    total_actions = ActivityLog.objects.count()
+    recent_24h = ActivityLog.objects.filter(
+        created_at__gte=timezone.now() - timedelta(hours=24)
+    ).count()
+    action_counts = {
+        row['action']: row['total']
+        for row in ActivityLog.objects.values('action').annotate(total=Count('id'))
+    }
+
+    return render(request, 'system/activity_log.html', {
+        'logs': page_obj,
+        'username': request.user.username,
+        'total_actions': total_actions,
+        'recent_24h': recent_24h,
+        'action_counts': action_counts,
+        'search': search,
+        'current_filter': current_filter,
+        'user_type_filter': user_type_filter,
+    })
+
+
 @login_required
 def health_dashboard(request):
     """Health dashboard page with nice UI (for humans)"""
@@ -1832,6 +1999,7 @@ def create_gcash_payment(request, bill_id):
     if not payment:
         payment = create_payment_record(bill, profile, 'gcash')
         print(f"✅ Created new payment with reference: {payment.reference_number}")
+        log_activity(request, 'payment', f"Started GCash payment for {bill.room.name} {bill.billing_month}. Reference: {payment.reference_number}.")
     else:
         print(f"✅ Using existing payment with reference: {payment.reference_number}")
     
@@ -1887,6 +2055,11 @@ def create_gcash_payment(request, bill_id):
 def payment_success(request, reference_number):
     """Handle successful payment callback - ONLY webhook should update payment status"""
     payment = get_object_or_404(Payment, reference_number=reference_number)
+    profile = request.user.userprofile
+
+    if profile.user_type == 'tenant' and payment.tenant_id != profile.id:
+        messages.error(request, "You do not have access to this payment.")
+        return redirect('tenant_dashboard')
     
     if payment.status == 'paid':
         messages.success(request, f"✅ Payment of ₱{payment.amount} for {payment.bill.billing_month} has been received!")
@@ -1912,6 +2085,7 @@ def manual_paid_confirmation(request, bill_id):
         
         payment.notes = request.POST.get('notes', '')
         payment.save()
+        log_activity(request, 'payment', f"Submitted cash payment notice for {bill.room.name} {bill.billing_month}. Reference: {payment.reference_number}.")
         
         Alert.objects.create(
             room=bill.room,
@@ -1948,6 +2122,7 @@ def payment_method(request):
     if not current_bill:
         messages.info(request, "No bill available for this month.")
         return redirect('tenant_dashboard')
+    current_bill = attach_bill_display_data(current_bill)
     
     pending_payment = Payment.objects.filter(bill=current_bill, status='pending').first()
     
@@ -1960,6 +2135,7 @@ def payment_method(request):
         'room': room,
         'username': request.user.username,
         'electricity_rate': get_settings().electricity_rate,
+        'bill_formula': f"{round(current_bill.kwh, 2)} kWh x PHP {get_settings().electricity_rate}/kWh",
     })
 
 @login_required
@@ -1969,6 +2145,15 @@ def payment_checkout_simulation(request, reference):
     
     payment = get_object_or_404(Payment, reference_number=reference)
     bill = payment.bill
+    profile = request.user.userprofile
+
+    if not django_settings.DEBUG:
+        messages.error(request, "Payment simulation is disabled.")
+        return redirect('tenant_dashboard')
+
+    if profile.user_type != 'tenant' or payment.tenant_id != profile.id:
+        messages.error(request, "You do not have access to this payment.")
+        return redirect('tenant_dashboard')
     
     if request.method == 'POST':
         payment.status = 'paid'
@@ -1978,6 +2163,7 @@ def payment_checkout_simulation(request, reference):
         
         bill.is_paid = True
         bill.save()
+        log_activity(request, 'payment', f"Completed simulated payment for {bill.room.name} {bill.billing_month}. Reference: {reference}.")
         
         Alert.objects.create(
             room=bill.room,
@@ -2222,19 +2408,16 @@ def bill_details_api(request, bill_id):
     
     settings = SystemSettings.get_settings()
     electricity_rate = settings.electricity_rate
+    bill = attach_bill_display_data(bill)
     
     # ✅ Due date formatting
     due_date_str = (
-        bill.due_date.strftime('%Y-%m-%d')
-        if bill.due_date else 'Not set'
+        bill.due_date_display.strftime('%Y-%m-%d')
+        if bill.due_date_display else 'Not set'
     )
     
     # ✅ Get actual occupied days from database
-    days_occupied = (
-        bill.days_occupied
-        if hasattr(bill, 'days_occupied') and bill.days_occupied
-        else 0
-    )
+    days_occupied = bill.days_occupied_display
     
     # ✅ Calculate late penalty
     late_penalty = 0
@@ -2248,11 +2431,7 @@ def bill_details_api(request, bill_id):
         late_penalty = settings.late_penalty_amount
     
     # Tenant name
-    tenant_name = (
-        bill.room.get_tenant_name()
-        if bill.room.is_occupied()
-        else None
-    )
+    tenant_name = bill.tenant_name
     
     # Paid date
     paid_at = None
@@ -2269,11 +2448,14 @@ def bill_details_api(request, bill_id):
         'room': bill.room.name,
         'tenant': tenant_name,
         'billing_month': bill.billing_month,
+        'move_in_date': bill.move_in_date_display.strftime('%Y-%m-%d') if bill.move_in_date_display else 'Not set',
+        'cycle_start': bill.cycle_start_display.strftime('%Y-%m-%d') if bill.cycle_start_display else 'Not set',
         'due_date': due_date_str,
         'days_occupied': days_occupied,
         'kwh': round(bill.kwh, 2),
         'rate': electricity_rate,
         'base_amount': round(bill.cost, 2),
+        'formula': f"{round(bill.kwh, 2)} kWh x PHP {electricity_rate}/kWh",
         'late_penalty': late_penalty,
         'total_amount': round(
             bill.cost + late_penalty,
@@ -2288,6 +2470,7 @@ def bill_details_api(request, bill_id):
             {
                 'payment_method': p.payment_method,
                 'amount': round(p.amount, 2),
+                'status': p.status,
                 'date': p.created_at.strftime(
                     '%Y-%m-%d %H:%M'
                 ),
@@ -2602,3 +2785,5 @@ def regenerate_bills_for_room(room, month=None, year=None):
     print("-" * 40)
     
     return bill
+
+

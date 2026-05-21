@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import re
 from django.http import JsonResponse
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
@@ -58,13 +59,87 @@ def generate_api_token():
     return secrets.token_urlsafe(32)
 
 
+def _bad_json_response():
+    return JsonResponse({'status': 'error', 'message': 'Invalid JSON payload'}, status=400)
+
+
+def _to_float(value, field_name):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f'{field_name} must be a number')
+    return parsed
+
+
+def verify_paymongo_signature(request):
+    """Verify PayMongo webhook signatures when a webhook secret is configured."""
+    webhook_secret = getattr(settings, 'PAYMONGO_WEBHOOK_SECRET', None)
+    if not webhook_secret:
+        logger.warning("PAYMONGO_WEBHOOK_SECRET is not configured; webhook signature check skipped.")
+        return True
+
+    signature_header = (
+        request.headers.get('Paymongo-Signature')
+        or request.headers.get('PayMongo-Signature')
+        or request.headers.get('X-Paymongo-Signature')
+        or ''
+    )
+    if not signature_header:
+        logger.warning("Missing PayMongo webhook signature header.")
+        return False
+
+    signatures = {}
+    for part in signature_header.split(','):
+        if '=' in part:
+            key, value = part.split('=', 1)
+            signatures[key.strip()] = value.strip()
+
+    timestamp = signatures.get('t')
+    signed_payload = request.body
+    if timestamp:
+        signed_payload = f'{timestamp}.'.encode('utf-8') + request.body
+
+    expected = hmac.new(
+        webhook_secret.encode('utf-8'),
+        signed_payload,
+        hashlib.sha256
+    ).hexdigest()
+
+    possible_signatures = [
+        signatures.get('te'),
+        signatures.get('li'),
+        signatures.get('v1'),
+        signature_header.strip(),
+    ]
+    return any(
+        sig and hmac.compare_digest(expected, sig)
+        for sig in possible_signatures
+    )
+
+
 # ==================== MAIN API ENDPOINTS ====================
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def meter_reading(request):
     try:
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return _bad_json_response()
+
+        auth_header = request.headers.get('Authorization', '')
+        token = verify_api_token(request) if auth_header else None
+        auth_required = getattr(settings, 'IOT_API_TOKEN_REQUIRED', False)
+        if auth_required and token is None:
+            return JsonResponse({'status': 'error', 'message': 'Invalid or missing API token'}, status=401)
+
+        if isinstance(data, list):
+            return process_batch_readings(data, token)
+        if isinstance(data, dict) and 'readings' in data:
+            return process_batch_readings(data.get('readings') or [], token)
+        if not isinstance(data, dict):
+            return JsonResponse({'status': 'error', 'message': 'Payload must be an object or list'}, status=400)
         
         room_name = data.get('room')
         kwh = data.get('kwh')
@@ -74,11 +149,24 @@ def meter_reading(request):
         
         if not room_name or kwh is None:
             return JsonResponse({'status': 'error', 'message': 'Missing room or kwh'}, status=400)
+
+        try:
+            kwh = _to_float(kwh, 'kwh')
+            voltage = _to_float(voltage, 'vrms')
+            current = _to_float(current, 'irms')
+            power = _to_float(power, 'power')
+            if kwh < 0:
+                return JsonResponse({'status': 'error', 'message': 'kwh cannot be negative'}, status=400)
+        except ValueError as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
         
         try:
             room = Room.objects.get(name=room_name)
         except Room.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': f'Room {room_name} not found'}, status=404)
+
+        if token and token.room and token.room != room:
+            return JsonResponse({'status': 'error', 'message': f'Token not authorized for room {room_name}'}, status=403)
         
         # Save reading
         usage = EnergyUsage.objects.create(
@@ -112,6 +200,9 @@ def process_single_reading(data, token=None):
     room_name = data.get('room')
     kwh = data.get('kwh')
     timestamp_str = data.get('timestamp')
+    voltage = data.get('vrms', 0)
+    current = data.get('irms', 0)
+    power = data.get('power', 0)
     
     # Validate required fields
     if not room_name or kwh is None:
@@ -122,16 +213,19 @@ def process_single_reading(data, token=None):
     
     # Validate kwh is a number
     try:
-        kwh = float(kwh)
+        kwh = _to_float(kwh, 'kwh')
+        voltage = _to_float(voltage, 'vrms')
+        current = _to_float(current, 'irms')
+        power = _to_float(power, 'power')
         if kwh < 0:
             return JsonResponse({
                 'status': 'error',
                 'message': 'kwh cannot be negative'
             }, status=400)
-    except ValueError:
+    except ValueError as e:
         return JsonResponse({
             'status': 'error',
-            'message': 'kwh must be a number'
+            'message': str(e)
         }, status=400)
     
     # Find the room
@@ -170,6 +264,9 @@ def process_single_reading(data, token=None):
     usage = EnergyUsage.objects.create(
         room=room,
         kwh=kwh,
+        voltage=voltage,
+        current=current,
+        power=power,
         timestamp=timestamp
     )
     
@@ -183,6 +280,9 @@ def process_single_reading(data, token=None):
             'id': usage.id,
             'room': room.name,
             'kwh': kwh,
+            'voltage': voltage,
+            'current': current,
+            'power': power,
             'timestamp': usage.timestamp,
             'date': usage.date
         }
@@ -191,6 +291,12 @@ def process_single_reading(data, token=None):
 
 def process_batch_readings(readings, token=None):
     """Process multiple readings at once"""
+    if not isinstance(readings, list):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'readings must be a list'
+        }, status=400)
+
     results = {
         'success': [],
         'failed': []
@@ -198,6 +304,13 @@ def process_batch_readings(readings, token=None):
     
     for idx, reading in enumerate(readings):
         try:
+            if not isinstance(reading, dict):
+                results['failed'].append({
+                    'index': idx,
+                    'error': 'Reading must be an object'
+                })
+                continue
+
             result = process_single_reading(reading, token)
             result_data = json.loads(result.content)
             
@@ -274,7 +387,7 @@ def device_info(request):
             'device_info': '/api/device-info/'
         },
         'supported_formats': ['single', 'batch'],
-        'auth_required': True,
+        'auth_required': getattr(settings, 'IOT_API_TOKEN_REQUIRED', False),
         'auth_type': 'Bearer Token'
     })
 
@@ -287,9 +400,13 @@ def create_api_token(request):
     """Admin endpoint to create new API tokens"""
     from .models import APIToken, Room
     
-    # You may want to add admin authentication here
+    if not request.user.is_authenticated or request.user.userprofile.user_type != 'owner':
+        return JsonResponse({'status': 'error', 'message': 'Unauthorized'}, status=403)
     
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _bad_json_response()
     name = data.get('name')
     room_name = data.get('room')
     
@@ -331,8 +448,14 @@ def create_api_token(request):
 def paymongo_webhook(request):
     """Handle PayMongo webhook callbacks for payment status updates"""
     try:
+        if not verify_paymongo_signature(request):
+            return JsonResponse({'status': 'error', 'message': 'Invalid webhook signature'}, status=401)
+
         payload = request.body
-        data = json.loads(payload)
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            return _bad_json_response()
         event_type = data.get('data', {}).get('attributes', {}).get('type', '')
         
         print(f"📡 Webhook received: {event_type}")
@@ -517,9 +640,18 @@ def bill_details(request, bill_id):
                 paid_date = payment.paid_at.strftime('%Y-%m-%d %H:%M:%S')
         
         # Kunin ang electricity rate mula sa settings
-        from .models import SystemSettings
+        from .models import SystemSettings, TenantAssignment
         settings = SystemSettings.get_settings()
         electricity_rate = settings.electricity_rate
+        assignment = bill.tenant_assignment or TenantAssignment.objects.filter(room=bill.room, is_active=True).first()
+        move_in_date = assignment.move_in_date if assignment else None
+        due_date = assignment.get_due_date() if assignment else bill.due_date
+        today = timezone.now().date()
+        if move_in_date:
+            cycle_end = min(today, due_date) if due_date else today
+            days_occupied = max((cycle_end - move_in_date).days + 1, 0)
+        else:
+            days_occupied = bill.days_occupied if hasattr(bill, 'days_occupied') else 30
         
         return JsonResponse({
             'bill_id': bill.id,
@@ -528,12 +660,14 @@ def bill_details(request, bill_id):
             'kwh': bill.kwh,
             'rate': electricity_rate,
             'base_amount': bill.cost,
+            'formula': f"{round(bill.kwh, 2)} kWh x PHP {electricity_rate}/kWh",
             'late_fee': late_fee,
             'total_amount': total,
-            'due_date': bill.due_date.strftime('%Y-%m-%d') if bill.due_date else 'N/A',
+            'move_in_date': move_in_date.strftime('%Y-%m-%d') if move_in_date else 'N/A',
+            'due_date': due_date.strftime('%Y-%m-%d') if due_date else 'N/A',
             'is_paid': bill.is_paid,
             'paid_date': paid_date,
-            'days_occupied': bill.days_occupied if hasattr(bill, 'days_occupied') else 30
+            'days_occupied': days_occupied
         })
         
     except Billing.DoesNotExist:

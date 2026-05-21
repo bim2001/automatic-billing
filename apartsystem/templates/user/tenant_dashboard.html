@@ -149,12 +149,12 @@
 
         @media (max-width: 768px) {
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
+                width: 70px;
+                height: 100vh;
+                position: fixed;
             }
             .main-content {
-                margin-left: 0;
+                margin-left: 70px;
                 padding: 20px;
             }
         }
@@ -645,73 +645,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
     <!-- SIDEBAR NAVIGATION -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-bolt"></i>
-                <span>Smart Energy</span>
-            </div>
-            <div class="version">Tenant Portal</div>
-        </div>
+    {% include 'user/tenant_sidebar.html' %}
 
-        <div class="nav-menu">
-            <div class="nav-item">
-                <a href="{% url 'tenant_dashboard' %}" class="nav-link active">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'payment_method' %}" class="nav-link">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Payment</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'tenant_notifications' %}" class="nav-link">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
-                    {% if unread_alerts_count > 0 %}
-                    <span class="alert-badge">{{ unread_alerts_count }}</span>
-                    {% endif %}
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'tenant_billing_history' %}" class="nav-link">
-                    <i class="fas fa-history"></i>
-                    <span>Billing History</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'edit_profile' %}" class="nav-link">
-                    <i class="fas fa-user-edit"></i>
-                    <span>Edit Profile</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="user-details">
-                    <div class="user-name">{{ username }}</div>
-                    <div class="user-role">Tenant</div>
-                </div>
-            </div>
-            <a href="{% url 'logout_view' %}" class="nav-link" style="padding-left: 0;">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- MAIN CONTENT -->
+<!-- MAIN CONTENT -->
     <div class="main-content">
         <!-- Page Header -->
         <div class="page-header">
@@ -810,16 +747,6 @@
                 {% endif %}
             </div>
 
-            <!-- Simple power status indicator (hindi button) -->
-            <div class="power-status-simple" style="margin-top: 15px;">
-                <div class="power-dot {% if room.power_status %}on{% else %}off{% endif %}"></div>
-                <span>Power is currently <strong>{% if room.power_status %}ON{% else %}OFF{% endif %}</strong></span>
-                {% if room.usage > room.limit %}
-                <span class="badge badge-warning" style="margin-left: auto;">
-                    <i class="fas fa-exclamation-triangle"></i> Exceeded limit
-                </span>
-                {% endif %}
-            </div>
         </div>
 
         <!-- Energy Usage Graph Card -->

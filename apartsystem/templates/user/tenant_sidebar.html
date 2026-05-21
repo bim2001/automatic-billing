@@ -1,11 +1,16 @@
 {% load static %}
+<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+
 <div class="sidebar">
     <div class="sidebar-header">
         <div class="logo">
             <i class="fas fa-bolt"></i>
             <span>Smart Energy</span>
         </div>
-        <div class="version">Tenant Portal</div>
+        <div class="version">
+            <div>{{ admin_contact.name }}</div>
+            <div><i class="fas fa-phone-alt"></i> {{ admin_contact.phone }}</div>
+        </div>
     </div>
 
     <div class="nav-menu">

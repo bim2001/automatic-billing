@@ -264,6 +264,42 @@
             margin-bottom: 8px;
             font-size: 12px;
         }
+
+        .section-title {
+            margin: 25px 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            color: #2c3e50;
+        }
+
+        .section-title h2 {
+            font-size: 20px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .transaction-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .transaction-table th,
+        .transaction-table td {
+            padding: 8px;
+            border-bottom: 1px solid #edf2f8;
+            text-align: left;
+        }
+
+        .transaction-table th {
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
         
         .modal-actions {
             display: flex;
@@ -329,54 +365,74 @@
             </div>
         </div>
 
-        <!-- Billing Table -->
+        <div class="section-title">
+            <h2><i class="fas fa-hourglass-half"></i> Unpaid Tenants</h2>
+            <span class="status-badge status-unpaid">{{ unpaid_count }} unpaid</span>
+        </div>
+        <!-- Unpaid Billing Table -->
         <div class="billing-table-container">
             <table class="billing-table">
                 <thead>
                     <tr>
                         <th>Room / Tenant</th>
-                        <th>Rate (₱/kWh)</th>
+                        <th>Due Date</th>
+                        <th>Days Occupied</th>
+                        <th>Rate</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for bill in bills %}
+                    {% for bill in unpaid_bills %}
                     <tr>
                         <td>
                             <div class="room-name">{{ bill.room.name }}</div>
-                            {% if bill.room.is_occupied %}
-                            <div class="tenant-name">
-                                <i class="fas fa-user"></i> {{ bill.room.get_tenant_name }}
-                            </div>
-                            {% else %}
-                            <div class="tenant-name" style="color: #999;">
-                                <i class="fas fa-user-slash"></i> No tenant
-                            </div>
-                            {% endif %}
+                            <div class="tenant-name"><i class="fas fa-user"></i> {{ bill.tenant_name|default:"No tenant" }}</div>
                         </td>
-                        <td>₱{{ electricity_rate }}/kWh</td>
-                        <td>
-                            <span class="status-badge {% if bill.is_paid %}status-paid{% else %}status-unpaid{% endif %}">
-                                {% if bill.is_paid %}PAID{% else %}UNPAID{% endif %}
-                            </span>
-                        </td>
-                        <td>
-                            {% if bill.room.is_occupied %}
-                            <button class="btn-view" onclick="openBillModal('{{ bill.id }}')">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            {% else %}
-                            <span style="color: #999; font-size: 12px;">No tenant</span>
-                            {% endif %}
-                        </td>
+                        <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
+                        <td>{{ bill.days_occupied_display }} days</td>
+                        <td>PHP {{ electricity_rate }}/kWh</td>
+                        <td><span class="status-badge status-unpaid">UNPAID</span></td>
+                        <td><button class="btn-view" onclick="openBillModal('{{ bill.id }}')"><i class="fas fa-eye"></i> View</button></td>
                     </tr>
                     {% empty %}
+                    <tr><td colspan="6" style="text-align: center; padding: 40px;">No unpaid bills for {{ current_month }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">
+            <h2><i class="fas fa-check-circle"></i> Paid Tenants</h2>
+            <span class="status-badge status-paid">{{ paid_count }} paid</span>
+        </div>
+        <div class="billing-table-container">
+            <table class="billing-table">
+                <thead>
                     <tr>
-                        <td colspan="4" style="text-align: center; padding: 40px;">
-                            No bills found for {{ current_month }}
-                        </td>
+                        <th>Room / Tenant</th>
+                        <th>Due Date</th>
+                        <th>Days Occupied</th>
+                        <th>Rate</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
+                </thead>
+                <tbody>
+                    {% for bill in paid_bills %}
+                    <tr>
+                        <td>
+                            <div class="room-name">{{ bill.room.name }}</div>
+                            <div class="tenant-name"><i class="fas fa-user"></i> {{ bill.tenant_name|default:"No tenant" }}</div>
+                        </td>
+                        <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
+                        <td>{{ bill.days_occupied_display }} days</td>
+                        <td>PHP {{ electricity_rate }}/kWh</td>
+                        <td><span class="status-badge status-paid">PAID</span></td>
+                        <td><button class="btn-view" onclick="openBillModal('{{ bill.id }}')"><i class="fas fa-eye"></i> View</button></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; padding: 40px;">No paid bills for {{ current_month }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -417,12 +473,16 @@
                 // Build payment history HTML
                 let paymentHistoryHtml = '<div style="color: #999; font-size: 12px;">No payment records yet</div>';
                 if (data.payment_history && data.payment_history.length > 0) {
-                    paymentHistoryHtml = data.payment_history.map(p => `
-                        <div class="payment-history-item">
-                            <div><strong>${p.payment_method.toUpperCase()}</strong> - ₱${p.amount}</div>
-                            <div style="font-size: 11px; color: #666;">${p.date} • ${p.reference_number}</div>
-                        </div>
-                    `).join('');
+                    paymentHistoryHtml = `
+                        <table class="transaction-table">
+                            <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Status</th><th>Amount</th></tr></thead>
+                            <tbody>
+                                ${data.payment_history.map(p => `
+                                    <tr><td>${p.date}</td><td>${p.payment_method.toUpperCase()}</td><td>${p.reference_number}</td><td>${p.status.toUpperCase()}</td><td>PHP ${p.amount}</td></tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
                 }
                 
                 modalBody.innerHTML = `
@@ -439,6 +499,14 @@
                         <div class="detail-row">
                             <span class="detail-label">Billing Month:</span>
                             <span class="detail-value">${data.billing_month}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Move-in Date:</span>
+                            <span class="detail-value">${data.move_in_date}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Cycle Start:</span>
+                            <span class="detail-value">${data.cycle_start}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Due Date:</span>
@@ -458,11 +526,15 @@
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Electricity Rate:</span>
-                            <span class="detail-value">₱${data.rate}/kWh</span>
+                            <span class="detail-value">PHP ${data.rate}/kWh</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Formula:</span>
+                            <span class="detail-value">${data.formula}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Base Amount:</span>
-                            <span class="detail-value">₱${data.base_amount}</span>
+                            <span class="detail-value">PHP ${data.base_amount}</span>
                         </div>
                         ${data.late_penalty > 0 ? `
                         <div class="detail-row" style="color: #dc3545;">
@@ -551,3 +623,7 @@
 </script>
 </body>
 </html>
+
+
+
+

@@ -71,29 +71,44 @@ class UserProfile(models.Model):
         return f"{self.user.get_full_name() or self.user.username} - {self.user_type}"
 
 
-# ============ TENANT ASSIGNMENT (UNAHIN BAGO BILLING) ============
-from dateutil.relativedelta import relativedelta 
+class ActivityLog(models.Model):
+    ACTIONS = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('assign', 'Assign'),
+        ('remove', 'Remove'),
+        ('payment', 'Payment'),
+        ('toggle', 'Toggle Power'),
+    ]
 
+    USER_TYPES = [
+        ('owner', 'Owner'),
+        ('tenant', 'Tenant'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='tenant')
+    action = models.CharField(max_length=20, choices=ACTIONS)
+    description = models.TextField()
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        username = self.user.username if self.user else 'System'
+        return f"{username} - {self.get_action_display()} - {self.created_at}"
+
+    class Meta:
+        verbose_name = "Activity Log"
+        verbose_name_plural = "Activity Logs"
+        ordering = ['-created_at']
+
+
+# ============ TENANT ASSIGNMENT (UNAHIN BAGO BILLING) ============
 class TenantAssignment(models.Model):
     """Tracks tenant move-in and move-out dates for prorated billing"""
-    tenant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='assignments')
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    move_in_date = models.DateField()
-    move_out_date = models.DateField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        status = "Active" if self.is_active else "Inactive"
-        return f"{self.tenant.user.username} - {self.room.name} ({status})"
-    
-    def get_due_date(self):
-        """Return due date based on move-in date (1 month after move-in)"""
-        if self.move_in_date:
-            return self.move_in_date + relativedelta(months=1)
-        return None
-    
-class TenantAssignment(models.Model):
     tenant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='assignments')
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     move_in_date = models.DateField()

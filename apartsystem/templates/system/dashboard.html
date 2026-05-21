@@ -78,6 +78,31 @@
                 <canvas id="dailyConsumptionChart" class="chart-canvas"></canvas>
             </div>
 
+            <!-- Bill Computation -->
+            <div class="chart-card-dashboard">
+                <div class="chart-header-dashboard">
+                    <h3><i class="fas fa-calculator"></i> Bill Computation</h3>
+                    <span class="chart-badge">Formula</span>
+                </div>
+                <div class="computation-panel">
+                    <div class="computation-row">
+                        <span>Total kWh</span>
+                        <strong>{{ stats.total_kwh|floatformat:2 }} kWh</strong>
+                    </div>
+                    <div class="computation-row">
+                        <span>Rate</span>
+                        <strong>PHP {{ electricity_rate|floatformat:2 }} / kWh</strong>
+                    </div>
+                    <div class="computation-formula">
+                        {{ stats.total_kwh|floatformat:2 }} kWh x PHP {{ electricity_rate|floatformat:2 }}
+                    </div>
+                    <div class="computation-total">
+                        <span>Current Total Bill</span>
+                        <strong>PHP {{ stats.total_cost|floatformat:2 }}</strong>
+                    </div>
+                </div>
+            </div>
+
             <!-- Top 3 Rooms Chart -->
             <div class="chart-card-dashboard">
                 <div class="chart-header-dashboard">

@@ -392,6 +392,28 @@
             color: #5a67d8;
         }
 
+        .history-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .history-tab {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 18px;
+            cursor: pointer;
+            background: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .history-tab.active {
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
         /* Modal */
         .modal {
             display: none;
@@ -518,72 +540,10 @@
     </style>
 </head>
 <body>
-
     <!-- SIDEBAR NAVIGATION -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <div class="logo">
-                <i class="fas fa-bolt"></i>
-                <span>Smart Energy Monitor</span>
-        </div>
-        </div>
+    {% include 'user/tenant_sidebar.html' %}
 
-        <div class="nav-menu">
-            <div class="nav-item">
-                <a href="{% url 'tenant_dashboard' %}" class="nav-link">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'payment_method' %}" class="nav-link">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Payment</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'tenant_notifications' %}" class="nav-link">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
-                    {% if unread_alerts_count > 0 %}
-                    <span class="alert-badge">{{ unread_alerts_count }}</span>
-                    {% endif %}
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="{% url 'tenant_billing_history' %}" class="nav-link active">
-                    <i class="fas fa-history"></i>
-                    <span>Billing History</span>
-                </a>
-            </div>
-            <div class="nav-divider"></div>
-            <div class="nav-item">
-                <a href="{% url 'edit_profile' %}" class="nav-link">
-                    <i class="fas fa-user-edit"></i>
-                    <span>Edit Profile</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="user-details">
-                    <div class="user-name">{{ username }}</div>
-                    <div class="user-role">Tenant</div>
-                </div>
-            </div>
-            <a href="{% url 'logout_view' %}" class="nav-link" style="padding-left: 0;">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- MAIN CONTENT -->
+<!-- MAIN CONTENT -->
     <div class="main-content">
 
 
@@ -639,15 +599,24 @@
         <!-- Billing History Table -->
         <div class="card">
             <div class="card-header">
-                <h2><i class="fas fa-file-invoice-dollar"></i> Billing Records</h2>
+                <h2><i class="fas fa-file-invoice-dollar"></i> Latest / Payment History</h2>
                 <span class="badge badge-info">{{ bills|length }} records</span>
+            </div>
+
+            <div class="history-tabs">
+                <button type="button" class="history-tab active" onclick="showHistoryTab('latest', this)">
+                    <i class="fas fa-file-invoice"></i> Latest
+                </button>
+                <button type="button" class="history-tab" onclick="showHistoryTab('paid', this)">
+                    <i class="fas fa-check-circle"></i> Payment History
+                </button>
             </div>
             
             {% if bills %}
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
-                        <tr>
+                        <tr class="bill-row" data-status="{% if bill.is_paid %}paid{% else %}latest{% endif %}">
                             <th>Billing Month</th>
                             <th>kWh Used</th>
                             <th>Rate</th>
@@ -720,8 +689,11 @@
                     <div class="bill-breakdown">
                         <div class="breakdown-row"><span class="breakdown-label">Billing Month</span><span class="breakdown-value">${data.billing_month}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Room</span><span class="breakdown-value">${data.room_name}</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Move-in Date</span><span class="breakdown-value">${data.move_in_date}</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Days Occupied</span><span class="breakdown-value">${data.days_occupied} days</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${data.kwh} kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${data.rate}/kWh</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Formula</span><span class="breakdown-value">${data.formula}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Base Amount</span><span class="breakdown-value">₱${data.base_amount.toFixed(2)}</span></div>
                         ${lateFeeHtml}
                         <div class="breakdown-row total"><span class="breakdown-label">TOTAL AMOUNT</span><span class="breakdown-value">₱${data.total_amount.toFixed(2)}</span></div>
@@ -736,6 +708,20 @@
     function closeBillModal() { document.getElementById('billModal').classList.remove('show'); }
     window.onclick = function(event) { if (event.target === document.getElementById('billModal')) closeBillModal(); };
     document.addEventListener('keydown', function(event) { if (event.key === 'Escape') closeBillModal(); });
+
+    function showHistoryTab(tab, button) {
+        document.querySelectorAll('.history-tab').forEach(button => button.classList.remove('active'));
+        button.classList.add('active');
+        document.querySelectorAll('.bill-row').forEach(row => {
+            row.style.display = row.dataset.status === tab ? '' : 'none';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.bill-row').forEach(row => {
+            row.style.display = row.dataset.status === 'latest' ? '' : 'none';
+        });
+    });
     </script>
 
     <script>
@@ -753,3 +739,4 @@
 
 </body>
 </html>
+

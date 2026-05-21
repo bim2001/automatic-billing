@@ -1,7 +1,7 @@
 # system/admin.py - UPDATED (walang usage field)
 
 from django.contrib import admin
-from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment
+from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, ActivityLog
 
 
 @admin.register(Room)
@@ -78,3 +78,12 @@ class PaymentAdmin(admin.ModelAdmin):
         return f"₱{obj.amount:.2f}"
     formatted_amount.short_description = 'Amount'
     formatted_amount.admin_order_field = 'amount'
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ['created_at', 'user', 'user_type', 'action', 'description', 'ip_address']
+    list_filter = ['action', 'user_type', 'created_at']
+    search_fields = ['user__username', 'description', 'ip_address']
+    readonly_fields = ['user', 'user_type', 'action', 'description', 'ip_address', 'created_at']
+    date_hierarchy = 'created_at'

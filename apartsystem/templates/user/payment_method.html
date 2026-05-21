@@ -259,6 +259,40 @@
             font-weight: bold;
         }
 
+        .breakdown-table-wrap {
+            background: white;
+            border: 1px solid #edf2f8;
+            border-radius: 15px;
+            padding: 18px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+
+        .breakdown-table-wrap h3 {
+            color: #2c3e50;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .breakdown-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .breakdown-table td:last-child {
+            text-align: right;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
         .btn {
             display: inline-block;
             padding: 14px 30px;
@@ -301,14 +335,14 @@
  @media (max-width: 768px) {
 
     .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
+        width: 70px;
+        height: 100vh;
+        position: fixed;
     }
 
     .container {
-        margin-left: 0;
-        width: 100%;
+        margin-left: 70px;
+        width: calc(100% - 70px);
         padding: 20px;
     }
 
@@ -327,76 +361,10 @@
     </style>
 </head>
 <body>
-
     <!-- SIDEBAR NAVIGATION -->
-<div class="sidebar">
-    <div class="sidebar-header">
-        <div class="logo">
-            <i class="fas fa-bolt"></i>
-            <span>Smart Energy</span>
-        </div>
-        <div class="version">Tenant Portal</div>
-    </div>
+    {% include 'user/tenant_sidebar.html' %}
 
-    <div class="nav-menu">
-        <div class="nav-item">
-            <a href="{% url 'tenant_dashboard' %}" class="nav-link">
-                <i class="fas fa-chart-line"></i>
-                <span>Dashboard</span>
-            </a>
-        </div>
-
-        <div class="nav-divider"></div>
-
-        <div class="nav-item">
-            <a href="{% url 'payment_method' %}" class="nav-link active">
-                <i class="fas fa-credit-card"></i>
-                <span>Payment</span>
-            </a>
-        </div>
-
-        <div class="nav-item">
-            <a href="{% url 'tenant_notifications' %}" class="nav-link">
-                <i class="fas fa-bell"></i>
-                <span>Notifications</span>
-            </a>
-        </div>
-
-        <div class="nav-item">
-            <a href="{% url 'tenant_billing_history' %}" class="nav-link">
-                <i class="fas fa-history"></i>
-                <span>Billing History</span>
-            </a>
-        </div>
-
-        <div class="nav-item">
-            <a href="{% url 'edit_profile' %}" class="nav-link">
-                <i class="fas fa-user-edit"></i>
-                <span>Edit Profile</span>
-            </a>
-        </div>
-    </div>
-
-    <div class="sidebar-footer">
-        <div class="user-info">
-            <div class="user-avatar">
-                <i class="fas fa-user"></i>
-            </div>
-
-            <div class="user-details">
-                <div class="user-name">{{ username }}</div>
-                <div class="user-role">Tenant</div>
-            </div>
-        </div>
-
-        <a href="{% url 'logout_view' %}" class="nav-link" style="padding-left: 0;">
-            <i class="fas fa-sign-out-alt"></i>
-            <span>Logout</span>
-        </a>
-    </div>
-</div>
-
-    <div class="container">
+<div class="container">
         <div class="payment-card">
             <h1><i class="fas fa-wallet"></i> Select Payment Method</h1>
             <div class="subtitle">Choose how you want to pay your electricity bill</div>
@@ -426,6 +394,36 @@
                     <div class="label">Total Amount Due</div>
                     <div class="value">₱{{ bill.cost|floatformat:2 }}</div>
                 </div>
+            </div>
+
+            <div class="breakdown-table-wrap">
+                <h3><i class="fas fa-calculator"></i> Bill Computation</h3>
+                <table class="breakdown-table">
+                    <tr>
+                        <td>Move-in Date</td>
+                        <td>{{ bill.move_in_date_display|date:"M d, Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td>Due Date</td>
+                        <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td>Days Occupied</td>
+                        <td>{{ bill.days_occupied_display }} days</td>
+                    </tr>
+                    <tr>
+                        <td>Consumption</td>
+                        <td>{{ bill.kwh|floatformat:2 }} kWh</td>
+                    </tr>
+                    <tr>
+                        <td>Formula</td>
+                        <td>{{ bill_formula }}</td>
+                    </tr>
+                    <tr>
+                        <td>Total</td>
+                        <td>PHP {{ bill.cost|floatformat:2 }}</td>
+                    </tr>
+                </table>
             </div>
 
             <!-- Payment Options -->

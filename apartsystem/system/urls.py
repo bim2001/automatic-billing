@@ -49,6 +49,7 @@ urlpatterns = [
     path('settings/', views.system_settings, name='system_settings'),
     path('system-health/', views.health_dashboard, name='health_dashboard'),
     path('health/', views.health_dashboard, name='system_health_dashboard'),
+    path('activity-log/', views.activity_log, name='activity_log'),
     
     # ==================== API ENDPOINTS ====================
     path('api/meter-reading/', api.meter_reading, name='meter_reading'),

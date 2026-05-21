@@ -7,7 +7,10 @@
             <i class="fas fa-bolt"></i>
             <span>Smart Energy</span>
         </div>
-        <div class="version">Owner Dashboard v2.0</div>
+        <div class="version">
+            <div>{{ admin_contact.name }}</div>
+            <div><i class="fas fa-phone-alt"></i> {{ admin_contact.phone }}</div>
+        </div>
     </div>
 
     <div class="nav-menu">
@@ -73,6 +76,12 @@
             <a href="{% url 'system_health_dashboard' %}" class="nav-link" data-tooltip="Health">
                 <i class="fas fa-heartbeat"></i>
                 <span>Health</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'activity_log' %}" class="nav-link" data-tooltip="Activity Log">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Activity</span>
             </a>
         </div>
     </div>
