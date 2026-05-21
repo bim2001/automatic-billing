@@ -2443,6 +2443,13 @@ def rooms_page(request):
         room.current_usage = current_usage
         room.cost = current_usage * SystemSettings.get_settings().electricity_rate
         room.over_limit = current_usage > room.limit
+        room.unpaid_bill = Billing.objects.filter(
+            room=room,
+            is_paid=False
+        ).order_by('-created_at').first()
+        room.has_unpaid_bill = bool(room.unpaid_bill and room.is_occupied())
+        room.unpaid_bill_month = room.unpaid_bill.billing_month if room.has_unpaid_bill else ''
+        room.unpaid_bill_amount = room.unpaid_bill.cost if room.has_unpaid_bill else 0
     
     available_tenants = UserProfile.objects.filter(user_type='tenant', room__isnull=True).select_related('user')
     

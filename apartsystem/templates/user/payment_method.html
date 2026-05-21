@@ -197,6 +197,24 @@
             margin-bottom: 15px;
         }
 
+        .gcash-payment-logo {
+            width: 70px;
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .gcash-button-logo {
+            width: 60px;
+            height: auto;
+            object-fit: contain;
+            vertical-align: middle;
+            margin-right: 8px;
+            background: white;
+            border-radius: 5px;
+            padding: 3px;
+        }
+
         .payment-option h3 {
             font-size: 20px;
             margin-bottom: 10px;
@@ -430,7 +448,7 @@
             <div class="payment-options">
                 <div class="payment-option" onclick="selectPayment('gcash')" id="option-gcash">
                     <div class="payment-icon">
-                        <img src="{% static 'images/gcash.png' %}" width="70">
+                        <img src="{% static 'images/download.png' %}" alt="GCash" class="gcash-payment-logo">
                     </div>
                     <h3>GCash</h3>
                     <p>Pay via GCash QR Code or PayMongo</p>
@@ -438,7 +456,7 @@
 
                 <div class="payment-option" onclick="selectPayment('cash')" id="option-cash">
                     <div class="payment-icon">
-                        <i class="fas fa-money-bill-wave" style="color: #28a745;"></i>
+                        <i class="fas fa-money-bill-wave" style="color: #45995a;"></i>
                     </div>
                     <h3>Cash</h3>
                     <p>Pay directly to the owner</p>
@@ -450,7 +468,7 @@
     <form method="post" action="{% url 'create_gcash_payment' bill.id %}" id="gcashForm">
         {% csrf_token %}
         <button type="submit" class="btn" id="gcashPayBtn">
-            <img src="{% static 'images/gcash.png' %}" width="60"> Pay with GCash via PayMongo
+            <img src="{% static 'images/logo.png' %}" alt="GCash" class="gcash-button-logo"> Pay with GCash via PayMongo
         </button>
     </form>
     <div id="gcashLoading" style="display: none; text-align: center; padding: 20px;">

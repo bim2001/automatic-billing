@@ -40,6 +40,51 @@
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
         }
+        .room-card.unpaid-tenant {
+            border-color: #dc3545;
+            border-left: 5px solid #dc3545;
+            background: linear-gradient(135deg, #ffffff 0%, #fff7f7 100%);
+            box-shadow: 0 8px 22px rgba(220, 53, 69, 0.12);
+        }
+        .room-card.unpaid-tenant:hover {
+            border-color: #dc3545;
+            box-shadow: 0 12px 28px rgba(220, 53, 69, 0.18);
+        }
+        .room-card.unpaid-tenant .room-tenant {
+            background: #fff0f1;
+            border: 1px solid #f3c2c7;
+            color: #721c24;
+        }
+        .unpaid-billing-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+        .unpaid-billing-detail {
+            color: #842029;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        .paid-billing-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #d4edda;
+            color: #155724;
+            font-size: 10px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
         /* Modal styles for remove tenant */
         .modal {
             display: none;
@@ -164,10 +209,12 @@
 
         <div class="rooms-grid">
             {% for room in rooms %}
-            <div class="room-card" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}" 
+            <div class="room-card {% if room.has_unpaid_bill %}unpaid-tenant{% endif %}" data-room-id="{{ room.id }}" data-room-name="{{ room.name }}"
                  data-room-usage="{{ room.current_usage }}" data-room-limit="{{ room.limit }}" 
                  data-room-power="{{ room.power_status }}" data-room-cost="{{ room.cost }}" 
-                 data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}">
+                 data-room-occupied="{{ room.is_occupied }}" data-room-tenant="{{ room.get_tenant_name|default:'' }}"
+                 data-room-unpaid="{{ room.has_unpaid_bill }}" data-room-unpaid-month="{{ room.unpaid_bill_month }}"
+                 data-room-unpaid-amount="{{ room.unpaid_bill_amount|floatformat:2 }}">
                 <div class="room-card-header">
                     <span class="room-name"><i class="fas fa-door-open"></i> {{ room.name }}</span>
                     <span class="room-status {% if room.power_status %}on{% else %}off{% endif %}">
@@ -193,6 +240,18 @@
                     <i class="fas fa-user"></i>
                     {% if room.is_occupied %}
                         {{ room.get_tenant_name }}
+                        {% if room.has_unpaid_bill %}
+                        <div class="unpaid-billing-badge">
+                            <i class="fas fa-exclamation-circle"></i> UNPAID BILL
+                        </div>
+                        <div class="unpaid-billing-detail">
+                            {{ room.unpaid_bill_month }} - ₱{{ room.unpaid_bill_amount|floatformat:2 }}
+                        </div>
+                        {% else %}
+                        <div class="paid-billing-badge">
+                            <i class="fas fa-check-circle"></i> No unpaid bill
+                        </div>
+                        {% endif %}
                     {% else %}
                         <span class="no-tenant">No tenant assigned</span>
                     {% endif %}
@@ -342,6 +401,9 @@
             const cost = parseFloat(card.getAttribute('data-room-cost')).toFixed(2);
             const isOccupied = card.getAttribute('data-room-occupied') === 'True';
             const tenantName = card.getAttribute('data-room-tenant');
+            const hasUnpaidBill = card.getAttribute('data-room-unpaid') === 'True';
+            const unpaidMonth = card.getAttribute('data-room-unpaid-month');
+            const unpaidAmount = card.getAttribute('data-room-unpaid-amount');
             document.getElementById('modalRoomName').innerHTML = '<i class="fas fa-door-open"></i> ' + roomName;
             document.getElementById('modalUsage').textContent = usage;
             document.getElementById('modalLimit').textContent = limit;
@@ -351,7 +413,10 @@
             document.getElementById('modalCost').textContent = cost;
             const tenantSection = document.getElementById('tenantInfo');
             if (isOccupied) {
-                tenantSection.innerHTML = `<div class="tenant-badge"><div class="info-row"><span class="info-label">Current Tenant:</span><span class="info-value"><i class="fas fa-user"></i> ${tenantName}</span></div><div style="margin-top: 15px;"><button onclick="showRemoveModal('${roomId}', '${tenantName}', '${roomName}')" class="modal-btn modal-btn-danger" style="display: block; text-align: center; width: 100%;"><i class="fas fa-user-minus"></i> Remove Tenant</button></div></div>`;
+                const paymentStatus = hasUnpaidBill
+                    ? `<div class="info-row"><span class="info-label">Payment Status:</span><span class="info-value" style="color: #dc3545;"><i class="fas fa-exclamation-circle"></i> Unpaid - ${unpaidMonth} (PHP ${unpaidAmount})</span></div>`
+                    : `<div class="info-row"><span class="info-label">Payment Status:</span><span class="info-value" style="color: #28a745;"><i class="fas fa-check-circle"></i> No unpaid bill</span></div>`;
+                tenantSection.innerHTML = `<div class="tenant-badge"><div class="info-row"><span class="info-label">Current Tenant:</span><span class="info-value"><i class="fas fa-user"></i> ${tenantName}</span></div>${paymentStatus}<div style="margin-top: 15px;"><button onclick="showRemoveModal('${roomId}', '${tenantName}', '${roomName}')" class="modal-btn modal-btn-danger" style="display: block; text-align: center; width: 100%;"><i class="fas fa-user-minus"></i> Remove Tenant</button></div></div>`;
             } else {
                 tenantSection.innerHTML = `<form method="post" action="/room/${roomId}/assign-tenant/">{% csrf_token %}<div class="modal-form-group"><label><i class="fas fa-user"></i> Select Tenant:</label><select name="tenant_id" required class="form-control"><option value="">-- Select Tenant --</option>{% for tenant in available_tenants %}<option value="{{ tenant.id }}">{{ tenant.user.get_full_name|default:tenant.user.username }} ({{ tenant.user.email }})</option>{% endfor %}</select></div><div class="modal-form-group"><label><i class="fas fa-calendar"></i> Move-in Date:</label><input type="date" name="move_in_date" value="{{ today|date:'Y-m-d' }}" required></div><button type="submit" class="modal-btn modal-btn-primary" style="width: 100%;"><i class="fas fa-user-plus"></i> Assign Tenant</button></form>`;
             }
