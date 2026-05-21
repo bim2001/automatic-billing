@@ -50,6 +50,17 @@ class UserProfileAdmin(admin.ModelAdmin):
 @admin.register(SystemSettings)
 class SystemSettingsAdmin(admin.ModelAdmin):
     list_display = ('admin_name', 'admin_email', 'admin_phone')
+    fields = (
+        'system_name',
+        'admin_name',
+        'admin_email',
+        'admin_phone',
+        'electricity_rate',
+        'reminder_days_before',
+        'abnormal_threshold',
+        'owner_announcement',
+        'auto_generate_bills',
+    )
 
 
 @admin.register(EnergyUsage)

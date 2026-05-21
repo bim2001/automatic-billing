@@ -815,16 +815,17 @@ def tenant_dashboard(request):
         return redirect('dashboard')
 
     room = profile.room
-    admin_info = SystemSettings.objects.first()
+    settings = get_settings()
+    admin_info = settings
 
     if not room:
         return render(request, 'user/tenant_dashboard.html', {
             'no_room': True,
             'admin_info': admin_info,
             'username': request.user.username,
+            'owner_announcement': settings.owner_announcement,
         })
 
-    settings = get_settings()
     ELECTRICITY_RATE = settings.electricity_rate
 
     current_usage = room.get_current_usage()
@@ -924,6 +925,7 @@ def tenant_dashboard(request):
         'may_bill_is_paid': may_bill_is_paid,
         'may_bill_amount': may_bill_amount,
         'late_penalty': late_penalty,
+        'owner_announcement': settings.owner_announcement,
     })
 
 @login_required
@@ -1808,6 +1810,7 @@ def system_settings(request):
         settings.admin_email = admin_email if admin_email else "admin@example.com"
         settings.admin_phone = admin_phone if admin_phone else "+63 XXX XXX XXXX"
         settings.system_name = system_name if system_name else "Smart Energy Monitor"
+        settings.owner_announcement = request.POST.get('owner_announcement', '').strip()
         
         if request.POST.get('electricity_rate'):
             settings.electricity_rate = float(request.POST.get('electricity_rate'))

@@ -49,7 +49,8 @@
         }
         
         .form-group input,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #e0e0e0;
@@ -59,10 +60,17 @@
         }
         
         .form-group input:focus,
-        .form-group select:focus {
+        .form-group select:focus,
+        .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.5;
         }
         
         .help-text {
@@ -273,6 +281,19 @@
                         <label><i class="fas fa-phone-alt"></i> Administrator Phone</label>
                         <input type="tel" name="admin_phone" value="{{ settings.admin_phone|default:'+63 XXX XXX XXXX' }}" required>
                         <div class="help-text">Phone number displayed to tenants without rooms</div>
+                    </div>
+
+                    <!-- Tenant Announcement Section -->
+                    <div class="section-divider">
+                        <i class="fas fa-sticky-note"></i>
+                        <span>Tenant Announcement</span>
+                        <hr>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-edit"></i> Add Notes / Announcement</label>
+                        <textarea name="owner_announcement" placeholder="Write a note or announcement for tenants...">{{ settings.owner_announcement }}</textarea>
+                        <div class="help-text">This note will appear as a sticky note on the tenant dashboard. Leave it blank to hide it.</div>
                     </div>
                     
                     <!-- Billing Settings Section -->

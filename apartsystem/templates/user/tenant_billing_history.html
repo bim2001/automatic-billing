@@ -1004,13 +1004,13 @@
                 contentDiv.innerHTML = `
                     <div class="detail-section">
                         <h4><i class="fas fa-info-circle"></i> Bill Information</h4>
-                        <div class="detail-row"><span class="detail-label">Billing Month:</span><span class="detail-value">${data.billing_month}</span></div>
-                        ${previousBillHtml}
                         <div class="detail-row"><span class="detail-label">Room:</span><span class="detail-value">${roomName}</span></div>
+                        <div class="detail-row"><span class="detail-label">Billing Month:</span><span class="detail-value">${data.billing_month}</span></div>
                         <div class="detail-row"><span class="detail-label">Move-in Date:</span><span class="detail-value">${moveInDate}</span></div>
-                        <div class="detail-row"><span class="detail-label">Cycle Start:</span><span class="detail-value">${cycleStart}</span></div>
-                        <div class="detail-row"><span class="detail-label">Due Date:</span><span class="detail-value">${data.due_date}</span></div>
                         <div class="detail-row"><span class="detail-label">Days Occupied:</span><span class="detail-value">${data.days_occupied} days</span></div>
+                        <div class="detail-row"><span class="detail-label">Cycle Start:</span><span class="detail-value">${cycleStart}</span></div>
+                        ${previousBillHtml}
+                        <div class="detail-row"><span class="detail-label">Due Date:</span><span class="detail-value">${data.due_date}</span></div>
                     </div>
 
                     <div class="detail-section">

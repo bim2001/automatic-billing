@@ -184,6 +184,57 @@
         }
 
         /* ============================================ */
+        /* OWNER ANNOUNCEMENT STICKY NOTE              */
+        /* ============================================ */
+        .owner-note {
+            position: relative;
+            background: linear-gradient(135deg, #ffffff 0%, #f7f5ff 100%);
+            border: 1px solid #e4e6ff;
+            border-left: 5px solid #667eea;
+            border-radius: 16px;
+            padding: 16px 18px 16px 52px;
+            margin: -8px auto 28px;
+            max-width: 980px;
+            color: #2c3e50;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.12);
+            overflow: hidden;
+        }
+
+        .owner-note::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.18), rgba(118, 75, 162, 0.26));
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+        }
+
+        .owner-note-icon {
+            position: absolute;
+            left: 18px;
+            top: 18px;
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .owner-note-title {
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            color: #4f5bd5;
+        }
+
+        .owner-note-message {
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: normal;
+        }
+
+        /* ============================================ */
         /* STATS CARDS                                 */
         /* ============================================ */
         .stats-grid {
@@ -764,6 +815,14 @@
             <p>Welcome back, {{ username }}! Here's your energy overview for {{ current_month }}</p>
         </div>
 
+        {% if owner_announcement %}
+        <div class="owner-note">
+            <i class="fas fa-sticky-note owner-note-icon"></i>
+            <div class="owner-note-title">Owner Announcement</div>
+            <div class="owner-note-message">{{ owner_announcement|linebreaksbr }}</div>
+        </div>
+        {% endif %}
+
         {% if no_room %}
         <div class="no-room-card">
             <div class="no-room-icon"><i class="fas fa-home"></i> <i class="fas fa-times-circle" style="color: #dc3545;"></i></div>
@@ -1063,14 +1122,17 @@
                 const previousBillHtml = data.previous_bill ? `<div class="breakdown-row"><span class="breakdown-label">Previous Bill</span><span class="breakdown-value">${data.previous_bill.billing_month} - PHP ${data.previous_bill.amount.toFixed(2)} (${data.previous_bill.status})</span></div>` : `<div class="breakdown-row"><span class="breakdown-label">Previous Bill</span><span class="breakdown-value">No previous bill</span></div>`;
                 contentDiv.innerHTML = `
                     <div class="bill-breakdown">
-                        <div class="breakdown-row"><span class="breakdown-label">Billing Month</span><span class="breakdown-value">${data.billing_month}</span></div>
-                        ${previousBillHtml}
                         <div class="breakdown-row"><span class="breakdown-label">Room</span><span class="breakdown-value">${data.room_name}</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Billing Month</span><span class="breakdown-value">${data.billing_month}</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Move-in Date</span><span class="breakdown-value">${data.move_in_date}</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Days Occupied</span><span class="breakdown-value">${data.days_occupied} days</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Cycle Start</span><span class="breakdown-value">${data.cycle_start || data.move_in_date || 'N/A'}</span></div>
+                        ${previousBillHtml}
+                        <div class="breakdown-row"><span class="breakdown-label">Due Date</span><span class="breakdown-value">${data.due_date}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${data.kwh} kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${data.rate}/kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Base Amount</span><span class="breakdown-value">₱${data.base_amount.toFixed(2)}</span></div>
                         <div class="breakdown-row total"><span class="breakdown-label">TOTAL AMOUNT</span><span class="breakdown-value">₱${data.total_amount.toFixed(2)}</span></div>
-                        <div class="breakdown-row"><span class="breakdown-label">Due Date</span><span class="breakdown-value">${data.due_date}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Status</span><span class="breakdown-value" style="color: ${data.is_paid ? '#28a745' : '#dc3545'}">${data.is_paid ? 'PAID' : 'UNPAID'}</span></div>
                         ${data.paid_date ? `<div class="breakdown-row"><span class="breakdown-label">Date Paid</span><span class="breakdown-value">${data.paid_date}</span></div>` : ''}
                     </div>

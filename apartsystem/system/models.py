@@ -262,6 +262,9 @@ class SystemSettings(models.Model):
     
     # Smart Features
     abnormal_threshold = models.FloatField(default=2.0, help_text="Standard deviations for abnormal detection")
+
+    # Tenant announcement
+    owner_announcement = models.TextField(blank=True, default="", help_text="Announcement shown on tenant dashboard")
     
     # Automatic Bill Generation
     auto_generate_bills = models.BooleanField(default=True, help_text="Automatically generate bills at end of month")
@@ -291,6 +294,7 @@ class SystemSettings(models.Model):
                 'late_penalty_amount': 50.0,
                 'reminder_days_before': 3,
                 'abnormal_threshold': 2.0,
+                'owner_announcement': '',
                 'auto_generate_bills': True,
             }
         )

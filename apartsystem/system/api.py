@@ -731,6 +731,7 @@ def bill_details(request, bill_id):
             'late_fee': late_fee,
             'total_amount': total,
             'move_in_date': move_in_date.strftime('%Y-%m-%d') if move_in_date else 'N/A',
+            'cycle_start': move_in_date.strftime('%Y-%m-%d') if move_in_date else 'N/A',
             'due_date': due_date.strftime('%Y-%m-%d') if due_date else 'N/A',
             'is_paid': bill.is_paid,
             'paid_date': paid_date,
