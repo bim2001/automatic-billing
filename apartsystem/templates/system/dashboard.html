@@ -183,6 +183,13 @@
         </div>
     </div>
 
+    {% if pending_approvals_count > 0 %}
+<div class="alert alert-warning" style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+    <i class="fas fa-clock"></i> You have <strong>{{ pending_approvals_count }}</strong> tenant registration(s) pending approval. 
+    <a href="{% url 'tenant_list' %}" style="color: #856404;">Click here to review</a>
+</div>
+{% endif %}
+
     <script>
         // Remove Tenant Modal Functions
         let currentRemoveRoomId = null;

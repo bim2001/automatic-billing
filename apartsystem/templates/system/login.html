@@ -14,10 +14,7 @@
             align-items: center;
             padding: 15px;
         }
-        .container { 
-            width: 100%; 
-            max-width: 450px; 
-        }
+        .container { width: 100%; max-width: 500px; }
         .tab-buttons {
             display: flex;
             margin-bottom: 20px;
@@ -45,80 +42,122 @@
         .tab-button:last-child { border-radius: 0 10px 10px 0; }
         .box { 
             background: white; 
-            padding: 40px; 
+            padding: 30px; 
             border-radius: 15px; 
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
-            text-align: center; 
             display: none; 
         }
         .box.active { display: block; }
-        h1 { color: #333; margin-bottom: 5px; font-size: 1.8rem; }
-        .subtitle { color: #666; margin-bottom: 30px; font-size: 0.9rem; }
-        .input-group { margin-bottom: 20px; text-align: left; }
-        label { 
-            display: block; 
-            margin-bottom: 5px; 
-            color: #555; 
-            font-weight: 500; 
-            font-size: 0.95rem;
+        h1 { color: #333; margin-bottom: 5px; font-size: 1.6rem; text-align: center; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 0.85rem; text-align: center; }
+        
+        /* Multi-step Registration Styles */
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            position: relative;
         }
-        input { 
-            width: 100%; 
-            padding: 12px 15px; 
-            border: 2px solid #e0e0e0; 
-            border-radius: 8px; 
-            font-size: 1rem;
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        .step .circle {
+            width: 35px;
+            height: 35px;
+            background: #ddd;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.3s;
+        }
+        .step.active .circle {
+            background: #667eea;
+            color: white;
+        }
+        .step.completed .circle {
+            background: #28a745;
+            color: white;
+        }
+        .step-label {
+            font-size: 10px;
+            margin-top: 5px;
+            display: block;
+            color: #666;
+        }
+        .step.active .step-label { color: #667eea; font-weight: bold; }
+        .form-step { display: none; }
+        .form-step.active { display: block; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; font-size: 0.85rem; }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
             transition: border-color 0.3s;
         }
-        input:focus { outline: none; border-color: #667eea; }
+        input:focus, select:focus { outline: none; border-color: #667eea; }
         .btn { 
             width: 100%; 
-            padding: 14px; 
+            padding: 12px; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             color: white; 
             border: none; 
             border-radius: 8px; 
-            font-size: 1rem; 
+            font-size: 0.95rem; 
             font-weight: 600; 
             cursor: pointer; 
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s;
         }
-        .btn:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        .btn:active { transform: translateY(0); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-group .btn { flex: 1; }
+        .btn-secondary { background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; transform: translateY(-2px); }
         .error-message { 
             background: #ffebee; 
             color: #c62828; 
             padding: 10px; 
             border-radius: 5px; 
-            margin-bottom: 20px; 
+            margin-bottom: 15px; 
             border-left: 4px solid #c62828; 
             text-align: left; 
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
-        .info-text { margin-top: 15px; color: #666; font-size: 0.85rem; }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .checkbox-group input { width: auto; }
+        .checkbox-group label { margin: 0; cursor: pointer; }
+        .file-upload {
+            border: 2px dashed #ddd;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        .file-upload:hover { border-color: #667eea; }
+        .file-upload i { font-size: 24px; color: #999; margin-bottom: 5px; }
+        .file-name { font-size: 11px; color: #666; margin-top: 5px; word-break: break-all; }
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-text { margin-top: 15px; color: #666; font-size: 0.8rem; text-align: center; }
 
-        /* Responsive adjustments for small devices */
         @media (max-width: 480px) {
-            body { padding: 10px; }
-            .container { max-width: 100%; }
-            .box { padding: 25px; }
-            h1 { font-size: 1.5rem; }
-            .subtitle { margin-bottom: 20px; }
-            .tab-button { padding: 12px; font-size: 0.9rem; }
-            input { padding: 10px 12px; font-size: 0.95rem; }
-            .btn { padding: 12px; font-size: 0.95rem; }
-            .error-message { padding: 8px; font-size: 0.85rem; }
-            .info-text { font-size: 0.8rem; }
-        }
-
-        /* Extra small devices (optional) */
-        @media (max-width: 360px) {
             .box { padding: 20px; }
-            .tab-button { padding: 10px; font-size: 0.85rem; }
-            h1 { font-size: 1.3rem; }
+            h1 { font-size: 1.4rem; }
+            .step .circle { width: 28px; height: 28px; font-size: 12px; }
+            .step-label { font-size: 8px; }
+            .row-2 { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -130,85 +169,302 @@
             <button class="tab-button" id="tab-register" onclick="showTab('register')">Register</button>
         </div>
 
-        <!-- Login Box -->
-        <div class="box" id="login-box">
-            <h1>Owner Login</h1>
-            <p class="subtitle">Smart Energy System</p>
+<!-- Login Box -->
+<div class="box" id="login-box">
+    <h1>Login to Smart Energy</h1>
+    <p class="subtitle">Enter your email or username to continue</p>
 
-            {% if login_error %}
-            <div class="error-message">
-                ❌ {{ login_error }}
-            </div>
-            {% endif %}
+    {% if login_error %}
+    <div class="error-message">❌ {{ login_error }}</div>
+    {% endif %}
 
-            <form method="post" action="{% url 'login_view' %}">
-                {% csrf_token %}
-                <div class="input-group">
-                    <label>Username</label>
-                    <input type="text" name="username" required>
-                </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" name="password" required>
-                </div>
-                <button type="submit" class="btn">Login</button>
-            </form>
+    <form method="post" action="{% url 'login_view' %}">
+        {% csrf_token %}
+        <div class="input-group">
+            <label>Email or Username</label>
+            <input type="text" name="username" placeholder="your@email.com or username" required>
         </div>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit" class="btn">Login</button>
+    </form>
+    
+    <div class="info-text" style="margin-top: 20px;">
+        <i class="fas fa-info-circle"></i> Tenants: Use the email you registered with. Wait for owner approval first.
+    </div>
+</div>
 
-        <!-- Register Box -->
+        <!-- Register Box (Multi-step) -->
         <div class="box" id="register-box">
-            <h1>Register New Account</h1>
-            <p class="subtitle">New users will be created as tenants</p>
+            <h1>Tenant Registration</h1>
+            <p class="subtitle">Create your account to monitor your electricity usage</p>
 
             {% if register_error %}
-            <div class="error-message">
-                ❌ {{ register_error }}
-            </div>
+            <div class="error-message">❌ {{ register_error }}</div>
             {% endif %}
 
-            <form method="post" action="{% url 'register_tenant' %}">
+            <!-- Step Indicators -->
+            <div class="step-indicator">
+                <div class="step" id="step1Indicator">
+                    <div class="circle">1</div>
+                    <span class="step-label">Account</span>
+                </div>
+                <div class="step" id="step2Indicator">
+                    <div class="circle">2</div>
+                    <span class="step-label">Personal</span>
+                </div>
+                <div class="step" id="step3Indicator">
+                    <div class="circle">3</div>
+                    <span class="step-label">Screening</span>
+                </div>
+                <div class="step" id="step4Indicator">
+                    <div class="circle">4</div>
+                    <span class="step-label">Consent</span>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'register_tenant' %}" enctype="multipart/form-data" id="registerForm">
                 {% csrf_token %}
-                <div class="input-group">
-                    <label>Username</label>
-                    <input type="text" name="username" required>
-                </div>
+
+                <!-- STEP 1: Account Creation -->
+                <div id="step1" class="form-step active">
                     <div class="input-group">
-                <label>Email</label>
-                   <input type="email" name="email" required>
+                        <label>Email Address</label>
+                        <input type="email" name="email" id="reg_email" required placeholder="your@email.com">
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="password" id="reg_password" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Confirm Password</label>
+                        <input type="password" name="password2" id="reg_password2" required>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" name="password" required>
+
+                <!-- STEP 2: Personal Details -->
+                <div id="step2" class="form-step">
+                    <div class="row-2">
+                        <div class="input-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Middle Name</label>
+                            <input type="text" name="middle_name">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Last Name</label>
+                        <input type="text" name="last_name" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Mobile Number</label>
+                        <input type="tel" name="phone_number" placeholder="09XXXXXXXXX" required>
+                    </div>
+                    <div class="row-2">
+                        <div class="input-group">
+                            <label>Emergency Contact Person</label>
+                            <input type="text" name="emergency_person" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Emergency Number</label>
+                            <input type="tel" name="emergency_number" required>
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>Confirm Password</label>
-                    <input type="password" name="password2" required>
+
+                <!-- STEP 3: Screening & Verification -->
+                <div id="step3" class="form-step">
+                    <div class="row-2">
+                        <div class="input-group">
+                            <label>Number of Occupants</label>
+                            <select name="occupants">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5+</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Employment Status</label>
+                            <select name="employment_status">
+                                <option value="full_time">Full-time</option>
+                                <option value="part_time">Part-time</option>
+                                <option value="self_employed">Self-employed</option>
+                                <option value="student">Student</option>
+                                <option value="unemployed">Unemployed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Upload Valid ID</label>
+                        <div class="file-upload" onclick="document.getElementById('valid_id').click()">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <div>Click to upload ID (Driver's License, Passport, National ID)</div>
+                            <div class="file-name" id="valid_id_name">No file chosen</div>
+                        </div>
+                        <input type="file" name="valid_id" id="valid_id" style="display: none;" accept="image/*,.pdf" onchange="updateFileName(this, 'valid_id_name')">
+                    </div>
+                    <div class="input-group">
+                        <label>Selfie with ID</label>
+                        <div class="file-upload" onclick="document.getElementById('selfie').click()">
+                            <i class="fas fa-camera"></i>
+                            <div>Take a selfie holding your ID</div>
+                            <div class="file-name" id="selfie_name">No file chosen</div>
+                        </div>
+                        <input type="file" name="selfie" id="selfie" style="display: none;" accept="image/*" onchange="updateFileName(this, 'selfie_name')">
+                        <div style="font-size: 11px; color: #dc3545; margin-top: 5px;">
+                        <i class="fas fa-info-circle"></i> Note: Please use filename WITHOUT spaces or special characters (e.g., "my_selfie.jpg" not "my selfie (1).jpg")
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn">Register new Account</button>
+
+<!-- STEP 4: Consent with Rental Agreement -->
+<div id="step4" class="form-step">
+    <h3><i class="fas fa-file-contract"></i> Rental Agreement</h3>
+    
+    <!-- Rental Agreement Content -->
+    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; max-height: 400px; overflow-y: auto; margin-bottom: 20px; font-size: 12px; line-height: 1.5;">
+        <h4 style="text-align: center; margin-bottom: 10px;">LEGIAN 1 APARTMENT</h4>
+        <p style="text-align: center; font-size: 11px;">B6 L21 PHASE A LEGIAN 1 CARSADANG BAGO 2 IMUS CITY CAVITE</p>
+        
+        <h5 style="margin: 15px 0 10px 0;">Rental Agreement</h5>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <tr><td style="padding: 4px 0;">Offer ref</td><td style="padding: 4px 0;">:</td><td style="padding: 4px 0;"></td></tr>
+            <tr><td style="padding: 4px 0;">Purpose</td><td style="padding: 4px 0;">:</td><td style="padding: 4px 0;"></td></tr>
+            <tr><td style="padding: 4px 0;">Offer date</td><td style="padding: 4px 0;">:</td><td style="padding: 4px 0;"></td></tr>
+            <tr><td style="padding: 4px 0;">Offer expires</td><td style="padding: 4px 0;">:</td><td style="padding: 4px 0;"></td></tr>
+            <tr><td style="padding: 4px 0;">Total</td><td style="padding: 4px 0;">:</td><td style="padding: 4px 0;"></td></tr>
+        </table>
+        
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 15px;">
+            <thead>
+                <tr style="background: #e9ecef;">
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">DESCRIPTION</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">COUNT</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">COST</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Monthly rental of 1 studio room 1B with CR at Legian 1 Apartment; good for 1-2 persons</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">1</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"></td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"></td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #ddd;">Security Deposit for unit - which will be retained until departure - when it will be returned less any outstanding amount to cover rent, damage, repairs and utility bills.</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">1</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"></td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: center;"></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p style="margin-bottom: 10px;">This Rental Agreement is between __________________ and <strong>TENANT</strong> for the long term rental of Unit 1B, BLOCK 6 LOT 21 PHASE A LEGIAN 1 CARSADANG BAGO 2 IMUS CITY CAVITE</p>
+        
+        <p style="margin-bottom: 10px;">TENANT is responsible to review the terms and conditions of occupancy; sign acceptance in the signature area below, then email back to MANAGEMENT via <a href="mailto:legian.1.apartment@gmail.com">legian.1.apartment@gmail.com</a> confirming acceptance prior to the May 8, 2026 offer expiration date. MANAGEMENT will return a dated countersigned copy to confirm the agreement has been accepted and is in force;</p>
+        
+        <p style="margin-bottom: 10px;">Please ensure deposit payment of ____________ is paid by May 8, 2026, payment options are listed after the signature area.</p>
+        
+        <p style="margin-bottom: 10px;">Rental period will start May 1, 2026 at a monthly rate of ____________ for 1-2 persons;</p>
+        
+        <p style="margin-bottom: 10px;">Regular monthly payments will start on May 30, 2026;</p>
+        
+        <p style="margin-bottom: 10px;">All future monthly payments are due on 30th day of each subsequent month;</p>
+        
+        <p style="margin-bottom: 10px;">In consideration hereof and upon occupancy of Unit 1B TENANT agrees;</p>
+        
+        <ol style="margin-left: 20px; margin-bottom: 15px;">
+            <li>TENANT will occupy and be responsible for the unit including the unit's comfort room;</li>
+            <li>TENANT will not let or sublet the whole or any part of the unit to anyone for any purpose whatsoever;</li>
+            <li>No persons under the legal age of consent may solely occupy the unit;</li>
+            <li>The total number of occupants in residence shall not exceed two (2) persons (unless MANAGEMENT has specifically agreed in writing to vary this condition);</li>
+            <li>TENANT is to ensure that all occupants and visitors adhere to health requirements, such as vaccination status, in a non-transmissible condition, social distancing and mask guidelines as directed by national/local government, in case of illness reporting as required including advising MANAGEMENT of any reports/actions taken;</li>
+            <li>MANAGEMENT retains the right to enter and inspect the unit at any reasonable time;</li>
+            <li>TENANT shall ensure that monthly rental payments and any invoiced utility or other charges are settled in a timely manner via electronic funds transfer or over the counter to the designated bank account(s);</li>
+            <li>TENANT will pay any and all utility services provided to the unit before due dates;
+                <ul style="margin-left: 20px; margin-top: 5px;">
+                    <li>Electricity supplied by Meralco via the unit's supply meter on the indicated bill due date (while MANAGEMENT may gain online access to billing/payment history, all payments must be made directly to Meralco);</li>
+                    <li>Electricity supplied by MANAGEMENT via the room's exclusive sub meter; all unit meters will be read by caretaker the same day as the Meralco meter; tenants will be charged at the billed Meralco KWh rate, this will be billed by MANAGEMENT to TENANT no later than 25th of each month and will be due for payment in full in 5 days (not later than the 30th of the same month);</li>
+                    <li>Water supplied by Maynilad on a per person share basis with division of the billing between the total number of occupants (please inform MANAGEMENT of occupancy changes), this will be billed by MANAGEMENT to TENANT and is due on the same 30th day of each month;</li>
+                </ul>
+            </li>
+            <li>TENANT will provide a minimum 30 days advance written notice to MANAGEMENT prior to vacating unit via email to legian.1.apartment@gmail.com or text to ____________ with acknowledgement being sent by MANAGEMENT to confirm receipt of the request;</li>
+            <li>At MANAGEMENT's discretion any remaining advance security deposit will be used towards the final month's rental;</li>
+            <li>Upon termination of rental it is TENANT's responsibility to return the unit in its original condition; failure to do so may result in related maintenance/cleaning costs being deducted from security deposit;</li>
+            <li>The security deposit will be returned to the TENANT in whole or in part by electronic funds transfer in accordance with these conditions: after vacating said unit MANAGEMENT having the opportunity to inspect; being satisfied that no damage has been caused; that fixtures and fittings are intact; that there is no requirement to deep-clean/repair/redecorate/renovate the Apartment which will limit MANAGEMENT's ability to let the Apartment without delay; the security deposit will be returned less any utility bills and costs incurred;</li>
+            <li>For the safety and security of all occupants of the building in case of fire, pandemic or other catastrophe; TENANT must provide to MANAGEMENT an up to date listing of the unit's occupants, to include full names, sex, birthdate plus a copy of their government issued ID; a current email address and mobile phone contact number;</li>
+            <li>No harassment or discrimination of a mental, physical or sexual nature against any person in the unit or similar activity that may affect any neighbor;</li>
+            <li>No playing of loud music, broadcast TV, video games or entertainment that may disturb other residents;</li>
+            <li>No drugs, illegal substances, fuel, ammunition or explosives may be brought into the confines of the buildings, including the said unit, other units or any common area; discovery will result in immediate reporting to the appropriate enforcement authority and immediate eviction;</li>
+            <li>No birds, animals or reptiles shall be brought into or kept within the building;</li>
+            <li>TENANT will keep all possessions within the rental unit and not store anything in common areas as that is a fire/evacuation risk;</li>
+            <li>TENANT will maintain unit in a clean, orderly, and law-abiding manner and keep common areas free of debris, garbage or material that may become a health or hygiene risk;</li>
+            <li>No alterations or installations may be made to the unit, structure, utility supply, air conditioning, or redecorating without first obtaining written consent of MANAGEMENT;</li>
+            <li>During occupation, if as a result of any deliberate or accidental damage caused by occupants or their visitors to the unit or to any common area or related security devices, TENANT may be required to pay the cost of repair or replacement as MANAGEMENT considers appropriate;</li>
+            <li>Should the unit appear to be abandoned without appropriate notice, MANAGEMENT retains the right to dispose of all contents and withhold the advance security deposit in lieu of notice;</li>
+            <li>Violation of any of the terms of this agreement or the non-payment of rent or utility bills shall be sufficient cause for termination of utilities and eviction from said premises upon fourteen (14) days written notice thereof by personal delivery to the unit, by email or by text message;</li>
+            <li>If suit be brought to collect rent or damages, to cause eviction from said unit, or to collect costs of remediation to said building, TENANT agrees to pay all costs of such action, including reasonable attorney fees as may be fixed by the Court. No waiver by MANAGEMENT at any time of any conditions of this agreement shall be deemed as a subsequent waiver of the same, nor of the strict and prompt performance thereof by TENANT.</li>
+        </ol>
+        
+        <div style="margin: 15px 0; padding: 10px; background: white; border-radius: 5px;">
+            <p><strong>TENANT:</strong> _______________________ &nbsp;&nbsp;&nbsp; <strong>Date:</strong> __________</p>
+            <p><strong>MANAGEMENT:</strong> __________________ &nbsp;&nbsp;&nbsp; <strong>Date:</strong> __________</p>
+            <p><strong>Administrator:</strong> __________________________</p>
+        </div>
+        
+        <h5 style="margin: 15px 0 10px 0;">PAYMENTS PROCEDURE</h5>
+        <p>Please make all payments only to the account of<br>
+        GoTyme: ______________________</p>
+        <p>GCASH QR CODE: [Insert QR Code Here]</p>
+        <p>However you have paid - please ensure you send a copy of the payment confirmation showing transaction reference number and transaction date to __________</p>
+        
+        <p style="margin-top: 15px; font-style: italic;">Thank you and welcome to your new home!</p>
+    </div>
+    
+    <!-- Checkboxes -->
+    <div class="checkbox-group">
+        <input type="checkbox" name="agree_terms" id="agree_terms" required>
+        <label for="agree_terms">I have read and agree to the Terms of Service and Lease Policies above</label>
+    </div>
+    <div class="checkbox-group">
+        <input type="checkbox" name="agree_privacy" id="agree_privacy" required>
+        <label for="agree_privacy">I agree to the Data Privacy Policy regarding my personal information</label>
+    </div>
+    
+    <div class="info-text">
+        <i class="fas fa-shield-alt"></i> Your information is secure and will only be used for tenant verification and billing purposes.
+    </div>
+</div>
+                <!-- Navigation Buttons -->
+                <div class="btn-group">
+                    <button type="button" id="prevBtn" class="btn btn-secondary" onclick="changeStep(-1)" style="display: none;">Previous</button>
+                    <button type="button" id="nextBtn" class="btn" onclick="changeStep(1)">Next</button>
+                    <button type="submit" id="submitBtn" class="btn" style="display: none;">Register</button>
+                </div>
             </form>
             <p class="info-text">
-                After registration, you can login to view your billing and usage.
+                After registration, your account will be reviewed by the owner. You'll receive an email once approved.
             </p>
         </div>
     </div>
 
-<!-- Add data attributes to a hidden element -->
-<div id="error-data" 
-     data-login-error="{% if login_error %}true{% else %}false{% endif %}"
-     data-register-error="{% if register_error %}true{% else %}false{% endif %}"
-     style="display: none;"></div>
-
 <script>
+    let currentStep = 1;
+    const totalSteps = 4;
+
     function showTab(tabName) {
         const loginBox = document.getElementById('login-box');
         const registerBox = document.getElementById('register-box');
         const tabLogin = document.getElementById('tab-login');
         const tabRegister = document.getElementById('tab-register');
-
-        if (!loginBox || !registerBox || !tabLogin || !tabRegister) {
-            console.error('Tab elements not found');
-            return;
-        }
 
         loginBox.classList.remove('active');
         registerBox.classList.remove('active');
@@ -218,29 +474,106 @@
         if (tabName === 'login') {
             loginBox.classList.add('active');
             tabLogin.classList.add('active');
+            currentStep = 1;
         } else {
             registerBox.classList.add('active');
             tabRegister.classList.add('active');
+            updateStepDisplay();
         }
     }
 
-    window.onload = function() {
-        // Get error data from hidden element
-        const errorData = document.getElementById('error-data');
+    function updateStepDisplay() {
+        for (let i = 1; i <= totalSteps; i++) {
+            const stepDiv = document.getElementById(`step${i}`);
+            const indicator = document.getElementById(`step${i}Indicator`);
+            if (stepDiv) stepDiv.classList.remove('active');
+            if (indicator) indicator.classList.remove('active', 'completed');
+        }
         
-        if (errorData) {
-            const loginError = errorData.dataset.loginError === 'true';
-            const registerError = errorData.dataset.registerError === 'true';
-            
+        document.getElementById(`step${currentStep}`).classList.add('active');
+        document.getElementById(`step${currentStep}Indicator`).classList.add('active');
+        
+        for (let i = 1; i < currentStep; i++) {
+            document.getElementById(`step${i}Indicator`).classList.add('completed');
+        }
+        
+        document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'inline-block';
+        
+        if (currentStep === totalSteps) {
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'inline-block';
+        } else {
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            document.getElementById('submitBtn').style.display = 'none';
+        }
+    }
+
+    function validateStep(step) {
+        if (step === 1) {
+            const email = document.getElementById('reg_email').value;
+            const password = document.getElementById('reg_password').value;
+            const password2 = document.getElementById('reg_password2').value;
+            if (!email) { alert('Please enter email'); return false; }
+            if (password.length < 6) { alert('Password must be at least 6 characters'); return false; }
+            if (password !== password2) { alert('Passwords do not match'); return false; }
+        }
+        if (step === 2) {
+            const firstName = document.querySelector('#step2 input[name="first_name"]').value;
+            const lastName = document.querySelector('#step2 input[name="last_name"]').value;
+            const phone = document.querySelector('#step2 input[name="phone_number"]').value;
+            const emergencyPerson = document.querySelector('#step2 input[name="emergency_person"]').value;
+            const emergencyNumber = document.querySelector('#step2 input[name="emergency_number"]').value;
+            if (!firstName || !lastName || !phone) { alert('Please fill all required fields'); return false; }
+            if (!emergencyPerson || !emergencyNumber) { alert('Please provide emergency contact information'); return false; }
+        }
+        if (step === 4) {
+            const agreeTerms = document.getElementById('agree_terms').checked;
+            const agreePrivacy = document.getElementById('agree_privacy').checked;
+            if (!agreeTerms || !agreePrivacy) { alert('Please agree to all terms to continue'); return false; }
+        }
+        return true;
+    }
+
+    function changeStep(delta) {
+        if (validateStep(currentStep)) {
+            currentStep += delta;
+            if (currentStep < 1) currentStep = 1;
+            if (currentStep > totalSteps) currentStep = totalSteps;
+            updateStepDisplay();
+        }
+    }
+
+    function updateFileName(input, spanId) {
+        const span = document.getElementById(spanId);
+        if (input.files && input.files[0]) {
+            span.textContent = input.files[0].name;
+        } else {
+            span.textContent = 'No file chosen';
+        }
+    }
+
+    // Handle form submission validation
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        if (!validateStep(4)) {
+            e.preventDefault();
+            alert('Please complete all steps and agree to the terms');
+        }
+    });
+
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab === 'register') {
+            showTab('register');
+        } else {
+            const registerError = '{{ register_error|default:"" }}';
             if (registerError) {
                 showTab('register');
             } else {
                 showTab('login');
             }
-        } else {
-            // Default to login tab if no data
-            showTab('login');
         }
+        updateStepDisplay();
     };
 </script>
 </body>

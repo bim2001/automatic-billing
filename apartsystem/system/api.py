@@ -455,105 +455,76 @@ def paymongo_webhook(request):
         try:
             data = json.loads(payload)
         except json.JSONDecodeError:
-            return _bad_json_response()
-        event_type = data.get('data', {}).get('attributes', {}).get('type', '')
-
-        event_data = data.get('data', {}).get('attributes', {}).get('data', {}) or {}
-        event_attrs = event_data.get('attributes', {}) or {}
-        checkout_id = event_data.get('id') or event_attrs.get('checkout_session_id')
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        
+        # SAFE EXTRACTION - handle None values
+        data_obj = data.get('data')
+        if data_obj is None:
+            data_obj = {}
+        
+        attrs = data_obj.get('attributes', {})
+        if attrs is None:
+            attrs = {}
+        
+        event_type = attrs.get('type', '')
+        
+        # Get payment data safely
+        event_data_obj = attrs.get('data')
+        if event_data_obj is None:
+            event_data_obj = {}
+        
+        event_attrs = event_data_obj.get('attributes', {})
+        if event_attrs is None:
+            event_attrs = {}
+        
+        checkout_id = event_data_obj.get('id')
         description = event_attrs.get('description', '') or ''
         status = event_attrs.get('status', '') or ''
-        reference_number = (
-            event_attrs.get('reference_number')
-            or event_attrs.get('external_reference_number')
-            or event_attrs.get('metadata', {}).get('reference_number')
-        )
-
-        if not reference_number and description:
+        
+        # Extract reference number
+        reference_number = None
+        if description:
+            import re
             match = re.search(r'Ref:\s*(PAY-[A-Z0-9]+-\d+-[a-f0-9]+)', description, re.IGNORECASE)
             if match:
                 reference_number = match.group(1)
-
-        paid_event = (
-            event_type in ['checkout_session.payment.paid', 'payment.paid']
-            or status == 'paid'
-        )
-
-        if paid_event:
-            payment = None
-            if reference_number:
-                payment = Payment.objects.filter(reference_number=reference_number).first()
-            if not payment and checkout_id:
-                payment = Payment.objects.filter(checkout_session_id=checkout_id).first()
-
+        
+        paid_event = event_type in ['checkout_session.payment.paid', 'payment.paid'] or status == 'paid'
+        
+        if paid_event and reference_number:
+            from .models import Payment
+            payment = Payment.objects.filter(reference_number=reference_number, status='pending').first()
+            
             if payment:
-                was_paid = payment.status == 'paid'
                 payment.status = 'paid'
-                payment.paid_at = payment.paid_at or timezone.now()
-                payment.transaction_id = event_data.get('id') or checkout_id or payment.transaction_id
-                payment.payment_method = 'gcash'
+                payment.paid_at = timezone.now()
+                payment.transaction_id = checkout_id
                 payment.webhook_received = True
                 payment.webhook_data = data
                 payment.save()
-
+                
                 bill = payment.bill
                 bill.is_paid = True
-                bill.save(update_fields=['is_paid'])
-
-                if not was_paid:
-                    Alert.objects.create(
-                        room=bill.room,
-                        alert_type='billing',
-                        message=f"Payment of PHP {payment.amount:.2f} for {bill.billing_month} has been confirmed via GCash. Reference: {payment.reference_number}"
-                    )
-
-                print(f"Payment {payment.reference_number} marked as paid via webhook.")
-            else:
-                print(f"Payment not found. Reference: {reference_number}, Checkout: {checkout_id}")
-
-            return JsonResponse({'status': 'success'}, status=200)
-        
-        print(f"📡 Webhook received: {event_type}")
-        
-        if event_type == 'checkout_session.payment.paid':
-            checkout_data = data.get('data', {}).get('attributes', {}).get('data', {})
-            checkout_id = checkout_data.get('id')
-            description = checkout_data.get('attributes', {}).get('description', '')
-            
-            # Extract reference_number from description
-            import re
-            reference_number = None
-            match = re.search(r'Ref:\s*(PAY-[A-Z0-9]+-\d+-[a-f0-9]+)', description)
-            if match:
-                reference_number = match.group(1)
-            
-            if reference_number:
-                from .models import Payment
-                payment = Payment.objects.filter(reference_number=reference_number, status='pending').first()
+                bill.save()
                 
-                if payment:
-                    # ✅ WEBHOOK LANG ANG GUMAWA NITO
-                    payment.status = 'paid'
-                    payment.paid_at = timezone.now()
-                    payment.transaction_id = checkout_id
-                    payment.webhook_received = True
-                    payment.webhook_data = data
-                    payment.save()
-                    
-                    bill = payment.bill
-                    bill.is_paid = True
-                    bill.save()
-                    
-                    print(f"✅ Payment {reference_number} marked as paid via WEBHOOK!")
-                else:
-                    print(f"⚠️ Payment not found for reference: {reference_number}")
+                Alert.objects.create(
+                    room=bill.room,
+                    alert_type='billing',
+                    message=f"✅ Payment of ₱{payment.amount} for {bill.billing_month} confirmed via GCash"
+                )
+                
+                print(f"✅ Payment {reference_number} marked as paid via WEBHOOK!")
+            else:
+                print(f"⚠️ Payment not found for reference: {reference_number}")
         
         return JsonResponse({'status': 'success'}, status=200)
         
     except Exception as e:
         print(f"❌ Webhook error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
-
+        
 # ==================== ROOM STATUS API ====================
 
 def room_status(request, room_name):

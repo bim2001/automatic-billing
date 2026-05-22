@@ -498,7 +498,6 @@ def generate_monthly_bills(year=None, month=None):
     
     return bills_created, bills_updated
 
-
 def send_payment_reminders(days_before_due=3, test_mode=False):
     today = timezone.now().date()
     reminder_date = today + timedelta(days=days_before_due)
@@ -597,18 +596,105 @@ Smart Energy Monitor System
     }
 
 
+from django.core.mail import send_mail
+from django.conf import settings  # <-- I-ADD ITO SA TAAS
+
+def send_approval_email(user):
+    """Send email notification to tenant when approved"""
+    from django.core.mail import send_mail
+    
+    subject = "✅ Your Smart Energy Account Has Been Approved!"
+    message = f"""
+Hi {user.get_full_name() or user.username},
+
+Good news! Your tenant registration has been APPROVED by the owner.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔑 LOGIN DETAILS:
+   Username: {user.username}
+   Email: {user.email}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You can now log in to your dashboard using your email or username.
+
+👉 Login here: http://127.0.0.1:8000/login/
+
+Once logged in, you will be able to:
+✓ View your real-time electricity consumption
+✓ See your monthly bills
+✓ Receive payment reminders
+✓ Pay via GCash
+
+If you haven't been assigned a room yet, the owner will assign one soon.
+
+Thank you for choosing Smart Energy Monitoring System!
+
+Best regards,
+Smart Energy Team
+"""
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        print(f"✅ Approval email sent to {user.email}")
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
+
+
 # ============== AUTHENTICATION VIEWS ==============
 import random
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 import os
 
+import re
+import os
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
+
+def clean_filename(filename):
+    """Automatically clean filename - remove spaces, special characters, and random suffixes"""
+    # Get file extension
+    name, ext = os.path.splitext(filename)
+    
+    # Remove spaces (replace with underscore)
+    name = name.replace(' ', '_')
+    
+    # Remove parentheses and other special characters (keep letters, numbers, underscore, dot)
+    name = re.sub(r'[^a-zA-Z0-9_.-]', '', name)
+    
+    # Remove duplicate underscores
+    name = re.sub(r'_+', '_', name)
+    
+    # Remove "download" word if present (common from browsers)
+    name = name.replace('download', '')
+    name = name.replace('_download', '')
+    
+    # Remove numbers in parentheses like (1), (2), etc.
+    name = re.sub(r'\([0-9]+\)', '', name)
+    
+    # Clean up any leftover underscores at ends
+    name = name.strip('_')
+    
+    # If name becomes empty, use a default
+    if not name:
+        name = 'upload'
+    
+    return f"{name}{ext}"
+
+
 def register_tenant(request):
     if request.method == 'POST':
+        # Step 1: Account
         email = request.POST.get('email')
         password = request.POST.get('password')
         password2 = request.POST.get('password2')
         
+        # Step 2: Personal Details
         first_name = request.POST.get('first_name', '').strip()
         middle_name = request.POST.get('middle_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
@@ -616,12 +702,15 @@ def register_tenant(request):
         emergency_person = request.POST.get('emergency_person', '').strip()
         emergency_number = request.POST.get('emergency_number', '').strip()
         
+        # Step 3: Screening
         occupants = request.POST.get('occupants', 1)
         employment_status = request.POST.get('employment_status', '')
         
+        # Step 4: Consent
         agree_terms = request.POST.get('agree_terms') == 'on'
         agree_privacy = request.POST.get('agree_privacy') == 'on'
         
+        # Validation
         errors = []
         
         if not email:
@@ -642,19 +731,21 @@ def register_tenant(request):
             errors.append("Last name is required")
         if not phone_number:
             errors.append("Mobile number is required")
+        
         if not agree_terms or not agree_privacy:
-            errors.append("You must agree to all terms")
+            errors.append("You must agree to the terms and privacy policy")
         
         if errors:
-            return render(request, 'system/tenant_registration.html', {
-                'errors': errors,
-                'form_data': request.POST
+            return render(request, 'system/login.html', {
+                'register_error': ' | '.join(errors)
             })
         
+        # Create username from email
         username = email.split('@')[0]
         while User.objects.filter(username=username).exists():
             username = username + str(random.randint(1, 999))
         
+        # Create user
         user = User.objects.create_user(
             username=username,
             email=email,
@@ -663,19 +754,55 @@ def register_tenant(request):
             last_name=last_name
         )
         
+        # ========== FILE UPLOADS WITH AUTO CLEAN ==========
         valid_id_path = ''
         selfie_path = ''
         
+        # Create media directories if they don't exist
+        media_root = settings.MEDIA_ROOT
+        ids_dir = os.path.join(media_root, 'ids')
+        selfies_dir = os.path.join(media_root, 'selfies')
+        
+        os.makedirs(ids_dir, exist_ok=True)
+        os.makedirs(selfies_dir, exist_ok=True)
+        
+        # Handle Valid ID upload
         if request.FILES.get('valid_id'):
-            fs = FileSystemStorage(location='media/ids/')
             valid_id_file = request.FILES['valid_id']
-            valid_id_path = fs.save(f"{username}_id_{valid_id_file.name}", valid_id_file)
+            original_name = valid_id_file.name
+            clean_name = clean_filename(original_name)
+            safe_filename = f"{username}_id_{clean_name}"
+            
+            file_path = os.path.join('ids', safe_filename)
+            full_path = os.path.join(media_root, file_path)
+            
+            # Save the file
+            with open(full_path, 'wb+') as destination:
+                for chunk in valid_id_file.chunks():
+                    destination.write(chunk)
+            
+            valid_id_path = file_path
+            print(f"✅ ID saved: {original_name} → {safe_filename}")
         
+        # Handle Selfie upload
         if request.FILES.get('selfie'):
-            fs = FileSystemStorage(location='media/selfies/')
             selfie_file = request.FILES['selfie']
-            selfie_path = fs.save(f"{username}_selfie_{selfie_file.name}", selfie_file)
+            original_name = selfie_file.name
+            clean_name = clean_filename(original_name)
+            safe_filename = f"{username}_selfie_{clean_name}"
+            
+            file_path = os.path.join('selfies', safe_filename)
+            full_path = os.path.join(media_root, file_path)
+            
+            # Save the file
+            with open(full_path, 'wb+') as destination:
+                for chunk in selfie_file.chunks():
+                    destination.write(chunk)
+            
+            selfie_path = file_path
+            print(f"✅ Selfie saved: {original_name} → {safe_filename}")
         
+        # Update profile
         profile = user.userprofile
         profile.middle_name = middle_name
         profile.phone_number = phone_number
@@ -691,41 +818,57 @@ def register_tenant(request):
         profile.user_type = 'tenant'
         profile.save()
         
-        messages.success(request, "Registration complete! Your account is pending approval by the owner.")
+        messages.success(request, "Registration complete! Your account is pending approval by the owner. You will receive an email once approved.")
         return redirect('login_view')
     
-    return render(request, 'system/tenant_registration.html')
-
+    return redirect('login_view')
 
 def login_view(request):
     error = None
     
     if request.method == 'POST':
-        username = request.POST.get('username')
+        username_or_email = request.POST.get('username')
         password = request.POST.get('password')
         
-        if not username or not password:
-            error = "Username and password are required."
+        if not username_or_email or not password:
+            error = "Username/Email and password are required."
         else:
+            # Check if input is email or username
+            if '@' in username_or_email:
+                # Try to find user by email
+                try:
+                    user_obj = User.objects.get(email=username_or_email)
+                    username = user_obj.username
+                except User.DoesNotExist:
+                    username = username_or_email
+            else:
+                username = username_or_email
+            
+            # Authenticate
             user = authenticate(request, username=username, password=password)
             
             if user is not None:
-                login(request, user)
-                
+                # Check if user has a profile
                 try:
                     profile = user.userprofile
                 except UserProfile.DoesNotExist:
+                    # Create profile if missing
                     user_type = 'owner' if user.is_staff or user.is_superuser else 'tenant'
                     profile = UserProfile.objects.create(user=user, user_type=user_type)
-
-                log_activity(request, 'login', f"{profile.user_type.title()} logged in.", user=user)
                 
-                if profile.user_type == 'tenant':
-                    return redirect('tenant_dashboard')
+                # For tenant users, check if approved
+                if profile.user_type == 'tenant' and not profile.is_approved:
+                    error = "Your account is pending approval. Please wait for the owner to approve your registration."
                 else:
-                    return redirect('dashboard')
+                    login(request, user)
+                    log_activity(user, 'login', f"User {user.username} logged in")
+                    
+                    if profile.user_type == 'tenant':
+                        return redirect('tenant_dashboard')
+                    else:
+                        return redirect('dashboard')
             else:
-                error = "Invalid username or password. Please try again."
+                error = "Invalid username/email or password. Please try again."
     
     return render(request, 'system/login.html', {'error': error, 'login_error': error})
 
@@ -1301,6 +1444,7 @@ def tenant_list(request):
     with_room = tenants.filter(room__isnull=False).count()
     without_room = tenants.filter(room__isnull=True).count()
     pending_approval = tenants.filter(is_approved=False).count()
+    pending_approvals_count = UserProfile.objects.filter(user_type='tenant', is_approved=False).count()
     
     rooms = Room.objects.all()
     available_rooms = rooms.filter(userprofile__isnull=True).count()
@@ -2590,9 +2734,14 @@ def delete_tenant(request, tenant_id):
     
     return redirect('tenant_list')
 
-@login_required
-@login_required
+
+from django.utils import timezone
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from .models import UserProfile, Alert
+
 def approve_tenant(request, tenant_id):
+    """Approve tenant registration"""
     profile = request.user.userprofile
     
     if profile.user_type != 'owner':
@@ -2600,22 +2749,31 @@ def approve_tenant(request, tenant_id):
         return redirect('dashboard')
     
     tenant = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant')
+    
+    if tenant.is_approved:
+        messages.warning(request, f"Tenant {tenant.user.username} is already approved.")
+        return redirect('tenant_list')
+    
+    # Approve the tenant
     tenant.is_approved = True
     tenant.approved_at = timezone.now()
     tenant.save()
     
+    # Send approval email
+    send_approval_email(tenant.user)
+    
+    # Create alert for owner
     Alert.objects.create(
         room=None,
         alert_type='tenant_assigned',
         message=f"Tenant {tenant.user.get_full_name() or tenant.user.username} has been approved. Please assign a room."
     )
     
-    messages.success(request, f"✅ Tenant {tenant.user.username} approved! Now assign a room below.")
-    
-    return redirect('rooms_page')
+    messages.success(request, f"✅ Tenant {tenant.user.username} approved! Now assign a room.")
+    return redirect('assign_room_to_tenant', tenant_id=tenant.id)
 
-@login_required
 def assign_room_to_tenant(request, tenant_id):
+    """Assign room to approved tenant"""
     profile = request.user.userprofile
     
     if profile.user_type != 'owner':
@@ -2634,12 +2792,17 @@ def assign_room_to_tenant(request, tenant_id):
         
         room = get_object_or_404(Room, id=room_id)
         
+        # Check if room is available
         if room.is_occupied():
             messages.error(request, f"Room {room.name} is already occupied.")
             return redirect('assign_room_to_tenant', tenant_id=tenant_id)
         
+        # Deactivate old assignment if any
+        from .models import TenantAssignment
         TenantAssignment.objects.filter(tenant=tenant, is_active=True).update(is_active=False)
         
+        # Create new assignment
+        from datetime import date
         assignment = TenantAssignment.objects.create(
             tenant=tenant,
             room=room,
@@ -2647,25 +2810,61 @@ def assign_room_to_tenant(request, tenant_id):
             is_active=True
         )
         
+        # Assign room to tenant
         tenant.room = room
         tenant.save()
         
+        # Create alert
         Alert.objects.create(
             room=room,
             alert_type='tenant_assigned',
             message=f"Tenant {tenant.user.get_full_name() or tenant.user.username} assigned to room {room.name}"
         )
         
-        messages.success(request, f"Tenant {tenant.user.username} assigned to {room.name}!")
-        
-        # ✅ ITO ANG BINAGO KO (dati tenant_list)
-        return redirect('rooms_page')
+        messages.success(request, f"✅ Tenant {tenant.user.username} assigned to {room.name}!")
+        return redirect('tenant_list')
     
+    # GET request - show room selection form
     available_rooms = Room.objects.filter(userprofile__isnull=True)
+    from datetime import date
+    today = date.today()
     
     return render(request, 'system/assign_room.html', {
         'tenant': tenant,
         'available_rooms': available_rooms,
-        'today': date.today(),
+        'today': today,
         'username': request.user.username,
     })
+
+import re
+import os
+
+def clean_filename(filename):
+    """Automatically clean filename - remove spaces, special characters, and random suffixes"""
+    # Get file extension
+    name, ext = os.path.splitext(filename)
+    
+    # Remove spaces (replace with underscore)
+    name = name.replace(' ', '_')
+    
+    # Remove parentheses and other special characters (keep letters, numbers, underscore, dot)
+    name = re.sub(r'[^a-zA-Z0-9_.-]', '', name)
+    
+    # Remove duplicate underscores
+    name = re.sub(r'_+', '_', name)
+    
+    # Remove "download" word if present (common from browsers)
+    name = name.replace('download', '')
+    name = name.replace('_download', '')
+    
+    # Remove numbers in parentheses like (1), (2), etc.
+    name = re.sub(r'\([0-9]+\)', '', name)
+    
+    # Clean up any leftover underscores at ends
+    name = name.strip('_')
+    
+    # If name becomes empty, use a default
+    if not name:
+        name = 'upload'
+    
+    return f"{name}{ext}"
