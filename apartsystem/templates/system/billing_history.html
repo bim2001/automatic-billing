@@ -82,7 +82,7 @@
         }
         
         .btn-search {
-            background: #28a745;
+            background: #667eea;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -455,7 +455,13 @@
                     {% endifchanged %}
                     <tr>
                         <td>{{ bill.billing_month }}</td>
-                        <td><strong>{{ bill.room.name }}</strong></td>
+                        <td><strong>{{ bill.room.name }}</strong>
+                        <br>
+                        <small style="color: #666; font-size: 11px;">
+                            <i class="fas fa-user"></i> 
+                            {{ bill.room.get_tenant_name|default:"No tenant assigned" }}
+                        </small>
+                        </td>
                         <td>{{ bill.kwh|floatformat:2 }} kWh</td>
                         <td>₱{{ electricity_rate|default:"23" }}</td>
                         <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
