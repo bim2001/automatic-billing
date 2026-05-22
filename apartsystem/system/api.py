@@ -754,3 +754,52 @@ def bill_details(request, bill_id):
         return JsonResponse({'error': 'Bill not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import UserProfile
+
+@login_required
+def tenant_details_api(request, tenant_id):
+    """API to get tenant details for admin"""
+    # Check if user is authenticated and has profile
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    
+    # Check if user is owner
+    try:
+        profile = request.user.userprofile
+        if profile.user_type != 'owner':
+            return JsonResponse({'error': 'Unauthorized - Owner only'}, status=403)
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'User profile not found'}, status=403)
+    
+    try:
+        tenant = UserProfile.objects.get(id=tenant_id, user_type='tenant')
+        
+        return JsonResponse({
+            'id': tenant.id,
+            'username': tenant.user.username,
+            'first_name': tenant.user.first_name,
+            'middle_name': tenant.middle_name or '',
+            'last_name': tenant.user.last_name,
+            'email': tenant.user.email,
+            'phone_number': tenant.phone_number or '',
+            'emergency_person': tenant.emergency_contact_person or '',
+            'emergency_number': tenant.emergency_contact_number or '',
+            'occupants': tenant.number_of_occupants or 1,
+            'employment_status': tenant.employment_status or '',
+            'agree_terms': tenant.agreed_to_terms,
+            'agree_privacy': tenant.agreed_to_privacy,
+            'is_approved': tenant.is_approved,
+            'room': tenant.room.name if tenant.room else None,
+            'room_id': tenant.room.id if tenant.room else None,
+            'created_at': tenant.created_at.strftime('%B %d, %Y'),
+            'valid_id_file': tenant.valid_id_file or '',
+            'selfie_file': tenant.selfie_verification_file or '',
+        })
+    except UserProfile.DoesNotExist:
+        return JsonResponse({'error': 'Tenant not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

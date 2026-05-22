@@ -19,11 +19,11 @@ urlpatterns = [
     
     # ==================== ROOM MANAGEMENT ====================
     path('room/add/', views.add_room, name='add_room'),
+    path('rooms/', views.rooms_page, name='rooms_page'),
     path('room/edit/<int:room_id>/', views.edit_room, name='edit_room'),
     path('room/delete/<int:room_id>/', views.delete_room, name='delete_room'),
     path('toggle_power/<int:room_id>/', views.toggle_power, name='toggle_power'),
     path('toggle/<int:room_id>/', views.toggle_power, name='toggle_power'),
-    path('rooms/', views.rooms_page, name='rooms_page'),
     
     # ==================== TENANT MANAGEMENT ====================
     path('room/<int:room_id>/assign-tenant/', views.assign_tenant, name='assign_tenant'),
@@ -64,6 +64,9 @@ urlpatterns = [
     path('api/admin/bill-details/<int:bill_id>/', views.bill_details_api, name='admin_bill_details_api'),
     
     path('api/bill-details/<int:bill_id>/', api.bill_details, name='bill_details_api'),
+
+    path('api/tenant-details/<int:tenant_id>/', api.tenant_details_api, name='tenant_details_api'),
+    path('approve-tenant/<int:tenant_id>/', views.approve_tenant, name='approve_tenant'),
 
     # ==================== PAYMENT URLs ====================
     path('payment/gcash/<int:bill_id>/', views.create_gcash_payment, name='create_gcash_payment'),

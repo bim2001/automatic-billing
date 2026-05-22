@@ -62,11 +62,34 @@ class UserProfile(models.Model):
         ('owner', 'Owner'),
         ('tenant', 'Tenant')
     ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     user_type = models.CharField(max_length=20, choices=USER_TYPES, default='tenant')
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True) 
-   
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    
+    # Step 2: Tenant Profile
+    middle_name = models.CharField(max_length=100, blank=True, null=True)
+    emergency_contact_person = models.CharField(max_length=200, blank=True, null=True)
+    emergency_contact_number = models.CharField(max_length=15, blank=True, null=True)
+    
+    # Step 3: Tenant Screening & Verification
+    number_of_occupants = models.IntegerField(default=1, blank=True, null=True)
+    employment_status = models.CharField(max_length=50, blank=True, null=True)
+    valid_id_file = models.CharField(max_length=500, blank=True, null=True)
+    selfie_verification_file = models.CharField(max_length=500, blank=True, null=True)
+    
+    # Step 4: Consent
+    agreed_to_terms = models.BooleanField(default=False)
+    agreed_to_privacy = models.BooleanField(default=False)
+    
+    # Approval
+    is_approved = models.BooleanField(default=False)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} - {self.user_type}"
 
