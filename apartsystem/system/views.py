@@ -1244,7 +1244,7 @@ def toggle_power(request, room_id):
     )
     log_activity(request, 'toggle', message)
     
-    return redirect('dashboard')
+    return redirect('rooms_page')
 
 
 @login_required
@@ -1275,7 +1275,7 @@ def add_room(request):
         
         messages.success(request, f"Room '{name}' added successfully!")
         log_activity(request, 'create', f"Created room {name} with {limit} kWh limit.")
-        return redirect('dashboard')
+        return redirect('rooms_page')
     
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
@@ -1306,7 +1306,7 @@ def edit_room(request, room_id):
         
         messages.success(request, f"Room '{room.name}' updated successfully!")
         log_activity(request, 'update', f"Updated room {old_name} to {room.name} with {room.limit} kWh limit.")
-        return redirect('dashboard')
+        return redirect('rooms_page')
     
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
     
@@ -1339,7 +1339,7 @@ def delete_room(request, room_id):
     room.delete()
     messages.success(request, f"Room '{room_name}' deleted successfully!")
     log_activity(request, 'delete', f"Deleted room {room_name}.")
-    return redirect('dashboard')
+    return redirect('rooms_page')
 
 
 # ============== TENANT ASSIGNMENT ==============
@@ -1406,7 +1406,7 @@ def assign_tenant(request, room_id):
             messages.success(request, f"Tenant removed from {room.name}.")
             log_activity(request, 'remove', f"Removed tenant from {room.name}.")
 
-    return redirect('dashboard')
+    return redirect('rooms_page')
 
 @login_required
 def remove_tenant(request, room_id):
@@ -1429,7 +1429,7 @@ def remove_tenant(request, room_id):
         )
         log_activity(request, 'remove', f"Removed tenant {tenant_name} from {room.name}.")
     
-    return redirect('dashboard')
+    return redirect('rooms_page')
 
 @login_required
 def tenant_list(request):
@@ -2087,7 +2087,7 @@ def edit_profile(request):
         profile.save()
         
         messages.success(request, "✅ Profile updated successfully!")
-        return redirect('tenant_dashboard')
+        return redirect('edit_profile')
     
     return render(request, 'user/edit_profile.html', {
         'profile': profile,
