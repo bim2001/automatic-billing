@@ -242,14 +242,14 @@
                         {{ room.get_tenant_name }}
                         {% if room.has_unpaid_bill %}
                         <div class="unpaid-billing-badge">
-                            <i class="fas fa-exclamation-circle"></i> UNPAID BILL
+                            <i class="fas fa-exclamation-circle"></i> Upaid bill
                         </div>
                         <div class="unpaid-billing-detail">
                             {{ room.unpaid_bill_month }} - ₱{{ room.unpaid_bill_amount|floatformat:2 }}
                         </div>
                         {% else %}
                         <div class="paid-billing-badge">
-                            <i class="fas fa-check-circle"></i> No unpaid bill
+                            <i class="fas fa-check-circle"></i> Paid bill
                         </div>
                         {% endif %}
                     {% else %}
