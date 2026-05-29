@@ -437,10 +437,21 @@
             border: none;
             cursor: pointer;
             margin: 2px 0;
+            transition: all 0.2s ease;
+        }
+
+        .download-bill-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(102, 126, 234, 0.25);
         }
 
         .print-receipt-btn {
             background: #2c3e50;
+        }
+
+        .print-receipt-btn:hover {
+            background: #1f2f3d;
         }
 
         .detail-section {
@@ -567,6 +578,13 @@
             background: #f8f9fa;
             color: #2c3e50;
             font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .history-tab:hover {
+            background: #eef2ff;
+            color: #5a67d8;
+            transform: translateY(-1px);
         }
 
         .history-tab.active {
@@ -599,7 +617,9 @@
             max-width: 500px;
             width: 90%;
             max-height: 85vh;
-            overflow-y: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             animation: modalSlideIn 0.2s ease;
         }
 
@@ -640,6 +660,8 @@
 
         .modal-body {
             padding: 15px;
+            overflow-y: auto;
+            max-height: calc(85vh - 112px);
         }
 
         .modal-footer {
@@ -733,7 +755,7 @@
                <div class="stat-icon">
                    <i class="fas fa-bolt" style="color:#667eea"></i>
            </div>
-           <div class="stat-value">{{ total_kwh|floatformat:1 }}</div>
+           <div class="stat-value">{{ total_kwh|floatformat:2 }}</div>
            <div class="stat-label">
                    <i class="fas fa-plug"></i> Total kWh Used
            </div>
@@ -796,7 +818,7 @@
                         <tr class="bill-row" data-status="{% if bill.is_paid %}paid{% else %}latest{% endif %}">
                             <td><strong>{{ bill.billing_month }}</strong></td>
                             <td>{{ bill.kwh|floatformat:2 }}</td>
-                            <td>₱{{ electricity_rate }}</td>
+                            <td>₱{{ electricity_rate|floatformat:2 }}</td>
                             <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
                             <td>
                                 <span class="payment-status {% if bill.is_paid %}paid{% else %}unpaid{% endif %}">
@@ -928,8 +950,8 @@
                         <div class="breakdown-row"><span class="breakdown-label">Room</span><span class="breakdown-value">${data.room_name}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Move-in Date</span><span class="breakdown-value">${data.move_in_date}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Days Occupied</span><span class="breakdown-value">${data.days_occupied} days</span></div>
-                        <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${data.kwh} kWh</span></div>
-                        <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${data.rate}/kWh</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${Number(data.kwh || 0).toFixed(2)} kWh</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${Number(data.rate || 0).toFixed(2)}/kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Formula</span><span class="breakdown-value">${data.formula}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Base Amount</span><span class="breakdown-value">₱${data.base_amount.toFixed(2)}</span></div>
                         <div class="breakdown-row total"><span class="breakdown-label">TOTAL AMOUNT</span><span class="breakdown-value">₱${data.total_amount.toFixed(2)}</span></div>
@@ -958,6 +980,28 @@
                 const paidDate = data.paid_date || data.paid_at || '';
                 const moveInDate = data.move_in_date || 'N/A';
                 const cycleStart = data.cycle_start || 'N/A';
+                const billId = data.bill_id || data.id;
+                const formatNumber = value => Number(value || 0).toFixed(2);
+                const kwhUsed = formatNumber(data.kwh);
+                const rate = formatNumber(data.rate);
+                const baseAmount = formatNumber(data.base_amount);
+                const totalAmount = formatNumber(data.total_amount);
+                const formula = data.formula || `${kwhUsed} kWh x PHP ${rate}/kWh`;
+                const receiptDownloadHtml = data.is_paid && billId ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Official Receipt:</span>
+                        <span class="detail-value">
+                            <a href="/tenant/billing-history/download/${billId}/" class="download-bill-btn">
+                                <i class="fas fa-download"></i> Download Receipt
+                            </a>
+                        </span>
+                    </div>
+                ` : `
+                    <div class="detail-row">
+                        <span class="detail-label">Official Receipt:</span>
+                        <span class="detail-value">Available after payment</span>
+                    </div>
+                `;
                 const transactionTableHtml = data.payment_history && data.payment_history.length ? `
                     <table class="transaction-table">
                         <thead>
@@ -1015,11 +1059,11 @@
 
                     <div class="detail-section">
                         <h4><i class="fas fa-chart-line"></i> Consumption & Charges</h4>
-                        <div class="detail-row"><span class="detail-label">kWh Used:</span><span class="detail-value">${data.kwh} kWh</span></div>
-                        <div class="detail-row"><span class="detail-label">Electricity Rate:</span><span class="detail-value">PHP ${data.rate}/kWh</span></div>
-                        <div class="detail-row"><span class="detail-label">Formula:</span><span class="detail-value">${data.formula}</span></div>
-                        <div class="detail-row"><span class="detail-label">Base Amount:</span><span class="detail-value">PHP ${Number(data.base_amount).toFixed(2)}</span></div>
-                        <div class="detail-row total-amount"><span class="detail-label">Total Amount Due:</span><span class="detail-value">PHP ${Number(data.total_amount).toFixed(2)}</span></div>
+                        <div class="detail-row"><span class="detail-label">kWh Used:</span><span class="detail-value">${kwhUsed} kWh</span></div>
+                        <div class="detail-row"><span class="detail-label">Electricity Rate:</span><span class="detail-value">PHP ${rate}/kWh</span></div>
+                        <div class="detail-row"><span class="detail-label">Formula:</span><span class="detail-value">${formula}</span></div>
+                        <div class="detail-row"><span class="detail-label">Base Amount:</span><span class="detail-value">PHP ${baseAmount}</span></div>
+                        <div class="detail-row total-amount"><span class="detail-label">Total Amount Due:</span><span class="detail-value">PHP ${totalAmount}</span></div>
                     </div>
 
                     <div class="detail-section">
@@ -1036,6 +1080,7 @@
                     <div class="detail-section">
                         <h4><i class="fas fa-receipt"></i> Transaction Per Bill</h4>
                         ${transactionTableHtml}
+                        ${receiptDownloadHtml}
                     </div>
                 `;
             })

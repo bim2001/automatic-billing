@@ -266,8 +266,8 @@
                             {% endfor %}
                         </td>
                         <td>{{ bill.billing_month }}</td>
-                        <td>{{ bill.kwh }}</td>
-                        <td>₱23</td>
+                        <td>{{ bill.kwh|floatformat:2 }}</td>
+                        <td>₱{{ electricity_rate|floatformat:2 }}</td>
                         <td>₱{{ bill.cost|floatformat:2 }}</td>
                         <td>
                             {% if bill.is_paid %}

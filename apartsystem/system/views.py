@@ -1035,7 +1035,7 @@ def tenant_dashboard(request):
     avg_daily_usage = current_usage / days_in_month if current_usage else 0
     bill_kwh = current_bill.kwh if current_bill else current_usage
     bill_amount = current_bill.cost if current_bill else room.cost
-    bill_formula = f"{round(bill_kwh, 2)} kWh x PHP {ELECTRICITY_RATE}/kWh"
+    bill_formula = f"{bill_kwh:.2f} kWh x PHP {ELECTRICITY_RATE:.2f}/kWh"
 
     due_date = None
     if current_bill and current_bill.due_date:
@@ -1112,6 +1112,7 @@ def tenant_notifications(request):
     return render(request, 'user/tenant_notifications.html', {
         'alerts': alerts,
         'unread_count': unread_count,
+        'unread_alerts_count': unread_count,
         'room': room,
         'username': request.user.username,
     })
@@ -1877,9 +1878,6 @@ def system_settings(request):
             settings.electricity_rate = float(request.POST.get('electricity_rate'))
         if request.POST.get('reminder_days_before'):
             settings.reminder_days_before = int(request.POST.get('reminder_days_before'))
-        if request.POST.get('abnormal_threshold'):
-            settings.abnormal_threshold = float(request.POST.get('abnormal_threshold'))
-        
         settings.save()
         
         messages.success(request, "✅ System settings updated successfully!")
@@ -2067,6 +2065,7 @@ def edit_profile(request):
             errors.append("Email already used by another account.")
         
         if errors:
+            unread_alerts_count = Alert.objects.filter(room=profile.room, is_read=False).count() if profile.room else 0
             return render(request, 'user/edit_profile.html', {
                 'profile': profile,
                 'errors': errors,
@@ -2075,6 +2074,7 @@ def edit_profile(request):
                 'email': email,
                 'phone_number': phone_number,
                 'username': request.user.username,
+                'unread_alerts_count': unread_alerts_count,
             })
         
         user = request.user
@@ -2089,6 +2089,7 @@ def edit_profile(request):
         messages.success(request, "✅ Profile updated successfully!")
         return redirect('edit_profile')
     
+    unread_alerts_count = Alert.objects.filter(room=profile.room, is_read=False).count() if profile.room else 0
     return render(request, 'user/edit_profile.html', {
         'profile': profile,
         'first_name': request.user.first_name,
@@ -2096,6 +2097,7 @@ def edit_profile(request):
         'email': request.user.email,
         'phone_number': profile.phone_number or '',
         'username': request.user.username,
+        'unread_alerts_count': unread_alerts_count,
     })
 
 # ============== GCASH/PAYMENT VIEWS ==============
@@ -2247,7 +2249,7 @@ def payment_method(request):
         'room': room,
         'username': request.user.username,
         'electricity_rate': get_settings().electricity_rate,
-        'bill_formula': f"{round(current_bill.kwh, 2)} kWh x PHP {get_settings().electricity_rate}/kWh",
+        'bill_formula': f"{current_bill.kwh:.2f} kWh x PHP {get_settings().electricity_rate:.2f}/kWh",
     })
 
 @login_required
@@ -2471,6 +2473,7 @@ def billing_report_html(request):
         'status_filter': status_filter,
         'start_date': start_date,
         'end_date': end_date,
+        'electricity_rate': get_settings().electricity_rate,
         'username': request.user.username,
     })
 
@@ -2607,9 +2610,9 @@ def bill_details_api(request, bill_id):
         'due_date': due_date_str,
         'days_occupied': days_occupied,
         'kwh': round(bill.kwh, 2),
-        'rate': electricity_rate,
+        'rate': round(electricity_rate, 2),
         'base_amount': round(bill.cost, 2),
-        'formula': f"{round(bill.kwh, 2)} kWh x PHP {electricity_rate}/kWh",
+        'formula': f"{bill.kwh:.2f} kWh x PHP {electricity_rate:.2f}/kWh",
         'late_penalty': 0,
         'total_amount': round(bill.cost, 2),
         'is_paid': bill.is_paid,

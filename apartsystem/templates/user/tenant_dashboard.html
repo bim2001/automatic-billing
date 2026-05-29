@@ -899,7 +899,7 @@
                 </div>
                 <div class="info-item">
                     <div class="info-label"><i class="fas fa-coins"></i> Electricity Rate</div>
-                    <div class="info-value">₱{{ electricity_rate }}/kWh</div>
+                    <div class="info-value">₱{{ electricity_rate|floatformat:2 }}/kWh</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label"><i class="fas fa-tachometer-alt"></i> Monthly Limit</div>
@@ -1129,8 +1129,8 @@
                         <div class="breakdown-row"><span class="breakdown-label">Cycle Start</span><span class="breakdown-value">${data.cycle_start || data.move_in_date || 'N/A'}</span></div>
                         ${previousBillHtml}
                         <div class="breakdown-row"><span class="breakdown-label">Due Date</span><span class="breakdown-value">${data.due_date}</span></div>
-                        <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${data.kwh} kWh</span></div>
-                        <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${data.rate}/kWh</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">kWh Used</span><span class="breakdown-value">${Number(data.kwh || 0).toFixed(2)} kWh</span></div>
+                        <div class="breakdown-row"><span class="breakdown-label">Rate</span><span class="breakdown-value">₱${Number(data.rate || 0).toFixed(2)}/kWh</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Base Amount</span><span class="breakdown-value">₱${data.base_amount.toFixed(2)}</span></div>
                         <div class="breakdown-row total"><span class="breakdown-label">TOTAL AMOUNT</span><span class="breakdown-value">₱${data.total_amount.toFixed(2)}</span></div>
                         <div class="breakdown-row"><span class="breakdown-label">Status</span><span class="breakdown-value" style="color: ${data.is_paid ? '#28a745' : '#dc3545'}">${data.is_paid ? 'PAID' : 'UNPAID'}</span></div>

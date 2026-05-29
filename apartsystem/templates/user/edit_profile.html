@@ -164,6 +164,7 @@
             cursor: pointer;
             text-decoration: none;
             text-align: center;
+            transition: all 0.25s ease;
         }
 
         .btn-primary {
@@ -176,65 +177,24 @@
             color: white;
         }
 
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.14);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 70px;
+                padding: 20px 15px;
+            }
+        }
+
     </style>
 </head>
 
 <body>
 
-<!-- SIDEBAR (same structure as billing_history) -->
-<div class="sidebar">
-
-    <div class="sidebar-header">
-        <div class="logo">
-            <i class="fas fa-bolt"></i>
-            Smart Energy Monitor
-        </div>
-    </div>
-
-    <div class="nav-menu">
-
-        <div class="nav-item">
-            <a href="{% url 'tenant_dashboard' %}" class="nav-link">
-                <i class="fas fa-chart-line"></i>
-                <span>Dashboard</span>
-            </a>
-        </div>
-
-        <div class="nav-divider"></div>
-
-        <div class="nav-item">
-            <a href="{% url 'payment_method' %}" class="nav-link">
-                <i class="fas fa-credit-card"></i>
-                <span>Payment</span>
-            </a>
-        </div>
-
-        <div class="nav-item">
-            <a href="{% url 'tenant_billing_history' %}" class="nav-link">
-                <i class="fas fa-history"></i>
-                <span>Billing History</span>
-            </a>
-        </div>
-
-        <div class="nav-item">
-            <a href="{% url 'edit_profile' %}" class="nav-link active">
-                <i class="fas fa-user-edit"></i>
-                <span>Edit Profile</span>
-            </a>
-        </div>
-
-        <div class="nav-divider"></div>
-
-        <div class="nav-item">
-            <a href="{% url 'logout_view' %}" class="nav-link">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-
-    </div>
-
-</div>
+{% include 'user/tenant_sidebar.html' %}
 
 <!-- MAIN CONTENT -->
 <div class="main-content">
@@ -283,5 +243,12 @@
 
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    const profileLink = document.querySelector('a[href*="edit-profile"], a[href*="edit_profile"]');
+    if (profileLink) profileLink.classList.add('active');
+});
+</script>
 </body>
 </html>

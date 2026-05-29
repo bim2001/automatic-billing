@@ -170,7 +170,9 @@
             max-width: 500px;
             width: 90%;
             max-height: 85vh;
-            overflow-y: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
             animation: modalSlideIn 0.3s ease;
             font-size: 13px;
         }
@@ -209,6 +211,8 @@
         
         .modal-body {
             padding: 20px;
+            overflow-y: auto;
+            max-height: calc(85vh - 70px);
         }
         
         .detail-section {
@@ -391,7 +395,7 @@
                         </td>
                         <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
                         <td>{{ bill.days_occupied_display }} days</td>
-                        <td>PHP {{ electricity_rate }}/kWh</td>
+                        <td>PHP {{ electricity_rate|floatformat:2 }}/kWh</td>
                         <td><span class="status-badge status-unpaid">UNPAID</span></td>
                         <td><button class="btn-view" onclick="openBillModal('{{ bill.id }}')"><i class="fas fa-eye"></i> View</button></td>
                     </tr>
@@ -427,7 +431,7 @@
                         </td>
                         <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
                         <td>{{ bill.days_occupied_display }} days</td>
-                        <td>PHP {{ electricity_rate }}/kWh</td>
+                        <td>PHP {{ electricity_rate|floatformat:2 }}/kWh</td>
                         <td><span class="status-badge status-paid">PAID</span></td>
                         <td><button class="btn-view" onclick="openBillModal('{{ bill.id }}')"><i class="fas fa-eye"></i> View</button></td>
                     </tr>
@@ -469,6 +473,12 @@
                     modalBody.innerHTML = `<div style="color: red; text-align: center;">Error: ${data.error}</div>`;
                     return;
                 }
+                const formatNumber = value => Number(value || 0).toFixed(2);
+                const kwhUsed = formatNumber(data.kwh);
+                const rate = formatNumber(data.rate);
+                const baseAmount = formatNumber(data.base_amount);
+                const totalAmount = formatNumber(data.total_amount);
+                const formula = data.formula || `${kwhUsed} kWh x PHP ${rate}/kWh`;
                 
                 // Build payment history HTML
                 let paymentHistoryHtml = '<div style="color: #999; font-size: 12px;">No payment records yet</div>';
@@ -478,7 +488,7 @@
                             <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th>Status</th><th>Amount</th></tr></thead>
                             <tbody>
                                 ${data.payment_history.map(p => `
-                                    <tr><td>${p.date}</td><td>${p.payment_method.toUpperCase()}</td><td>${p.reference_number}</td><td>${p.status.toUpperCase()}</td><td>PHP ${p.amount}</td></tr>
+                                    <tr><td>${p.date}</td><td>${p.payment_method.toUpperCase()}</td><td>${p.reference_number}</td><td>${p.status.toUpperCase()}</td><td>PHP ${formatNumber(p.amount)}</td></tr>
                                 `).join('')}
                             </tbody>
                         </table>
@@ -535,23 +545,23 @@
                         <h4><i class="fas fa-chart-line"></i> Consumption & Charges</h4>
                         <div class="detail-row">
                             <span class="detail-label">kWh Used:</span>
-                            <span class="detail-value">${data.kwh} kWh</span>
+                            <span class="detail-value">${kwhUsed} kWh</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Electricity Rate:</span>
-                            <span class="detail-value">PHP ${data.rate}/kWh</span>
+                            <span class="detail-value">PHP ${rate}/kWh</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Formula:</span>
-                            <span class="detail-value">${data.formula}</span>
+                            <span class="detail-value">${formula}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Base Amount:</span>
-                            <span class="detail-value">PHP ${data.base_amount}</span>
+                            <span class="detail-value">PHP ${baseAmount}</span>
                         </div>
                         <div class="detail-row total-amount">
                             <span class="detail-label" style="font-weight: bold;">Total Amount Due:</span>
-                            <span class="detail-value" style="font-weight: bold; color: #dc3545;">₱${data.total_amount}</span>
+                            <span class="detail-value" style="font-weight: bold; color: #dc3545;">PHP ${totalAmount}</span>
                         </div>
                     </div>
                     

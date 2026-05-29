@@ -316,19 +316,6 @@
                         <div class="help-text">Send email reminder X days before due date</div>
                     </div>
                     
-                    <!-- Monitoring Settings Section -->
-                    <div class="section-divider">
-                        <i class="fas fa-chart-line"></i>
-                        <span>Monitoring Configuration</span>
-                        <hr>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-chart-line"></i> Abnormal Detection Threshold</label>
-                        <input type="number" name="abnormal_threshold" step="0.1" value="{{ settings.abnormal_threshold|default:'2' }}">
-                        <div class="help-text">Standard deviations for abnormal detection (higher = less sensitive)</div>
-                    </div>
-                    
                     <div class="btn-group">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Save Settings

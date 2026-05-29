@@ -199,15 +199,6 @@
                 <canvas id="allRoomsChart"></canvas>
             </div>
         </div>
-
-        <!-- Smart Features Section -->
-        <div class="chart-card">
-            <h3><i class="fas fa-robot"></i> Smart Features</h3>
-            <button onclick="runSmartFeatures()" class="btn-apply" style="background: #28a745;">
-                <i class="fas fa-brain"></i> Run Smart Features
-            </button>
-            <div id="smartResult" style="margin-top: 15px; display: none;"></div>
-        </div>
     </div>
 
 <script>
@@ -356,32 +347,6 @@
                 })
                 .catch(error => console.error('Error:', error));
         }
-        
-        function runSmartFeatures() {
-            const resultDiv = document.getElementById('smartResult');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running smart features...';
-            
-            fetch('/api/run-smart-features/', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                resultDiv.innerHTML = `
-                    <div style="background: #d4edda; padding: 15px; border-radius: 8px;">
-                        <strong>✅ Smart Features Complete!</strong><br>
-                        Abnormal Usage: ${data.abnormal}<br>
-                        High Consumption: ${data.high_consumption}<br>
-                    </div>
-                `;
-                setTimeout(() => { resultDiv.style.display = 'none'; }, 5000);
-            })
-            .catch(error => {
-                resultDiv.innerHTML = `<div style="background: #f8d7da; padding: 15px; border-radius: 8px;">❌ Error: ${error}</div>`;
-            });
-        }
-        
         // Load initial charts
         updateCharts();
     </script>
