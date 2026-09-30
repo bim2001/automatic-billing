@@ -894,16 +894,8 @@ def dashboard(request):
         current_usage = room.get_current_usage()
         room.current_usage = current_usage
         room.cost = current_usage * ELECTRICITY_RATE
-        
-        if current_usage > room.limit and room.power_status:
-            room.power_status = False
-            room.save()
-            Alert.objects.create(
-                room=room,
-                alert_type='power_off',
-                message=f"Room {room.name} exceeded limit ({current_usage} > {room.limit} kWh). Power automatically turned OFF."
-            )
-        
+
+
         room.over_limit = current_usage > room.limit
         
         if room.over_limit and not Alert.objects.filter(
@@ -2172,19 +2164,51 @@ def create_gcash_payment(request, bill_id):
 
 @login_required
 def payment_success(request, reference_number):
-    payment = get_object_or_404(Payment, reference_number=reference_number)
+    payment = get_object_or_404(
+        Payment,
+        reference_number=reference_number
+    )
+
     profile = request.user.userprofile
 
+    # Tenant can only access their own payment
     if profile.user_type == 'tenant' and payment.tenant_id != profile.id:
-        messages.error(request, "You do not have access to this payment.")
+        messages.error(
+            request,
+            "You do not have access to this payment."
+        )
         return redirect('tenant_dashboard')
 
-    if payment.status != 'paid':
-        mark_payment_as_paid(payment, payment.checkout_session_id or f"SUCCESS_{reference_number}")
-        payment.payment_method = 'gcash'
-        payment.save(update_fields=['payment_method'])
+    # IMPORTANT:
+    # Do NOT mark payment as paid here.
+    # PayMongo webhook is the authoritative source.
 
-    messages.success(request, f"Payment of PHP {payment.amount:.2f} for {payment.bill.billing_month} has been received!")
+    if payment.status == 'paid':
+        messages.success(
+            request,
+            f"Payment of PHP {payment.amount:.2f} "
+            f"for {payment.bill.billing_month} has been confirmed."
+        )
+
+    elif payment.status == 'pending':
+        messages.info(
+            request,
+            "Your payment is being processed. "
+            "Please wait for PayMongo confirmation."
+        )
+
+    elif payment.status == 'failed':
+        messages.error(
+            request,
+            "Your payment was not successful."
+        )
+
+    else:
+        messages.info(
+            request,
+            "Your payment status is still being processed."
+        )
+
     return redirect('tenant_dashboard')
     
 @login_required
@@ -2513,14 +2537,7 @@ def rooms_page(request):
         room.unpaid_bill_month = unpaid_bill.billing_month if unpaid_bill else None
         room.unpaid_bill_amount = unpaid_bill.cost if unpaid_bill else 0
         
-        if current_usage > room.limit and room.power_status:
-            room.power_status = False
-            room.save()
-            Alert.objects.create(
-                room=room,
-                alert_type='power_off',
-                message=f"Room {room.name} exceeded limit ({current_usage} > {room.limit} kWh). Power automatically turned OFF."
-            )
+        
         
         if room.over_limit and not Alert.objects.filter(
             room=room, 

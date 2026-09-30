@@ -3,10 +3,16 @@
 <html>
 <head>
     <title>Billing History - Smart Energy System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
     <style>
-        /* Page Header */
+        /* =========================================================
+           PAGE HEADER
+        ========================================================= */
         .page-header-custom {
             background: white;
             padding: 25px;
@@ -14,7 +20,7 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             margin-bottom: 30px;
         }
-        
+
         .page-header-custom h1 {
             color: #2c3e50;
             font-size: 28px;
@@ -23,14 +29,17 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         .page-subtitle {
             color: #7f8c8d;
             font-size: 16px;
             margin-top: 10px;
         }
-        
-        /* Search Filters */
+
+
+        /* =========================================================
+           SEARCH FILTERS
+        ========================================================= */
         .search-filters {
             background: #ffffff;
             padding: 20px;
@@ -38,7 +47,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             margin-bottom: 25px;
         }
-        
+
         .search-title {
             margin-bottom: 15px;
             color: #2c3e50;
@@ -47,40 +56,41 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .filter-grid {
             display: grid;
             grid-template-columns: 1.5fr 1fr 1fr auto auto;
             gap: 15px;
             align-items: end;
         }
-        
+
         .filter-group {
             display: flex;
             flex-direction: column;
         }
-        
+
         .filter-group label {
             font-weight: 600;
             margin-bottom: 8px;
             color: #2c3e50;
             font-size: 14px;
         }
-        
+
         .form-control {
             padding: 10px 12px;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
             width: 100%;
+            box-sizing: border-box;
         }
-        
+
         .form-control:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        
+
         .btn-search {
             background: #667eea;
             color: white;
@@ -92,12 +102,12 @@
             height: 38px;
             transition: all 0.3s;
         }
-        
+
         .btn-search:hover {
             background: #218838;
             transform: translateY(-1px);
         }
-        
+
         .btn-clear {
             background: #6c757d;
             color: white;
@@ -111,38 +121,21 @@
             height: 38px;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 5px;
             transition: all 0.3s;
+            box-sizing: border-box;
         }
-        
+
         .btn-clear:hover {
             background: #5a6268;
             transform: translateY(-1px);
         }
-        
-        .advanced-filters {
-            margin-top: 15px;
-        }
-        
-        .advanced-summary {
-            cursor: pointer;
-            font-weight: 600;
-            color: #667eea;
-            user-select: none;
-        }
-        
-        .advanced-summary:hover {
-            color: #5a67d8;
-        }
-        
-        .date-range-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        /* Current Bills Section */
+
+
+        /* =========================================================
+           CURRENT BILLS HEADER
+        ========================================================= */
         .current-bills-header {
             display: flex;
             justify-content: space-between;
@@ -153,7 +146,7 @@
             border-radius: 12px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         }
-        
+
         .current-bills-header h2 {
             color: #2c3e50;
             font-size: 22px;
@@ -162,7 +155,7 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         .btn-print {
             background: #667eea;
             color: white;
@@ -175,34 +168,47 @@
             font-weight: 600;
             transition: all 0.3s;
         }
-        
+
         .btn-print:hover {
             background: #5a67d8;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
-        
-        /* Billing Table */
+
+
+        /* =========================================================
+           BILLING TABLE CONTAINER
+        ========================================================= */
         .billing-table-container {
             background: white;
             border-radius: 12px;
-            overflow: hidden;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05);
             margin-bottom: 40px;
+
+            /* Important */
+            width: 100%;
+            max-width: 100%;
             overflow-x: auto;
+            overflow-y: hidden;
+            box-sizing: border-box;
         }
-        
+
+
+        /* =========================================================
+           BILLING TABLE
+        ========================================================= */
         .billing-table {
             width: 100%;
+            min-width: 1250px;
             border-collapse: collapse;
-            min-width: 1000px;
+            table-layout: fixed;
         }
-        
+
         .billing-table thead {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
+
         .billing-table th {
             padding: 18px 15px;
             text-align: left;
@@ -210,83 +216,145 @@
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            box-sizing: border-box;
         }
-        
+
         .billing-table td {
             padding: 18px 15px;
             border-bottom: 1px solid #ecf0f1;
             font-size: 15px;
+            vertical-align: middle;
+            box-sizing: border-box;
         }
-        
+
         .billing-table tbody tr:hover {
             background-color: #f8f9fa;
         }
-        
+
+
+        /* =========================================================
+           FIXED COLUMN WIDTHS
+        ========================================================= */
+        .col-month {
+            width: 120px;
+        }
+
+        .col-room {
+            width: 220px;
+        }
+
+        .col-kwh {
+            width: 130px;
+        }
+
+        .col-rate {
+            width: 120px;
+        }
+
+        .col-amount {
+            width: 120px;
+        }
+
+        .col-status {
+            width: 120px;
+        }
+
+        .col-generated {
+            width: 135px;
+        }
+
+        .col-updated {
+            width: 135px;
+        }
+
+        .col-payment {
+            width: 180px;
+        }
+
+
+        /* =========================================================
+           MONTH GROUP
+        ========================================================= */
         .month-group {
             background: #f8f9fa;
             font-weight: bold;
             color: #2c3e50;
             font-size: 16px;
         }
-        
+
         .month-group td {
             padding: 15px;
             border-bottom: 2px solid #667eea;
         }
-        
-        /* Status Badges */
+
+
+        /* =========================================================
+           BILL STATUS
+        ========================================================= */
         .status-badge {
             padding: 8px 16px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: 600;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
             min-width: 80px;
             text-align: center;
+            white-space: nowrap;
         }
-        
+
         .paid {
             background-color: #d4edda;
             color: #155724;
         }
-        
+
         .unpaid {
             background-color: #f8d7da;
             color: #721c24;
         }
-        
-        /* Action Links */
-        .action-link {
-            text-decoration: none;
-            font-size: 14px;
-            padding: 5px 10px;
-            border-radius: 5px;
-            transition: all 0.2s;
-            cursor: pointer;
+
+
+        /* =========================================================
+           PAYMENT STATUS
+        ========================================================= */
+        .payment-status-cell {
+            text-align: center !important;
+            vertical-align: middle !important;
         }
 
-        .action-link:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        .payment-locked,
+        .payment-pending {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+
+            padding: 8px 12px;
+            border-radius: 20px;
+
+            font-size: 13px;
+            font-weight: 600;
+
+            white-space: nowrap;
+            box-sizing: border-box;
         }
-        
-        .action-paid {
-            color: #28a745;
-        }
-        
-        .action-paid:hover {
+
+        .payment-locked {
             background: #d4edda;
+            color: #155724;
         }
-        
-        .action-unpaid {
-            color: #dc3545;
+
+        .payment-pending {
+            background: #fff3cd;
+            color: #856404;
         }
-        
-        .action-unpaid:hover {
-            background: #f8d7da;
-        }
-        
-        /* Empty State */
+
+
+        /* =========================================================
+           EMPTY STATE
+        ========================================================= */
         .empty-state {
             text-align: center;
             padding: 50px;
@@ -294,23 +362,26 @@
             border-radius: 12px;
             margin: 30px 0;
         }
-        
+
         .empty-icon {
             font-size: 48px;
             margin-bottom: 20px;
             color: #bdc3c7;
         }
-        
+
         .empty-state h3 {
             color: #7f8c8d;
             margin-bottom: 10px;
         }
-        
+
         .empty-state p {
             color: #95a5a6;
         }
-        
-        /* Footer */
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
         .footer {
             text-align: center;
             padding: 20px;
@@ -319,211 +390,588 @@
             margin-top: 40px;
             border-top: 1px solid #ecf0f1;
         }
-        
-        /* Responsive */
+
+
+        /* =========================================================
+           MAIN CONTENT SAFETY
+        ========================================================= */
+        .main-content {
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
         @media (max-width: 768px) {
+
             .filter-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .current-bills-header {
                 flex-direction: column;
                 gap: 15px;
                 text-align: center;
             }
-            
-            .date-range-grid {
-                grid-template-columns: 1fr;
+
+            .billing-table-container {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .billing-table {
+                min-width: 1250px;
             }
         }
     </style>
 </head>
+
 <body>
-    <!-- SIDEBAR NAVIGATION -->
+
+    <!-- =========================================================
+         SIDEBAR NAVIGATION
+    ========================================================= -->
     {% include 'system/sidebar.html' %}
 
-    <!-- MAIN CONTENT -->
+
+    <!-- =========================================================
+         MAIN CONTENT
+    ========================================================= -->
     <div class="main-content">
+
         <!-- Page Header -->
         <div class="page-header-custom">
-            <h1><i class="fas fa-history"></i> Billing History</h1>
-            <p class="page-subtitle">View and manage all electricity bills</p>
+            <h1>
+                <i class="fas fa-history"></i>
+                Billing History
+            </h1>
+
+            <p class="page-subtitle">
+                View and manage all electricity bills
+            </p>
         </div>
-        
-        <!-- Search Filters -->
+
+
+        <!-- =====================================================
+             SEARCH FILTERS
+        ====================================================== -->
         <div class="search-filters">
+
             <div class="search-title">
-                <i class="fas fa-search"></i> Search Filters
+                <i class="fas fa-search"></i>
+                Search Filters
             </div>
-            
+
             <form method="get" action="{% url 'billing_history' %}">
+
                 <div class="filter-grid">
+
+                    <!-- Room / Tenant -->
                     <div class="filter-group">
-                        <label><i class="fas fa-door-open"></i> Room / Tenant</label>
-                        <input type="text" name="room_name" class="form-control" placeholder="Room or tenant name" value="{{ search_params.room_name|default:'' }}">
+
+                        <label>
+                            <i class="fas fa-door-open"></i>
+                            Room / Tenant
+                        </label>
+
+                        <input
+                            type="text"
+                            name="room_name"
+                            class="form-control"
+                            placeholder="Room or tenant name"
+                            value="{{ search_params.room_name|default:'' }}"
+                        >
+
                     </div>
-                    
+
+
+                    <!-- Month -->
                     <div class="filter-group">
-                        <label><i class="fas fa-calendar-alt"></i> Month</label>
+
+                        <label>
+                            <i class="fas fa-calendar-alt"></i>
+                            Month
+                        </label>
+
                         <select name="month" class="form-control">
+
                             <option value="">All</option>
+
                             {% for month in available_months %}
-                            <option value="{{ month }}" {% if search_params.month == month %}selected{% endif %}>
+
+                            <option
+                                value="{{ month }}"
+                                {% if search_params.month == month %}
+                                    selected
+                                {% endif %}
+                            >
                                 {{ month }}
                             </option>
+
                             {% endfor %}
+
                         </select>
+
                     </div>
-                    
+
+
+                    <!-- Status -->
                     <div class="filter-group">
-                        <label><i class="fas fa-check-circle"></i> Status</label>
+
+                        <label>
+                            <i class="fas fa-check-circle"></i>
+                            Status
+                        </label>
+
                         <select name="status" class="form-control">
+
                             <option value="">All</option>
-                            <option value="paid" {% if search_params.status == 'paid' %}selected{% endif %}>Paid</option>
-                            <option value="unpaid" {% if search_params.status == 'unpaid' %}selected{% endif %}>Unpaid</option>
+
+                            <option
+                                value="paid"
+                                {% if search_params.status == 'paid' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Paid
+                            </option>
+
+                            <option
+                                value="unpaid"
+                                {% if search_params.status == 'unpaid' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Unpaid
+                            </option>
+
                         </select>
+
                     </div>
-                    
+
+
+                    <!-- Search -->
                     <button type="submit" class="btn-search">
-                        <i class="fas fa-search"></i> Search
+                        <i class="fas fa-search"></i>
+                        Search
                     </button>
-                    
-                    <a href="{% url 'billing_history' %}" class="btn-clear">
-                        <i class="fas fa-eraser"></i> Clear
+
+
+                    <!-- Clear -->
+                    <a
+                        href="{% url 'billing_history' %}"
+                        class="btn-clear"
+                    >
+                        <i class="fas fa-eraser"></i>
+                        Clear
                     </a>
+
                 </div>
-                
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
-                    <a href="{% url 'billing_history' %}" class="btn-clear"><i class="fas fa-list"></i> All</a>
-                    <a href="{% url 'billing_history' %}?status=paid" class="btn-search" style="text-decoration: none; display: inline-flex; align-items: center; gap: 5px;"><i class="fas fa-check-circle"></i> Paid</a>
-                    <a href="{% url 'billing_history' %}?status=unpaid" class="btn-clear" style="background: #dc3545;"><i class="fas fa-hourglass-half"></i> Unpaid</a>
+
+
+                <!-- Quick Filters -->
+                <div
+                    style="
+                        display: flex;
+                        gap: 10px;
+                        flex-wrap: wrap;
+                        margin-top: 15px;
+                    "
+                >
+
+                    <a
+                        href="{% url 'billing_history' %}"
+                        class="btn-clear"
+                    >
+                        <i class="fas fa-list"></i>
+                        All
+                    </a>
+
+
+                    <a
+                        href="{% url 'billing_history' %}?status=paid"
+                        class="btn-search"
+                        style="
+                            text-decoration: none;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 5px;
+                        "
+                    >
+                        <i class="fas fa-check-circle"></i>
+                        Paid
+                    </a>
+
+
+                    <a
+                        href="{% url 'billing_history' %}?status=unpaid"
+                        class="btn-clear"
+                        style="background: #dc3545;"
+                    >
+                        <i class="fas fa-hourglass-half"></i>
+                        Unpaid
+                    </a>
+
                 </div>
 
             </form>
+
         </div>
-        
-        <!-- Current Bills Section with Printable Report Button -->
+
+
+        <!-- =====================================================
+             CURRENT BILLS HEADER
+        ====================================================== -->
         <div class="current-bills-header">
-            <h2><i class="fas fa-file-invoice-dollar"></i> Current Bills - {{ current_month }}</h2>
-            <a href="{% url 'billing_report_html' %}?{{ request.GET.urlencode }}" class="btn-print">
-                <i class="fas fa-print"></i> View Printable Report
+
+            <h2>
+                <i class="fas fa-file-invoice-dollar"></i>
+                Current Bills - {{ current_month }}
+            </h2>
+
+            <a
+                href="{% url 'billing_report_html' %}?{{ request.GET.urlencode }}"
+                class="btn-print"
+            >
+                <i class="fas fa-print"></i>
+                View Printable Report
             </a>
+
         </div>
-        
-        <!-- Billing History Table -->
+
+
+        <!-- =====================================================
+             BILLING HISTORY TABLE
+        ====================================================== -->
         {% if all_bills %}
+
         <div class="billing-table-container">
+
             <table class="billing-table">
+
+                <!-- Fixed column structure -->
+                <colgroup>
+                    <col class="col-month">
+                    <col class="col-room">
+                    <col class="col-kwh">
+                    <col class="col-rate">
+                    <col class="col-amount">
+                    <col class="col-status">
+                    <col class="col-generated">
+                    <col class="col-updated">
+                    <col class="col-payment">
+                </colgroup>
+
+
+                <!-- =================================================
+                     TABLE HEADER
+                ================================================== -->
                 <thead>
+
                     <tr>
+
                         <th>Month</th>
+
                         <th>Room/Tenant</th>
+
                         <th>Consumption (kWh)</th>
+
                         <th>Rate (₱/kWh)</th>
+
                         <th>Amount (₱)</th>
+
                         <th>Status</th>
+
                         <th>Date Generated</th>
+
                         <th>Last Updated</th>
-                        <th>Actions</th>
+
+                        <th>Payment Status</th>
+
                     </tr>
+
                 </thead>
+
+
+                <!-- =================================================
+                     TABLE BODY
+                ================================================== -->
                 <tbody>
+
                     {% for bill in all_bills %}
-                    {% ifchanged bill.billing_month %}
-                    <tr class="month-group">
-                        <td colspan="9">
-                            <i class="fas fa-calendar-alt"></i> {{ bill.billing_month }}
-                            <span style="float: right; font-size: 14px; font-weight: normal;">
-                                {% for month, data in bills_by_month.items %}
-                                    {% if month == bill.billing_month %}
-                                        {{ data.bills|length }} record{{ data.bills|length|pluralize }}
+
+                        {% ifchanged bill.billing_month %}
+
+                        <tr class="month-group">
+
+                            <td colspan="9">
+
+                                <i class="fas fa-calendar-alt"></i>
+
+                                {{ bill.billing_month }}
+
+                                <span
+                                    style="
+                                        float: right;
+                                        font-size: 14px;
+                                        font-weight: normal;
+                                    "
+                                >
+
+                                    {% for month, data in bills_by_month.items %}
+
+                                        {% if month == bill.billing_month %}
+
+                                            {{ data.bills|length }}
+                                            record{{ data.bills|length|pluralize }}
+
+                                        {% endif %}
+
+                                    {% endfor %}
+
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+                        {% endifchanged %}
+
+
+                        <!-- =================================================
+                             BILL ROW
+                        ================================================== -->
+                        <tr>
+
+                            <!-- Month -->
+                            <td>
+                                {{ bill.billing_month }}
+                            </td>
+
+
+                            <!-- Room / Tenant -->
+                            <td>
+
+                                <strong>
+                                    {{ bill.room.name }}
+                                </strong>
+
+                                <br>
+
+                                <small
+                                    style="
+                                        color: #666;
+                                        font-size: 11px;
+                                    "
+                                >
+
+                                    <i class="fas fa-user"></i>
+
+                                    {{ bill.room.get_tenant_name|default:"No tenant assigned" }}
+
+                                </small>
+
+                            </td>
+
+
+                            <!-- Consumption -->
+                            <td>
+                                {{ bill.kwh|floatformat:2 }} kWh
+                            </td>
+
+
+                            <!-- Rate -->
+                            <td>
+                                ₱{{ electricity_rate|default:"23"|floatformat:2 }}
+                            </td>
+
+
+                            <!-- Amount -->
+                            <td>
+                                <strong>
+                                    ₱{{ bill.cost|floatformat:2 }}
+                                </strong>
+                            </td>
+
+
+                            <!-- Billing Status -->
+                            <td>
+
+                                <span
+                                    class="status-badge
+                                    {% if bill.is_paid %}
+                                        paid
+                                    {% else %}
+                                        unpaid
+                                    {% endif %}"
+                                >
+
+                                    {% if bill.is_paid %}
+
+                                        <i class="fas fa-check-circle"></i>
+                                        PAID
+
+                                    {% else %}
+
+                                        <i class="fas fa-hourglass-half"></i>
+                                        UNPAID
+
                                     {% endif %}
-                                {% endfor %}
-                            </span>
-                        </td>
-                    </tr>
-                    {% endifchanged %}
-                    <tr>
-                        <td>{{ bill.billing_month }}</td>
-                        <td><strong>{{ bill.room.name }}</strong>
-                        <br>
-                        <small style="color: #666; font-size: 11px;">
-                            <i class="fas fa-user"></i> 
-                            {{ bill.room.get_tenant_name|default:"No tenant assigned" }}
-                        </small>
-                        </td>
-                        <td>{{ bill.kwh|floatformat:2 }} kWh</td>
-                        <td>₱{{ electricity_rate|default:"23"|floatformat:2 }}</td>
-                        <td><strong>₱{{ bill.cost|floatformat:2 }}</strong></td>
-                        <td>
-                            <span class="status-badge {% if bill.is_paid %}paid{% else %}unpaid{% endif %}">
-                                {% if bill.is_paid %}<i class="fas fa-check-circle"></i> PAID{% else %}<i class="fas fa-hourglass-half"></i> UNPAID{% endif %}
-                            </span>
-                        </td>
-                        <td>{{ bill.created_at|date:"M d, Y" }}</td>
-                        <td>{{ bill.created_at|date:"h:i A" }}</td>
-                        <td>
-                            {% if not bill.is_paid %}
-                            <form method="post" action="{% url 'mark_as_paid' bill.id %}" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="next" value="{% url 'billing_history' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
-                                <button type="submit" class="action-link action-paid" style="border:0; cursor:pointer;">
-                                    <i class="fas fa-check-circle"></i> Mark Paid
-                                </button>
-                            </form>
-                            {% else %}
-                            <form method="post" action="{% url 'mark_as_paid' bill.id %}" style="display:inline;">
-                                {% csrf_token %}
-                                <input type="hidden" name="next" value="{% url 'billing_history' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
-                                <button type="submit" class="action-link action-unpaid" style="border:0; cursor:pointer;">
-                                    <i class="fas fa-undo-alt"></i> Mark Unpaid
-                                </button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Date Generated -->
+                            <td>
+                                {{ bill.created_at|date:"M d, Y" }}
+                            </td>
+
+
+                            <!-- Last Updated -->
+                            <td>
+                                {{ bill.created_at|date:"h:i A" }}
+                            </td>
+
+
+                            <!-- =================================================
+                                 PAYMENT STATUS
+                                 NO MARK PAID / MARK UNPAID BUTTON
+                            ================================================== -->
+                            <td class="payment-status-cell">
+
+                                {% if bill.is_paid %}
+
+                                    <span class="payment-locked">
+
+                                        <i class="fas fa-lock"></i>
+
+                                        PAID
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="payment-pending">
+
+                                        <i class="fas fa-hourglass-half"></i>
+
+                                        PAYMENT PENDING
+
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
                     {% endfor %}
+
                 </tbody>
+
             </table>
+
         </div>
+
+
+        <!-- =====================================================
+             EMPTY STATE
+        ====================================================== -->
+
         {% else %}
+
         <div class="empty-state">
-            <div class="empty-icon"><i class="fas fa-folder-open"></i></div>
-            <h3>No billing records found</h3>
+
+            <div class="empty-icon">
+                <i class="fas fa-folder-open"></i>
+            </div>
+
+            <h3>
+                No billing records found
+            </h3>
+
             <p>
+
                 {% if request.GET %}
-                No results match your search criteria. Try different filters.
+
+                    No results match your search criteria.
+                    Try different filters.
+
                 {% else %}
-                No billing records available. Bills are generated automatically each month.
+
+                    No billing records available.
+                    Bills are generated automatically each month.
+
                 {% endif %}
+
             </p>
+
         </div>
+
         {% endif %}
-        
-        <!-- Footer -->
+
+
+        <!-- =====================================================
+             FOOTER
+        ====================================================== -->
+
         <div class="footer">
-            <i class="fas fa-bolt"></i> Smart Energy Monitoring System • Advanced Billing Search v2.0
+
+            <i class="fas fa-bolt"></i>
+
+            Smart Energy Monitoring System • Billing History
+
             <br>
-            <small>Filter by: Room Name • Month • Status</small>
+
+            <small>
+                Filter by: Room Name • Month • Status
+            </small>
+
         </div>
+
     </div>
 
+
+    <!-- =========================================================
+         ACTIVE NAVIGATION SCRIPT
+    ========================================================= -->
+
     <script>
-        // Add active class to current navigation item
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Remove active class from all nav links
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
+
+            const navLinks =
+                document.querySelectorAll('.nav-link');
+
+            navLinks.forEach(function(link) {
+
                 link.classList.remove('active');
+
             });
-            
-            // Add active class to History link
-            const historyLink = document.querySelector('a[href*="billing_history"]');
+
+
+            const historyLink =
+                document.querySelector(
+                    'a[href*="billing_history"]'
+                );
+
             if (historyLink) {
+
                 historyLink.classList.add('active');
+
             }
+
         });
+
     </script>
+
+
     <script src="{% static 'js/active-nav.js' %}"></script>
+
 </body>
 </html>

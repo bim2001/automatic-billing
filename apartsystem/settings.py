@@ -1,28 +1,74 @@
 """
 Django settings for apartment project.
 """
-from dotenv import load_dotenv
+
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+
+
+# ============================================================
+# LOAD ENVIRONMENT VARIABLES
+# ============================================================
+
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent  # ← ITO ANG BINAGO (isang parent lang)
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = 'django-insecure-your-secret-key-here'
+# ============================================================
+# BASE DIRECTORY
+# ============================================================
 
-DEBUG = True
+BASE_DIR = Path(__file__).resolve().parent
 
-ALLOWED_HOSTS = ['*', '.ngrok-free.dev', '127.0.0.1', 'localhost']
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.ngrok-free.dev',
-    'http://*.ngrok-free.dev',
+# ============================================================
+# DEVELOPMENT / SECURITY SETTINGS
+# ============================================================
+
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-your-secret-key-here'
+)
+
+DEBUG = os.getenv(
+    'DJANGO_DEBUG',
+    'True'
+).lower() == 'true'
+
+
+# ============================================================
+# ALLOWED HOSTS
+# ============================================================
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv(
+        'DJANGO_ALLOWED_HOSTS',
+        '127.0.0.1,localhost'
+    ).split(',')
+    if host.strip()
 ]
 
-# Application definition
+
+# ============================================================
+# CSRF TRUSTED ORIGINS
+# ============================================================
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        'CSRF_TRUSTED_ORIGINS',
+        ''
+    ).split(',')
+    if origin.strip()
+]
+
+
+# ============================================================
+# APPLICATION DEFINITION
+# ============================================================
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -32,6 +78,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'system',
 ]
+
+
+# ============================================================
+# MIDDLEWARE
+# ============================================================
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -43,13 +94,28 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
+# ============================================================
+# URL CONFIGURATION
+# ============================================================
+
 ROOT_URLCONF = 'urls'
+
+
+# ============================================================
+# TEMPLATES
+# ============================================================
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+
+        'DIRS': [
+            os.path.join(BASE_DIR, 'templates')
+        ],
+
         'APP_DIRS': True,
+
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -62,7 +128,17 @@ TEMPLATES = [
     },
 ]
 
+
+# ============================================================
+# WSGI
+# ============================================================
+
 WSGI_APPLICATION = 'wsgi.application'
+
+
+# ============================================================
+# DATABASE
+# ============================================================
 
 DATABASES = {
     'default': {
@@ -71,39 +147,147 @@ DATABASES = {
     }
 }
 
+
+# ============================================================
+# PASSWORD VALIDATION
+# ============================================================
+
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {
+        'NAME':
+        'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'
+    },
+    {
+        'NAME':
+        'django.contrib.auth.password_validation.MinimumLengthValidator'
+    },
+    {
+        'NAME':
+        'django.contrib.auth.password_validation.CommonPasswordValidator'
+    },
+    {
+        'NAME':
+        'django.contrib.auth.password_validation.NumericPasswordValidator'
+    },
 ]
 
+
+# ============================================================
+# LANGUAGE / TIME ZONE
+# ============================================================
+
 LANGUAGE_CODE = 'en-us'
+
 TIME_ZONE = 'Asia/Manila'
+
 USE_I18N = True
+
 USE_TZ = True
 
+
+# ============================================================
+# STATIC FILES
+# ============================================================
+
 STATIC_URL = '/static/'
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+# ============================================================
+# MEDIA FILES
+# ============================================================
+
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+# ============================================================
+# EMAIL CONFIGURATION
+# ============================================================
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_HOST = os.getenv(
+    'EMAIL_HOST',
+    'smtp.gmail.com'
+)
+
+EMAIL_PORT = int(
+    os.getenv(
+        'EMAIL_PORT',
+        '587'
+    )
+)
+
+EMAIL_USE_TLS = (
+    os.getenv(
+        'EMAIL_USE_TLS',
+        'True'
+    ).lower() == 'true'
+)
+
+EMAIL_HOST_USER = os.getenv(
+    'EMAIL_HOST_USER'
+)
+
+EMAIL_HOST_PASSWORD = os.getenv(
+    'EMAIL_HOST_PASSWORD'
+)
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    EMAIL_HOST_USER
+)
+
+
+# ============================================================
+# PAYMONGO CONFIGURATION
+# ============================================================
+
+PAYMONGO_SECRET_KEY = os.getenv(
+    'PAYMONGO_SECRET_KEY'
+)
+
+PAYMONGO_PUBLIC_KEY = os.getenv(
+    'PAYMONGO_PUBLIC_KEY'
+)
+
+PAYMONGO_WEBHOOK_SECRET = os.getenv(
+    'PAYMONGO_WEBHOOK_SECRET'
+)
+
+PAYMONGO_MODE = os.getenv(
+    'PAYMONGO_MODE',
+    'test'
+)
+
+PAYMONGO_WEBHOOK_URL = os.getenv(
+    'PAYMONGO_WEBHOOK_URL'
+)
+
+
+# ============================================================
+# APPLICATION BASE URL
+# ============================================================
+
+APP_BASE_URL = os.getenv(
+    'APP_BASE_URL',
+    'http://127.0.0.1:8000'
+)
+
+
+# ============================================================
+# DEFAULT PRIMARY KEY
+# ============================================================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'divinabim2001@gmail.com'
-EMAIL_HOST_PASSWORD = 'jazd qiqh xisf sevf'
-
-# PayMongo Settings
-PAYMONGO_SECRET_KEY = os.getenv('PAYMONGO_SECRET_KEY')
-PAYMONGO_PUBLIC_KEY = os.getenv('PAYMONGO_PUBLIC_KEY')
-PAYMONGO_WEBHOOK_SECRET = os.getenv('PAYMONGO_WEBHOOK_SECRET')
-PAYMONGO_MODE = os.getenv('PAYMONGO_MODE', 'test')
-PAYMONGO_WEBHOOK_URL = os.getenv('PAYMONGO_WEBHOOK_URL')
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/login/'
