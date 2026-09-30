@@ -40,8 +40,6 @@ urlpatterns = [
     # ==================== BILLING ====================
     path('billing/', views.billing_view, name='billing_view'),
     path('billing/history/', views.billing_history, name='billing_history'),
-    path('billing/mark-paid/<int:bill_id>/', views.mark_as_paid, name='mark_as_paid'),
-    path('billing/<int:bill_id>/mark-paid/', views.mark_as_paid, name='mark_as_paid'),
     path('billing/export/', views.export_billing_csv, name='export_billing_csv'),
     path('billing/report/', views.billing_report_html, name='billing_report_html'),
     

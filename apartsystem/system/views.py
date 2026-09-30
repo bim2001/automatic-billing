@@ -1527,32 +1527,6 @@ def billing_view(request):
     })
 
 @login_required
-@require_POST
-def mark_as_paid(request, bill_id):
-    if request.user.userprofile.user_type != 'owner':
-        return redirect('tenant_dashboard')
-    
-    bill = get_object_or_404(Billing, id=bill_id)
-    
-    has_tenant = UserProfile.objects.filter(room=bill.room, user_type='tenant').exists()
-    
-    if not has_tenant:
-        messages.error(request, f"Cannot mark bill for {bill.room.name} as paid - no tenant assigned to this room.")
-        next_url = request.POST.get('next') or request.GET.get('next', 'billing_view')
-        return redirect(next_url)
-    
-    bill.is_paid = not bill.is_paid
-    bill.save()
-    
-    messages.success(request, f"Payment status updated for {bill.room.name}.")
-    status = "paid" if bill.is_paid else "unpaid"
-    log_activity(request, 'payment', f"Marked {bill.room.name} {bill.billing_month} bill as {status}.")
-    
-    next_url = request.POST.get('next') or request.GET.get('next', 'billing_view')
-    return redirect(next_url)
-
-
-@login_required
 def billing_history(request):
     settings = get_settings()
     
