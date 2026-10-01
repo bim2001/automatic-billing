@@ -4,6 +4,7 @@
 <head>
     <title>Payment Method - Smart Energy</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         * {
             margin: 0;
@@ -19,121 +20,121 @@
         }
 
         /* ============================================ */
-/* TENANT SIDEBAR STYLES                       */
-/* ============================================ */
+        /* TENANT SIDEBAR STYLES */
+        /* ============================================ */
 
-.sidebar {
-    width: 280px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    height: 100vh;
-    left: 0;
-    top: 0;
-    overflow-y: auto;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-}
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
 
-.sidebar-header {
-    padding: 25px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-    margin-bottom: 20px;
-}
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
 
-.logo {
-    font-size: 24px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-.version {
-    font-size: 12px;
-    opacity: 0.8;
-    margin-top: 5px;
-}
+        .version {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
 
-.nav-menu {
-    flex: 1;
-    padding: 0 15px;
-}
+        .nav-menu {
+            flex: 1;
+            padding: 0 15px;
+        }
 
-.nav-item {
-    margin-bottom: 5px;
-}
+        .nav-item {
+            margin-bottom: 5px;
+        }
 
-.nav-link {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 15px;
-    color: white;
-    text-decoration: none;
-    border-radius: 10px;
-    transition: all 0.3s;
-    font-size: 15px;
-}
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
 
-.nav-link i {
-    width: 22px;
-    font-size: 18px;
-}
+        .nav-link i {
+            width: 22px;
+            font-size: 18px;
+        }
 
-.nav-link:hover {
-    background: rgba(255,255,255,0.2);
-}
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+        }
 
-.nav-link.active {
-    background: rgba(255,255,255,0.25);
-    font-weight: 600;
-}
+        .nav-link.active {
+            background: rgba(255,255,255,0.25);
+            font-weight: 600;
+        }
 
-.nav-divider {
-    height: 1px;
-    background: rgba(255,255,255,0.1);
-    margin: 15px 0;
-}
+        .nav-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 0;
+        }
 
-.sidebar-footer {
-    padding: 20px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
 
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 15px;
-}
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
 
-.user-avatar {
-    width: 40px;
-    height: 40px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-}
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
 
-.user-details {
-    flex: 1;
-}
+        .user-details {
+            flex: 1;
+        }
 
-.user-name {
-    font-weight: 600;
-    font-size: 14px;
-}
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
 
-.user-role {
-    font-size: 11px;
-    opacity: 0.7;
-}
+        .user-role {
+            font-size: 11px;
+            opacity: 0.7;
+        }
 
         .container {
             margin-left: 280px;
@@ -164,6 +165,40 @@
             color: #666;
             margin-bottom: 30px;
         }
+
+        /* ============================================ */
+        /* PAID NOTICE */
+        /* ============================================ */
+
+        .paid-notice {
+            background: #e8f7ee;
+            border: 1px solid #28a745;
+            color: #155724;
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .paid-notice i {
+            font-size: 22px;
+            margin-right: 6px;
+        }
+
+        .paid-notice strong {
+            display: block;
+            font-size: 17px;
+            margin-bottom: 7px;
+        }
+
+        .paid-notice p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        /* ============================================ */
+        /* PAYMENT OPTIONS */
+        /* ============================================ */
 
         .payment-options {
             display: grid;
@@ -226,6 +261,10 @@
             font-size: 14px;
         }
 
+        /* ============================================ */
+        /* BILL SUMMARY */
+        /* ============================================ */
+
         .bill-summary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 15px;
@@ -277,6 +316,46 @@
             font-weight: bold;
         }
 
+        .paid-summary {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .paid-summary-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .paid-summary-item .label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .paid-summary-item .value {
+            font-size: 20px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .paid-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: #28a745;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* ============================================ */
+        /* BILL BREAKDOWN */
+        /* ============================================ */
+
         .breakdown-table-wrap {
             background: white;
             border: 1px solid #edf2f8;
@@ -311,6 +390,10 @@
             color: #2c3e50;
         }
 
+        /* ============================================ */
+        /* BUTTONS */
+        /* ============================================ */
+
         .btn {
             display: inline-block;
             padding: 14px 30px;
@@ -341,6 +424,26 @@
             margin-top: 15px;
         }
 
+        /* ============================================ */
+        /* WARNING */
+        /* ============================================ */
+
+        .payment-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffe69c;
+            border-left: 4px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .payment-warning strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
         .pending-status {
             background: #fff3cd;
             border-radius: 10px;
@@ -350,182 +453,624 @@
             border-left: 4px solid #ffc107;
         }
 
- @media (max-width: 768px) {
+        @media (max-width: 768px) {
 
-    .sidebar {
-        width: 70px;
-        height: 100vh;
-        position: fixed;
-    }
+            .sidebar {
+                width: 70px;
+                height: 100vh;
+                position: fixed;
+            }
 
-    .container {
-        margin-left: 70px;
-        width: calc(100% - 70px);
-        padding: 20px;
-    }
+            .container {
+                margin-left: 70px;
+                width: calc(100% - 70px);
+                padding: 20px;
+            }
 
-    .payment-options {
-        grid-template-columns: 1fr;
-    }
+            .payment-options {
+                grid-template-columns: 1fr;
+            }
 
-    .bill-details {
-        grid-template-columns: 1fr;
-    }
+            .bill-details {
+                grid-template-columns: 1fr;
+            }
 
-    .payment-card {
-        padding: 25px;
-    }
-}
+            .paid-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .payment-card {
+                padding: 25px;
+            }
+        }
     </style>
 </head>
+
 <body>
+
     <!-- SIDEBAR NAVIGATION -->
     {% include 'user/tenant_sidebar.html' %}
 
-<div class="container">
+    <div class="container">
         <div class="payment-card">
-            <h1><i class="fas fa-wallet"></i> Select Payment Method</h1>
-            <div class="subtitle">Choose how you want to pay your electricity bill</div>
 
-            <!-- Bill Summary -->
-            <div class="bill-summary">
-                <h3><i class="fas fa-receipt"></i> Bill Summary</h3>
-                <div class="bill-details">
-                    <div class="bill-detail">
-                        <div class="bill-detail-label">Room</div>
-                        <div class="bill-detail-value">{{ room.name }}</div>
-                    </div>
-                    <div class="bill-detail">
-                        <div class="bill-detail-label">Billing Month</div>
-                        <div class="bill-detail-value">{{ bill.billing_month }}</div>
-                    </div>
-                    <div class="bill-detail">
-                        <div class="bill-detail-label">Due Date</div>
-                        <div class="bill-detail-value">{{ bill.due_date|date:"M d, Y" }}</div>
-                    </div>
-                    <div class="bill-detail">
-                        <div class="bill-detail-label">Electricity Rate</div>
-                        <div class="bill-detail-value">₱{{ electricity_rate|floatformat:2 }}/kWh</div>
-                    </div>
-                </div>
-                <div class="amount-due">
-                    <div class="label">Total Amount Due</div>
-                    <div class="value">₱{{ bill.cost|floatformat:2 }}</div>
-                </div>
+            <h1>
+                <i class="fas fa-wallet"></i> Select Payment Method
+            </h1>
+
+            <div class="subtitle">
+                Choose how you want to pay your electricity bill
             </div>
 
-            <div class="breakdown-table-wrap">
-                <h3><i class="fas fa-calculator"></i> Bill Computation</h3>
-                <table class="breakdown-table">
-                    <tr>
-                        <td>Move-in Date</td>
-                        <td>{{ bill.move_in_date_display|date:"M d, Y" }}</td>
-                    </tr>
-                    <tr>
-                        <td>Due Date</td>
-                        <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
-                    </tr>
-                    <tr>
-                        <td>Days Occupied</td>
-                        <td>{{ bill.days_occupied_display }} days</td>
-                    </tr>
-                    <tr>
-                        <td>Consumption</td>
-                        <td>{{ bill.kwh|floatformat:2 }} kWh</td>
-                    </tr>
-                    <tr>
-                        <td>Formula</td>
-                        <td>{{ bill_formula }}</td>
-                    </tr>
-                    <tr>
-                        <td>Total</td>
-                        <td>PHP {{ bill.cost|floatformat:2 }}</td>
-                    </tr>
-                </table>
-            </div>
 
-            <!-- Payment Options -->
-            <div class="payment-options">
-                <div class="payment-option" onclick="selectPayment('gcash')" id="option-gcash">
-                    <div class="payment-icon">
-                        <img src="{% static 'images/download.png' %}" alt="GCash" class="gcash-payment-logo">
-                    </div>
-                    <h3>GCash</h3>
-                    <p>Pay via GCash QR Code or PayMongo</p>
-                </div>
+            <!-- ============================================ -->
+            <!-- PAID NOTICE -->
+            <!-- ============================================ -->
 
-                <div class="payment-option" onclick="selectPayment('cash')" id="option-cash">
-                    <div class="payment-icon">
-                        <i class="fas fa-money-bill-wave" style="color: #45995a;"></i>
-                    </div>
-                    <h3>Cash</h3>
-                    <p>Pay directly to the owner</p>
-                </div>
-            </div>
+            {% if bill_is_paid %}
+            <div class="paid-notice">
+                <strong>
+                    <i class="fas fa-check-circle"></i>
+                    Your total amount due for this billing cycle has been paid.
+                </strong>
 
-            <!-- Hidden forms (will be shown based on selection) -->
-<div id="gcash-form" style="display: none;">
-    <form method="post" action="{% url 'create_gcash_payment' bill.id %}" id="gcashForm">
-        {% csrf_token %}
-        <button type="submit" class="btn" id="gcashPayBtn">
-            <img src="{% static 'images/logo.png' %}" alt="GCash" class="gcash-button-logo"> Pay with GCash via PayMongo
-        </button>
-    </form>
-    <div id="gcashLoading" style="display: none; text-align: center; padding: 20px;">
-        <i class="fas fa-spinner fa-spin" style="font-size: 30px;"></i>
-        <p>Redirecting to PayMongo checkout...</p>
-    </div>
-                </div>
-            </div>
-
-            <div id="cash-form" style="display: none;">
-                <form method="post" action="{% url 'manual_paid_confirmation' bill.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn">
-                        <i class="fas fa-money-bill-wave"></i> Confirm Cash Payment
-                    </button>
-                </form>
-                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                    <p><i class="fas fa-info-circle"></i> <strong>Instructions:</strong></p>
-                    <ul style="margin-left: 20px; margin-top: 10px; color: #666;">
-                        <li>Pay the exact amount of <strong>₱{{ bill.cost|floatformat:2 }}</strong> to the owner</li>
-                        <li>Reference Number: <strong>PAY-{{ bill.room.name }}-{{ bill.billing_month|cut:" " }}</strong></li>
-                        <li>After payment, the owner will mark your bill as paid</li>
-                    </ul>
-                </div>
-            </div>
-
-            {% if pending_payment and pending_payment.status == 'pending' %}
-            <div class="pending-status">
-                <i class="fas fa-hourglass-half"></i>
-                <span>You have a pending payment. Reference: {{ pending_payment.reference_number }}</span>
+                <p>
+                    Your payment for {{ bill.billing_cycle_label }} has been successfully recorded.
+                    No additional payment is required for this bill.
+                </p>
             </div>
             {% endif %}
+
+
+            <!-- ============================================ -->
+            <!-- BILL SUMMARY -->
+            <!-- ============================================ -->
+
+            <div class="bill-summary">
+
+                <h3>
+                    <i class="fas fa-receipt"></i> Bill Summary
+                </h3>
+
+                <div class="bill-details">
+
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Room</div>
+                        <div class="bill-detail-value">
+                            {{ room.name }}
+                        </div>
+                    </div>
+
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Billing Cycle</div>
+                        <div class="bill-detail-value">
+                            {{ bill.billing_cycle_label }}
+                        </div>
+                    </div>
+
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Due Date</div>
+                        <div class="bill-detail-value">
+                            {{ bill.due_date|date:"M d, Y" }}
+                        </div>
+                    </div>
+
+                    <div class="bill-detail">
+                        <div class="bill-detail-label">Electricity Rate</div>
+                        <div class="bill-detail-value">
+                            ₱{{ electricity_rate|floatformat:2 }}/kWh
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <!-- TOTAL AMOUNT DUE -->
+
+                <div class="amount-due">
+
+                    {% if bill_is_paid %}
+
+                        <div class="label">
+                            Outstanding Balance
+                        </div>
+
+                        <div class="value">
+                            ₱0.00
+                        </div>
+
+                        <div class="paid-badge">
+                            <i class="fas fa-check"></i> PAID
+                        </div>
+
+                    {% else %}
+
+                        <div class="label">
+                            Total Amount Due
+                        </div>
+
+                        <div class="value">
+                            ₱{{ bill.cost|floatformat:2 }}
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- PAID SUMMARY -->
+
+                {% if bill_is_paid %}
+
+                <div class="paid-summary">
+
+                    <div class="paid-summary-item">
+                        <div class="label">
+                            Original Bill
+                        </div>
+
+                        <div class="value">
+                            ₱{{ bill.cost|floatformat:2 }}
+                        </div>
+                    </div>
+
+                    <div class="paid-summary-item">
+                        <div class="label">
+                            Amount Paid
+                        </div>
+
+                        <div class="value">
+                            ₱{{ bill.cost|floatformat:2 }}
+                        </div>
+                    </div>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ============================================ -->
+            <!-- BILL COMPUTATION -->
+            <!-- ============================================ -->
+
+            <div class="breakdown-table-wrap">
+
+                <h3>
+                    <i class="fas fa-calculator"></i>
+                    Bill Computation
+                </h3>
+
+                <table class="breakdown-table">
+
+                    <tr>
+                        <td>Move-in Date</td>
+                        <td>
+                            {{ bill.move_in_date_display|date:"M d, Y" }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Due Date</td>
+                        <td>
+                            {{ bill.due_date_display|date:"M d, Y" }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Days Occupied</td>
+                        <td>
+                            {{ bill.days_occupied_display }} days
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Consumption</td>
+                        <td>
+                            {{ bill.kwh|floatformat:2 }} kWh
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Formula</td>
+                        <td>
+                            {{ bill_formula }}
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Total</td>
+                        <td>
+                            PHP {{ bill.cost|floatformat:2 }}
+                        </td>
+                    </tr>
+
+                    {% if bill_is_paid %}
+
+                    <tr>
+                        <td>Payment Status</td>
+                        <td style="color: #28a745;">
+                            <i class="fas fa-check-circle"></i>
+                            PAID
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Outstanding Balance</td>
+                        <td style="color: #28a745;">
+                            PHP 0.00
+                        </td>
+                    </tr>
+
+                    {% endif %}
+
+                </table>
+
+            </div>
+
+
+            <!-- ============================================ -->
+            <!-- PAYMENT OPTIONS -->
+            <!-- ============================================ -->
+
+            <div class="payment-options">
+
+                <!-- GCASH -->
+
+                <div
+                    class="payment-option"
+                    onclick="selectPayment('gcash')"
+                    id="option-gcash"
+                >
+
+                    <div class="payment-icon">
+
+                        <img
+                            src="{% static 'images/download.png' %}"
+                            alt="GCash"
+                            class="gcash-payment-logo"
+                        >
+
+                    </div>
+
+                    <h3>GCash</h3>
+
+                    <p>
+                        Pay via GCash QR Code or PayMongo
+                    </p>
+
+                </div>
+
+
+                <!-- CASH -->
+
+                <div
+                    class="payment-option"
+                    onclick="selectPayment('cash')"
+                    id="option-cash"
+                >
+
+                    <div class="payment-icon">
+
+                        <i
+                            class="fas fa-money-bill-wave"
+                            style="color: #45995a;"
+                        ></i>
+
+                    </div>
+
+                    <h3>Cash</h3>
+
+                    <p>
+                        Pay directly to the owner
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- ============================================ -->
+            <!-- GCASH FORM -->
+            <!-- ============================================ -->
+
+            <div id="gcash-form" style="display: none;">
+
+                {% if bill_is_paid %}
+
+                    <div class="payment-warning">
+
+                        <strong>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Payment Already Completed
+                        </strong>
+
+                        This billing cycle has already been paid.
+                        No additional GCash payment is required.
+
+                    </div>
+
+                {% else %}
+
+                    <form
+                        method="post"
+                        action="{% url 'create_gcash_payment' bill.id %}"
+                        id="gcashForm"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn"
+                            id="gcashPayBtn"
+                        >
+
+                            <img
+                                src="{% static 'images/logo.png' %}"
+                                alt="GCash"
+                                class="gcash-button-logo"
+                            >
+
+                            Pay with GCash via PayMongo
+
+                        </button>
+
+                    </form>
+
+                    <div
+                        id="gcashLoading"
+                        style="display: none; text-align: center; padding: 20px;"
+                    >
+
+                        <i
+                            class="fas fa-spinner fa-spin"
+                            style="font-size: 30px;"
+                        ></i>
+
+                        <p>
+                            Redirecting to PayMongo checkout...
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ============================================ -->
+            <!-- CASH FORM -->
+            <!-- ============================================ -->
+
+            <div id="cash-form" style="display: none;">
+
+                {% if bill_is_paid %}
+
+                    <div class="payment-warning">
+
+                        <strong>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Payment Already Completed
+                        </strong>
+
+                        This billing cycle has already been paid.
+                        No additional Cash payment is required.
+
+                    </div>
+
+                {% else %}
+
+                    <form
+                        method="post"
+                        action="{% url 'manual_paid_confirmation' bill.id %}"
+                    >
+
+                        {% csrf_token %}
+
+                        <button
+                            type="submit"
+                            class="btn"
+                        >
+
+                            <i class="fas fa-money-bill-wave"></i>
+                            Confirm Cash Payment
+
+                        </button>
+
+                    </form>
+
+                    <div
+                        style="
+                            margin-top: 15px;
+                            padding: 15px;
+                            background: #f8f9fa;
+                            border-radius: 10px;
+                        "
+                    >
+
+                        <p>
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Instructions:</strong>
+                        </p>
+
+                        <ul
+                            style="
+                                margin-left: 20px;
+                                margin-top: 10px;
+                                color: #666;
+                            "
+                        >
+
+                            <li>
+                                Pay the exact amount of
+                                <strong>
+                                    ₱{{ bill.cost|floatformat:2 }}
+                                </strong>
+                                to the owner
+                            </li>
+
+                            <li>
+                                Reference Number:
+                                <strong>
+                                    PAY-{{ bill.room.name }}-{{ bill.billing_month|cut:" " }}
+                                </strong>
+                            </li>
+
+                            <li>
+                                After payment, the owner will verify
+                                your cash payment
+                            </li>
+
+                        </ul>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- ============================================ -->
+            <!-- PENDING PAYMENT -->
+            <!-- ============================================ -->
+
+            {% if pending_payment and pending_payment.status == 'pending' %}
+
+            <div class="pending-status">
+
+                <i class="fas fa-hourglass-half"></i>
+
+                <span>
+                    You have a pending payment.
+                    Reference:
+                    {{ pending_payment.reference_number }}
+                </span>
+
+            </div>
+
+            {% endif %}
+
         </div>
     </div>
 
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+
     <script>
+
         function selectPayment(method) {
-            // Remove selected class from both
-            document.getElementById('option-gcash').classList.remove('selected');
-            document.getElementById('option-cash').classList.remove('selected');
-            
+
+            // Remove selected class from both options
+            document
+                .getElementById('option-gcash')
+                .classList
+                .remove('selected');
+
+            document
+                .getElementById('option-cash')
+                .classList
+                .remove('selected');
+
+
             // Hide both forms
-            document.getElementById('gcash-form').style.display = 'none';
-            document.getElementById('cash-form').style.display = 'none';
-            
+            document
+                .getElementById('gcash-form')
+                .style.display = 'none';
+
+            document
+                .getElementById('cash-form')
+                .style.display = 'none';
+
+
+            // ============================================
+            // PAID BILL WARNING
+            // ============================================
+
+            {% if bill_is_paid %}
+
+                if (method === 'gcash') {
+
+                    document
+                        .getElementById('option-gcash')
+                        .classList
+                        .add('selected');
+
+                    document
+                        .getElementById('gcash-form')
+                        .style.display = 'block';
+
+                } else {
+
+                    document
+                        .getElementById('option-cash')
+                        .classList
+                        .add('selected');
+
+                    document
+                        .getElementById('cash-form')
+                        .style.display = 'block';
+
+                }
+
+                return;
+
+            {% endif %}
+
+
+            // ============================================
+            // NORMAL PAYMENT
+            // ============================================
+
             if (method === 'gcash') {
-                document.getElementById('option-gcash').classList.add('selected');
-                document.getElementById('gcash-form').style.display = 'block';
+
+                document
+                    .getElementById('option-gcash')
+                    .classList
+                    .add('selected');
+
+                document
+                    .getElementById('gcash-form')
+                    .style.display = 'block';
+
             } else {
-                document.getElementById('option-cash').classList.add('selected');
-                document.getElementById('cash-form').style.display = 'block';
+
+                document
+                    .getElementById('option-cash')
+                    .classList
+                    .add('selected');
+
+                document
+                    .getElementById('cash-form')
+                    .style.display = 'block';
+
             }
+
         }
-            document.getElementById('gcashForm')?.addEventListener('submit', function(e) {
-            document.getElementById('gcashPayBtn').style.display = 'none';
-            document.getElementById('gcashLoading').style.display = 'block';
-        });
+
+
+        // ============================================
+        // GCASH LOADING
+        // ============================================
+
+        document
+            .getElementById('gcashForm')
+            ?.addEventListener('submit', function(e) {
+
+                document
+                    .getElementById('gcashPayBtn')
+                    .style.display = 'none';
+
+                document
+                    .getElementById('gcashLoading')
+                    .style.display = 'block';
+
+            });
+
     </script>
+
 </body>
 </html>

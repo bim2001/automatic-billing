@@ -8,21 +8,9 @@ from .models import Room, Billing, Alert
 ELECTRICITY_RATE = 23
 
 def generate_monthly_bills():
-    today = date.today()
-    current_month_str = today.strftime("%B %Y")
-    last_day = calendar.monthrange(today.year, today.month)[1]
-
-    for room in Room.objects.all():
-        if not Billing.objects.filter(room=room, billing_month=current_month_str).exists():
-            cost = room.usage * ELECTRICITY_RATE
-            due_date = date(today.year, today.month, last_day)
-            Billing.objects.create(
-                room=room,
-                billing_month=current_month_str,
-                kwh=room.usage,
-                cost=cost,
-                due_date=due_date
-            )
+    """Compatibility wrapper for the shared tenant-cycle bill generator."""
+    from .views import generate_monthly_bills as generate_cycle_bills
+    return generate_cycle_bills()
 
 def send_payment_reminders():
     today = timezone.now().date()

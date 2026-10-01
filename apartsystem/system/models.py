@@ -185,6 +185,9 @@ class TenantAssignment(models.Model):
 class Billing(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     billing_month = models.CharField(max_length=50)
+    # The cycle start plus due_date identifies this tenant's billing period.
+    # Nullable so existing calendar-month bills remain readable after migration.
+    cycle_start = models.DateField(null=True, blank=True)
     kwh = models.FloatField(default=0)
     cost = models.FloatField(default=0)
     is_paid = models.BooleanField(default=False)
@@ -204,8 +207,13 @@ class Billing(models.Model):
         return f"{self.room.name} - {self.billing_month}"
     
     class Meta:
-        ordering = ['-billing_month', 'room__name']
-        unique_together = ('room', 'billing_month')
+        ordering = ['-due_date', 'room__name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['room', 'tenant_assignment', 'cycle_start'],
+                name='unique_billing_cycle_per_room',
+            ),
+        ]
 
 
 class EnergyUsage(models.Model):

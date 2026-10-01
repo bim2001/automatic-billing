@@ -845,9 +845,9 @@
             <!-- Current Bill Card -->
             <div class="stat-card {% if current_bill and not current_bill.is_paid %}warning{% endif %}">
                 <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
-                <div class="stat-value">₱{{ room.cost|floatformat:2 }}</div>
+                <div class="stat-value">₱{{ bill_amount|floatformat:2 }}</div>
                 <div class="stat-label">Current Bill</div>
-                <div class="stat-sub">{{ current_month }}</div>
+                <div class="stat-sub">{% if current_bill %}{{ current_bill.billing_cycle_label }}{% else %}No active billing cycle{% endif %}</div>
                 {% if current_bill %}
                     {% if current_bill.is_paid %}
                     <div style="color: #28a745; font-size: 12px; margin-top: 5px;"><i class="fas fa-check-circle"></i> Paid</div>
@@ -955,8 +955,8 @@
                 </div>
                 <div class="computation-panel">
                     <div class="computation-row">
-                        <span>Billing Month</span>
-                        <strong>{{ current_month }}</strong>
+                        <span>Billing Cycle</span>
+                        <strong>{% if current_bill %}{{ current_bill.billing_cycle_label }}{% else %}No active billing cycle{% endif %}</strong>
                     </div>
                     <div class="computation-row">
                         <span>Consumption</span>
@@ -967,6 +967,10 @@
                         <strong>PHP {{ electricity_rate|floatformat:2 }} / kWh</strong>
                     </div>
                     {% if current_bill %}
+                    <div class="computation-row">
+                        <span>Cycle Start</span>
+                        <strong>{{ current_bill.cycle_start_display|date:"M d, Y" }}</strong>
+                    </div>
                     <div class="computation-row">
                         <span>Due Date</span>
                         <strong>{{ current_bill.due_date_display|date:"M d, Y" }}</strong>

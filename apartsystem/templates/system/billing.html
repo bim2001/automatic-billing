@@ -379,7 +379,7 @@
                 <thead>
                     <tr>
                         <th>Room / Tenant</th>
-                        <th>Due Date</th>
+                        <th>Billing Cycle</th>
                         <th>Days Occupied</th>
                         <th>Rate</th>
                         <th>Status</th>
@@ -393,7 +393,7 @@
                             <div class="room-name">{{ bill.room.name }}</div>
                             <div class="tenant-name"><i class="fas fa-user"></i> {{ bill.tenant_name|default:"No tenant" }}</div>
                         </td>
-                        <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
+                        <td>{{ bill.billing_cycle_label }}</td>
                         <td>{{ bill.days_occupied_display }} days</td>
                         <td>PHP {{ electricity_rate|floatformat:2 }}/kWh</td>
                         <td><span class="status-badge status-unpaid">UNPAID</span></td>
@@ -415,7 +415,7 @@
                 <thead>
                     <tr>
                         <th>Room / Tenant</th>
-                        <th>Due Date</th>
+                        <th>Billing Cycle</th>
                         <th>Days Occupied</th>
                         <th>Rate</th>
                         <th>Status</th>
@@ -429,7 +429,7 @@
                             <div class="room-name">{{ bill.room.name }}</div>
                             <div class="tenant-name"><i class="fas fa-user"></i> {{ bill.tenant_name|default:"No tenant" }}</div>
                         </td>
-                        <td>{{ bill.due_date_display|date:"M d, Y" }}</td>
+                        <td>{{ bill.billing_cycle_label }}</td>
                         <td>{{ bill.days_occupied_display }} days</td>
                         <td>PHP {{ electricity_rate|floatformat:2 }}/kWh</td>
                         <td><span class="status-badge status-paid">PAID</span></td>

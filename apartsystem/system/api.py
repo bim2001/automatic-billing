@@ -604,18 +604,19 @@ def get_building_stats(request):
     room_stats.sort(key=lambda x: x['usage'], reverse=True)
     avg_per_room = round(total_building_usage / occupied_rooms_count, 2) if occupied_rooms_count > 0 else 0
     
-    # ========== ✅ BAGONG CODE: Current Bill Total ==========
+    # Current unpaid bill total follows each room's active tenant cycle.
     month_name = end.strftime("%B %Y")
-    
-    # Kunin ang total unpaid bills para sa current month
     total_bill = 0
     try:
-        total_bill = sum(
-            bill.cost for bill in Billing.objects.filter(
-                billing_month=month_name,
-                is_paid=False
-            )
-        )
+        from .views import _generate_assignment_cycle, get_active_assignment
+
+        today = timezone.localdate()
+        for room in rooms:
+            assignment = get_active_assignment(room)
+            if assignment and assignment.move_in_date <= today:
+                bill, _, _ = _generate_assignment_cycle(room, assignment, today)
+                if bill and not bill.is_paid:
+                    total_bill += bill.cost
     except Exception as e:
         print(f"Error getting total bill: {e}")
         total_bill = 0
@@ -666,13 +667,8 @@ def bill_details(request, bill_id):
         electricity_rate = settings.electricity_rate
         assignment = bill.tenant_assignment or TenantAssignment.objects.filter(room=bill.room, is_active=True).first()
         move_in_date = assignment.move_in_date if assignment else None
-        due_date = assignment.get_due_date() if assignment else bill.due_date
-        today = timezone.now().date()
-        if move_in_date:
-            cycle_end = min(today, due_date) if due_date else today
-            days_occupied = max((cycle_end - move_in_date).days + 1, 0)
-        else:
-            days_occupied = bill.days_occupied if hasattr(bill, 'days_occupied') else 30
+        due_date = bill.due_date
+        days_occupied = bill.days_occupied
 
         previous = Billing.objects.filter(
             room=bill.room,
@@ -702,7 +698,7 @@ def bill_details(request, bill_id):
             'late_fee': late_fee,
             'total_amount': round(total, 2),
             'move_in_date': move_in_date.strftime('%Y-%m-%d') if move_in_date else 'N/A',
-            'cycle_start': move_in_date.strftime('%Y-%m-%d') if move_in_date else 'N/A',
+            'cycle_start': bill.cycle_start.strftime('%Y-%m-%d') if bill.cycle_start else (move_in_date.strftime('%Y-%m-%d') if move_in_date else 'N/A'),
             'due_date': due_date.strftime('%Y-%m-%d') if due_date else 'N/A',
             'is_paid': bill.is_paid,
             'paid_date': paid_date,
