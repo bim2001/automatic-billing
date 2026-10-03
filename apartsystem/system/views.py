@@ -2102,6 +2102,15 @@ def create_gcash_payment(request, bill_id):
         )
         return redirect('payment_method')
 
+    # Prevent payment for a zero-amount bill
+    if bill.cost <= 0:
+        messages.warning(
+            request,
+            "This bill has no amount due. Payment cannot be processed "
+            "for a ₱0.00 bill."
+        )
+        return redirect('payment_method')
+
     payment = Payment.objects.filter(
         bill=bill,
         status='pending',
@@ -2275,19 +2284,45 @@ def payment_success(request, reference_number):
     return redirect('tenant_dashboard')
     
 @login_required
+@require_POST
+def verify_cash_payment(request, payment_id):
+    profile = request.user.userprofile
+    if (
+        profile.user_type != 'owner'
+        and not request.user.is_staff
+        and not request.user.is_superuser
+    ):
+        messages.error(request, "You don't have permission to verify payments.")
+        return redirect('dashboard')
+
+    with transaction.atomic():
+        payment = get_object_or_404(
+            Payment.objects.select_for_update(),
+            id=payment_id,
+            payment_method='cash',
+            status='pending',
+        )
+        mark_payment_as_paid(payment)
+    messages.success(
+        request,
+        f"Cash payment {payment.reference_number} has been verified."
+    )
+    return redirect('billing_view')
+
+@login_required
 def manual_paid_confirmation(request, bill_id):
     profile = request.user.userprofile
-    
+
     if profile.user_type != 'tenant':
         return redirect('dashboard')
-    
+
     bill = get_object_or_404(
         Billing,
         id=bill_id,
         room=profile.room
     )
-    
-    # Prevent duplicate cash payment
+
+    # Prevent duplicate cash payment if bill is already paid
     if bill.is_paid:
         messages.warning(
             request,
@@ -2295,8 +2330,18 @@ def manual_paid_confirmation(request, bill_id):
             "No additional payment is required."
         )
         return redirect('payment_method')
-    
+
+    # Prevent cash payment for a zero-amount bill
+    if bill.cost <= 0:
+        messages.warning(
+            request,
+            "This bill has no amount due. Cash payment cannot be submitted "
+            "for a ₱0.00 bill."
+        )
+        return redirect('payment_method')
+
     if request.method == 'POST':
+
         # Check again before creating a payment.
         # This protects against duplicate submissions.
         if bill.is_paid:
@@ -2306,23 +2351,32 @@ def manual_paid_confirmation(request, bill_id):
                 "No additional payment is required."
             )
             return redirect('payment_method')
-        
+
+        # Check again in case the bill amount changed
+        if bill.cost <= 0:
+            messages.warning(
+                request,
+                "This bill has no amount due. Cash payment cannot be submitted "
+                "for a ₱0.00 bill."
+            )
+            return redirect('payment_method')
+
         payment = Payment.objects.filter(
             bill=bill,
             status='pending',
             payment_method='cash'
         ).first()
-        
+
         if not payment:
             payment = create_payment_record(
                 bill,
                 profile,
                 'cash'
             )
-        
+
         payment.notes = request.POST.get('notes', '')
         payment.save()
-        
+
         log_activity(
             request,
             'payment',
@@ -2330,7 +2384,7 @@ def manual_paid_confirmation(request, bill_id):
             f"{bill.room.name} {bill.billing_month}. "
             f"Reference: {payment.reference_number}."
         )
-        
+
         Alert.objects.create(
             room=bill.room,
             alert_type='billing',
@@ -2344,15 +2398,15 @@ def manual_paid_confirmation(request, bill_id):
             ),
             action_url="/billing/"
         )
-        
+
         messages.info(
             request,
             f"Your cash payment notice for {bill.billing_month} "
             "has been recorded. The owner will verify the payment."
         )
-        
+
         return redirect('tenant_dashboard')
-    
+
     return render(
         request,
         'user/cash_payment_confirmation.html',
@@ -2369,52 +2423,66 @@ def manual_paid_confirmation(request, bill_id):
 @login_required
 def payment_method(request):
     profile = request.user.userprofile
-    
+
     if profile.user_type != 'tenant':
         return redirect('dashboard')
-    
+
     room = profile.room
+
     if not room:
         return redirect('tenant_dashboard')
-    
+
+    # Get the tenant's current active assignment
     assignment = get_active_assignment(room)
+
     current_bill = None
+
     if assignment and assignment.move_in_date <= timezone.localdate():
+
         current_bill, _, _ = _generate_assignment_cycle(
             room,
             assignment,
             timezone.localdate(),
         )
-    
+
     if not current_bill:
-        messages.info(request, "No bill available for this month.")
+        messages.info(
+            request,
+            "No bill available for the current billing cycle."
+        )
         return redirect('tenant_dashboard')
-    
-    current_bill = attach_bill_display_data(current_bill, assignment)
-    
+
+    current_bill = attach_bill_display_data(
+        current_bill,
+        assignment
+    )
+
     # Get any pending payment for this bill
     pending_payment = Payment.objects.filter(
         bill=current_bill,
         status='pending'
     ).first()
-    
-    # If bill is already paid, the payment page will STILL be displayed.
-    # We only provide a flag so the template can show the PAID message
-    # and prevent duplicate payment.
+
+    # Keep payment page accessible even when already paid.
+    # The template can show the PAID status.
     bill_is_paid = current_bill.is_paid
-    
-    return render(request, 'user/payment_method.html', {
-        'bill': current_bill,
-        'pending_payment': pending_payment,
-        'room': room,
-        'username': request.user.username,
-        'electricity_rate': get_settings().electricity_rate,
-        'bill_formula': (
-            f"{current_bill.kwh:.2f} kWh x "
-            f"PHP {get_settings().electricity_rate:.2f}/kWh"
-        ),
-        'bill_is_paid': bill_is_paid,
-    })
+
+    return render(
+        request,
+        'user/payment_method.html',
+        {
+            'bill': current_bill,
+            'pending_payment': pending_payment,
+            'room': room,
+            'username': request.user.username,
+            'electricity_rate': get_settings().electricity_rate,
+            'bill_formula': (
+                f"{current_bill.kwh:.2f} kWh x "
+                f"PHP {get_settings().electricity_rate:.2f}/kWh"
+            ),
+            'bill_is_paid': bill_is_paid,
+        }
+    )
 
 @login_required
 def payment_checkout_simulation(request, reference):
@@ -2779,6 +2847,7 @@ def bill_details_api(request, bill_id):
         ),
         'payment_history': [
             {
+                'id': p.id,
                 'payment_method': p.payment_method,
                 'amount': round(p.amount, 2),
                 'status': p.status,

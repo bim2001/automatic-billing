@@ -75,6 +75,7 @@ urlpatterns = [
     path('payment/gcash/<int:bill_id>/', views.create_gcash_payment, name='create_gcash_payment'),
     path('payment/success/<str:reference_number>/', views.payment_success, name='payment_success'),
     path('payment/cash/<int:bill_id>/', views.manual_paid_confirmation, name='manual_paid_confirmation'),
+    path('payment/cash/verify/<int:payment_id>/', views.verify_cash_payment, name='verify_cash_payment'),
     path('payment/', views.payment_method, name='payment_method'),
     path('payment/checkout/<str:reference>/', views.payment_checkout_simulation, name='payment_checkout_simulation'),
 ]

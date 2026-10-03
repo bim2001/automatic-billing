@@ -222,6 +222,17 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
+        .payment-option:has([aria-disabled="true"]),
+        .payment-option.payment-option-disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .payment-option.payment-option-disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
         .payment-option.selected {
             border-color: #667eea;
             background: #f0f7ff;
@@ -521,6 +532,16 @@
             </div>
             {% endif %}
 
+            {% if not bill_is_paid and bill.cost|default_if_none:0 <= 0 %}
+            <div class="payment-warning" role="status">
+                <strong>
+                    <i class="fas fa-exclamation-triangle"></i>
+                    No Payment Required
+                </strong>
+                This bill has no amount due (₱0.00), so payment cannot be processed.
+            </div>
+            {% endif %}
+
 
             <!-- ============================================ -->
             <!-- BILL SUMMARY -->
@@ -719,8 +740,8 @@
                 <!-- GCASH -->
 
                 <div
-                    class="payment-option"
-                    onclick="selectPayment('gcash')"
+                    class="payment-option{% if bill.cost|default_if_none:0 <= 0 %} payment-option-disabled{% endif %}"
+                    {% if bill.cost|default_if_none:0 > 0 %}onclick="selectPayment('gcash')"{% else %}aria-disabled="true"{% endif %}
                     id="option-gcash"
                 >
 
@@ -746,8 +767,8 @@
                 <!-- CASH -->
 
                 <div
-                    class="payment-option"
-                    onclick="selectPayment('cash')"
+                    class="payment-option{% if bill.cost|default_if_none:0 <= 0 %} payment-option-disabled{% endif %}"
+                    {% if bill.cost|default_if_none:0 > 0 %}onclick="selectPayment('cash')"{% else %}aria-disabled="true"{% endif %}
                     id="option-cash"
                 >
 
@@ -789,6 +810,13 @@
                         This billing cycle has already been paid.
                         No additional GCash payment is required.
 
+                    </div>
+
+                {% elif bill.cost|default_if_none:0 <= 0 %}
+
+                    <div class="payment-warning" role="status">
+                        <strong>No Payment Required</strong>
+                        This bill has no amount due, so GCash payment cannot be processed.
                     </div>
 
                 {% else %}
@@ -858,6 +886,13 @@
                         This billing cycle has already been paid.
                         No additional Cash payment is required.
 
+                    </div>
+
+                {% elif bill.cost|default_if_none:0 <= 0 %}
+
+                    <div class="payment-warning" role="status">
+                        <strong>No Payment Required</strong>
+                        This bill has no amount due, so Cash payment cannot be processed.
                     </div>
 
                 {% else %}
@@ -963,6 +998,10 @@
     <script>
 
         function selectPayment(method) {
+
+            {% if bill.cost|default_if_none:0 <= 0 %}
+                return;
+            {% endif %}
 
             // Remove selected class from both options
             document

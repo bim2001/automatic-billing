@@ -587,14 +587,14 @@
                     </div>
                     
                     <div class="modal-actions">
-                        ${!data.is_paid ? `
-                        <form method="post" action="/billing/${data.id}/mark-paid/?next=/billing/" style="flex: 1;" onsubmit="return confirm('Mark this bill as paid?')">
+                        ${!data.is_paid && data.payment_history ? data.payment_history.filter(p => p.payment_method === 'cash' && p.status === 'pending').map(p => `
+                        <form method="post" action="/payment/cash/verify/${p.id}/" style="flex: 1;" onsubmit="return confirm('Verify this cash payment?')">
                             <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
                             <button type="submit" class="btn-paid">
-                                <i class="fas fa-check-circle"></i> Mark as Paid
+                                <i class="fas fa-check-circle"></i> Verify Cash Payment
                             </button>
                         </form>
-                        ` : ''}
+                        `).join('') : ''}
                         <button type="button" class="btn-unpaid" onclick="closeBillModal()">
                             <i class="fas fa-times"></i> Close
                         </button>
