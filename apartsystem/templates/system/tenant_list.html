@@ -384,6 +384,123 @@
         .file-link:hover {
             text-decoration: underline;
         }
+
+        .file-preview-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.72);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .file-preview-modal.show {
+            display: flex;
+        }
+
+        .file-preview-content {
+            display: flex;
+            flex-direction: column;
+            width: min(900px, 100%);
+            max-height: 92vh;
+            overflow: hidden;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        .file-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .file-preview-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .file-preview-close-x {
+            border: 0;
+            padding: 0 4px;
+            color: #fff;
+            background: transparent;
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .file-preview-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 180px;
+            padding: 20px;
+            overflow: auto;
+            background: #f7f8fc;
+        }
+
+        .file-preview-image {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        .file-preview-error {
+            margin: 0;
+            padding: 16px 20px;
+            color: #842029;
+            background: #f8d7da;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .file-preview-document {
+            display: block;
+            width: 100%;
+            height: min(70vh, 700px);
+            border: 0;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .file-preview-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding: 12px 20px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        @media (max-width: 600px) {
+            .file-preview-modal {
+                padding: 10px;
+            }
+
+            .file-preview-content {
+                max-height: 96vh;
+            }
+
+            .file-preview-area {
+                padding: 12px;
+            }
+
+            .file-preview-image {
+                max-height: 70vh;
+            }
+
+            .file-preview-document {
+                height: 70vh;
+            }
+        }
         
         .btn-approve {
             background: #28a745;
@@ -656,8 +773,71 @@
         </div>
     </div>
 
+    <!-- Reusable image and document preview modal -->
+    <div id="filePreviewModal" class="file-preview-modal" onclick="if (event.target === this) closeFilePreview()">
+        <div class="file-preview-content" role="dialog" aria-modal="true" aria-labelledby="filePreviewTitle">
+            <div class="file-preview-header">
+                <h3 id="filePreviewTitle">File Preview</h3>
+                <button type="button" class="file-preview-close-x" aria-label="Close preview" onclick="closeFilePreview()">&times;</button>
+            </div>
+            <div class="file-preview-area" id="filePreviewArea"></div>
+            <div class="file-preview-footer">
+                <button type="button" class="btn-secondary" onclick="closeFilePreview()">Close</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     let currentTenantId = null;
+
+    function getMediaUrl(filePath) {
+        if (!filePath) return '';
+
+        let path = String(filePath).trim().replace(/\\/g, '/');
+        path = path.replace(/^\/?media\//i, '');
+
+        // Repair only the known directory prefix when its separator is missing.
+        if (path.startsWith('ids') && !path.startsWith('ids/')) {
+            path = 'ids/' + path.substring(3);
+        } else if (path.startsWith('selfies') && !path.startsWith('selfies/')) {
+            path = 'selfies/' + path.substring(7);
+        }
+
+        return '/media/' + path;
+    }
+
+    function openFilePreview(url, title, type) {
+        const modal = document.getElementById('filePreviewModal');
+        const area = document.getElementById('filePreviewArea');
+        // encodeURI preserves the slashes in the stored relative media path.
+        const safeUrl = encodeURI(url);
+
+        document.getElementById('filePreviewTitle').textContent = title;
+        if (type === 'pdf') {
+            area.innerHTML = `<iframe class="file-preview-document" title="${title}" src="${safeUrl}"></iframe>`;
+        } else {
+            area.innerHTML = `<img class="file-preview-image" src="${safeUrl}" alt="${title} preview" onerror="showFilePreviewImageError(this)">`;
+        }
+        modal.classList.add('show');
+    }
+
+    function showFilePreviewImageError(image) {
+        const errorMessage = document.createElement('p');
+        errorMessage.className = 'file-preview-error';
+        errorMessage.textContent = 'Unable to load image.';
+        image.replaceWith(errorMessage);
+    }
+
+    function closeFilePreview() {
+        const modal = document.getElementById('filePreviewModal');
+        modal.classList.remove('show');
+        document.getElementById('filePreviewArea').innerHTML = '';
+    }
+
+    function getValidIdPreviewType(filePath) {
+        const extension = filePath.split(/[?#]/)[0].split('.').pop().toLowerCase();
+        return extension === 'pdf' ? 'pdf' : 'image';
+    }
 
     function showTenantDetails(tenantId) {
         currentTenantId = tenantId;
@@ -738,7 +918,7 @@
                         <div class="info-row">
                             <span class="label">Valid ID:</span>
                             <span class="value">
-                                <a href="/media/${data.valid_id_file}" target="_blank" class="file-link">
+                                <a href="#" onclick="event.preventDefault(); openFilePreview(getMediaUrl('${data.valid_id_file}'), 'Valid ID', getValidIdPreviewType('${data.valid_id_file}'))" class="file-link">
                                     <i class="fas fa-file-pdf"></i> View Document
                                 </a>
                             </span>
@@ -748,7 +928,7 @@
                         <div class="info-row">
                             <span class="label">Selfie Verification:</span>
                             <span class="value">
-                                <a href="/media/${data.selfie_file}" target="_blank" class="file-link">
+                                <a href="#" onclick="event.preventDefault(); openFilePreview(getMediaUrl('${data.selfie_file}'), 'Selfie Verification', 'image')" class="file-link">
                                     <i class="fas fa-camera"></i> View Photo
                                 </a>
                             </span>
@@ -865,9 +1045,14 @@
 
     // Close modals when clicking outside
     window.onclick = function(event) {
+        const filePreviewModal = document.getElementById('filePreviewModal');
         const detailsModal = document.getElementById('tenantDetailsModal');
         const deleteModal = document.getElementById('deleteModal');
 
+        if (event.target === filePreviewModal) {
+            closeFilePreview();
+            return;
+        }
         if (event.target === detailsModal) {
             closeTenantDetailsModal();
         }
@@ -879,6 +1064,10 @@
     // Escape key close
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
+            if (document.getElementById('filePreviewModal').classList.contains('show')) {
+                closeFilePreview();
+                return;
+            }
             closeTenantDetailsModal();
             closeDeleteModal();
         }
