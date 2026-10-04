@@ -338,6 +338,37 @@
         .btn-paid:hover, .btn-unpaid:hover {
             transform: translateY(-1px);
         }
+
+        .cash-confirm-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10001;
+            padding: 20px;
+            background: rgba(20, 24, 40, 0.62);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+        }
+        .cash-confirm-modal.show { display: flex; }
+        .cash-confirm-content {
+            width: min(100%, 420px);
+            padding: 24px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+            animation: modalSlideIn 0.2s ease;
+        }
+        .cash-confirm-content h3 { margin: 0 0 10px; color: #2c3e50; font-size: 18px; }
+        .cash-confirm-content p { margin: 0; color: #5c6670; line-height: 1.5; }
+        .cash-confirm-actions { display: flex; gap: 10px; margin-top: 22px; }
+        .cash-confirm-actions button { flex: 1; padding: 10px 14px; border: 0; border-radius: 8px; color: white; cursor: pointer; font-size: 13px; }
+        .cash-confirm-cancel { background: #6c757d; }
+        .cash-confirm-submit { background: #28a745; }
+        @media (max-width: 420px) {
+            .cash-confirm-content { padding: 20px; }
+            .cash-confirm-actions { flex-direction: column-reverse; }
+        }
         
         @media (max-width: 600px) {
             .stats-summary {
@@ -458,7 +489,46 @@
         </div>
     </div>
 
+    <div id="cashConfirmModal" class="cash-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="cashConfirmTitle" aria-describedby="cashConfirmMessage">
+        <div class="cash-confirm-content">
+            <h3 id="cashConfirmTitle">Verify Cash Payment?</h3>
+            <p id="cashConfirmMessage">Are you sure you want to verify this cash payment?</p>
+            <div class="cash-confirm-actions">
+                <button type="button" class="cash-confirm-cancel" id="cashConfirmCancel">Cancel</button>
+                <button type="button" class="cash-confirm-submit" id="cashConfirmSubmit">Verify Payment</button>
+            </div>
+        </div>
+    </div>
+
 <script>
+    let cashVerificationForm = null;
+
+    function openCashConfirmModal(form) {
+        cashVerificationForm = form;
+        document.getElementById('cashConfirmModal').classList.add('show');
+        document.getElementById('cashConfirmCancel').focus();
+    }
+
+    function closeCashConfirmModal() {
+        document.getElementById('cashConfirmModal').classList.remove('show');
+        cashVerificationForm = null;
+    }
+
+    document.getElementById('cashConfirmCancel').addEventListener('click', closeCashConfirmModal);
+    document.getElementById('cashConfirmSubmit').addEventListener('click', function() {
+        const form = cashVerificationForm;
+        closeCashConfirmModal();
+        if (form) form.submit();
+    });
+    document.getElementById('cashConfirmModal').addEventListener('click', function(event) {
+        if (event.target === this) closeCashConfirmModal();
+    });
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && document.getElementById('cashConfirmModal').classList.contains('show')) {
+            closeCashConfirmModal();
+        }
+    });
+
     function openBillModal(billId) {
         const modal = document.getElementById('billModal');
         const modalBody = document.getElementById('billModalBody');
@@ -588,7 +658,7 @@
                     
                     <div class="modal-actions">
                         ${!data.is_paid && data.payment_history ? data.payment_history.filter(p => p.payment_method === 'cash' && p.status === 'pending').map(p => `
-                        <form method="post" action="/payment/cash/verify/${p.id}/" style="flex: 1;" onsubmit="return confirm('Verify this cash payment?')">
+                        <form method="post" action="/payment/cash/verify/${p.id}/" style="flex: 1;" onsubmit="openCashConfirmModal(this); return false;">
                             <input type="hidden" name="csrfmiddlewaretoken" value="${getCsrfToken()}">
                             <button type="submit" class="btn-paid">
                                 <i class="fas fa-check-circle"></i> Verify Cash Payment

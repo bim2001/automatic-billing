@@ -152,6 +152,47 @@
         .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-text { margin-top: 15px; color: #666; font-size: 0.8rem; text-align: center; }
 
+        .warning-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            padding: 20px;
+            background: rgba(20, 24, 40, 0.62);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+        }
+        .warning-modal.show { display: flex; }
+        .warning-modal-content {
+            width: min(100%, 380px);
+            padding: 28px 24px 24px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+            text-align: center;
+            animation: warningModalIn 0.2s ease-out;
+        }
+        .warning-modal-icon {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            font-size: 25px;
+            font-weight: 700;
+        }
+        .warning-modal-content h2 { color: #333; font-size: 1.25rem; margin-bottom: 9px; }
+        .warning-modal-content p { color: #555; font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; }
+        .warning-modal-button { max-width: 150px; }
+        @keyframes warningModalIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 480px) {
             .box { padding: 20px; }
             h1 { font-size: 1.4rem; }
@@ -456,9 +497,31 @@
         </div>
     </div>
 
+    <div id="warningModal" class="warning-modal" role="alertdialog" aria-modal="true" aria-labelledby="warningModalTitle" aria-describedby="warningModalMessage">
+        <div class="warning-modal-content">
+            <div class="warning-modal-icon" aria-hidden="true">!</div>
+            <h2 id="warningModalTitle">Warning</h2>
+            <p id="warningModalMessage"></p>
+            <button type="button" id="warningModalOk" class="btn warning-modal-button">OK</button>
+        </div>
+    </div>
+
 <script>
     let currentStep = 1;
     const totalSteps = 4;
+
+    function showWarningModal(message) {
+        const modal = document.getElementById('warningModal');
+        document.getElementById('warningModalMessage').textContent = message;
+        modal.classList.add('show');
+        document.getElementById('warningModalOk').focus();
+    }
+
+    function closeWarningModal() {
+        document.getElementById('warningModal').classList.remove('show');
+    }
+
+    document.getElementById('warningModalOk').addEventListener('click', closeWarningModal);
 
     function showTab(tabName) {
         const loginBox = document.getElementById('login-box');
@@ -513,9 +576,9 @@
             const email = document.getElementById('reg_email').value;
             const password = document.getElementById('reg_password').value;
             const password2 = document.getElementById('reg_password2').value;
-            if (!email) { alert('Please enter email'); return false; }
-            if (password.length < 6) { alert('Password must be at least 6 characters'); return false; }
-            if (password !== password2) { alert('Passwords do not match'); return false; }
+            if (!email) { showWarningModal('Please enter email'); return false; }
+            if (password.length < 6) { showWarningModal('Password must be at least 6 characters'); return false; }
+            if (password !== password2) { showWarningModal('Passwords do not match'); return false; }
         }
         if (step === 2) {
             const firstName = document.querySelector('#step2 input[name="first_name"]').value;
@@ -523,13 +586,13 @@
             const phone = document.querySelector('#step2 input[name="phone_number"]').value;
             const emergencyPerson = document.querySelector('#step2 input[name="emergency_person"]').value;
             const emergencyNumber = document.querySelector('#step2 input[name="emergency_number"]').value;
-            if (!firstName || !lastName || !phone) { alert('Please fill all required fields'); return false; }
-            if (!emergencyPerson || !emergencyNumber) { alert('Please provide emergency contact information'); return false; }
+            if (!firstName || !lastName || !phone) { showWarningModal('Please fill all required fields'); return false; }
+            if (!emergencyPerson || !emergencyNumber) { showWarningModal('Please provide emergency contact information'); return false; }
         }
         if (step === 4) {
             const agreeTerms = document.getElementById('agree_terms').checked;
             const agreePrivacy = document.getElementById('agree_privacy').checked;
-            if (!agreeTerms || !agreePrivacy) { alert('Please agree to all terms to continue'); return false; }
+            if (!agreeTerms || !agreePrivacy) { showWarningModal('Please agree to all terms to continue'); return false; }
         }
         return true;
     }
@@ -556,7 +619,7 @@
     document.getElementById('registerForm').addEventListener('submit', function(e) {
         if (!validateStep(4)) {
             e.preventDefault();
-            alert('Please complete all steps and agree to the terms');
+            showWarningModal('Please complete all steps and agree to the terms');
         }
     });
 
