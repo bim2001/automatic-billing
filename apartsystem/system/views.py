@@ -652,6 +652,13 @@ from django.conf import settings  # <-- I-ADD ITO SA TAAS
 def send_approval_email(user):
     """Send email notification to tenant when approved"""
     from django.core.mail import send_mail
+
+    base_url = getattr(
+        django_settings,
+        'APP_BASE_URL',
+        'http://127.0.0.1:8000'
+    )
+    login_url = f"{base_url}/login/"
     
     subject = "✅ Your Smart Energy Account Has Been Approved!"
     message = f"""
@@ -667,7 +674,7 @@ Good news! Your tenant registration has been APPROVED by the owner.
 
 You can now log in to your dashboard using your email or username.
 
-👉 Login here: http://127.0.0.1:8000/login/
+👉 Login here: {login_url}
 
 Once logged in, you will be able to:
 ✓ View your real-time electricity consumption
@@ -2880,11 +2887,8 @@ def delete_tenant(request, tenant_id):
     username = tenant.user.username
     
     try:
-        with connection.cursor() as cursor:
-            cursor.execute("PRAGMA foreign_keys=OFF;")
-            tenant.delete()
-            tenant.user.delete()
-            cursor.execute("PRAGMA foreign_keys=ON;")
+        tenant.delete()
+        tenant.user.delete()
         
         messages.success(request, f"Tenant '{username}' has been deleted successfully.")
         
