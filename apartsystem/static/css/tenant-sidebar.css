@@ -1,0 +1,181 @@
+/* Tenant navigation overrides are scoped to the tenant sidebar. */
+.tenant-sidebar-toggle,
+.tenant-sidebar-close {
+    display: none;
+}
+
+.tenant-sidebar {
+    overscroll-behavior: contain;
+}
+
+.tenant-sidebar-backdrop {
+    display: none;
+}
+
+.tenant-sidebar .nav-link.active {
+    background: rgba(255, 255, 255, .25);
+    font-weight: 600;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .1);
+}
+
+.tenant-sidebar .nav-link[aria-current="page"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 3px;
+    background: white;
+    border-radius: 0 3px 3px 0;
+}
+
+@media (max-width: 768px) {
+    .tenant-sidebar-toggle {
+        display: inline-flex !important;
+        position: fixed;
+        z-index: 10002;
+        top: max(12px, env(safe-area-inset-top));
+        left: max(12px, env(safe-area-inset-left));
+        width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 10px;
+        color: white;
+        background: #667eea;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .22);
+        font-size: 20px;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .tenant-sidebar {
+        display: flex !important;
+        width: min(300px, 86vw) !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        padding-bottom: env(safe-area-inset-bottom);
+        transform: translateX(-105%);
+        visibility: hidden;
+        pointer-events: none;
+        transition: transform .25s ease, visibility .25s;
+        z-index: 10001;
+        will-change: transform;
+    }
+
+    /* The dashboard's inline .sidebar rule is later in the cascade. */
+    #tenant-sidebar { z-index: 10001; }
+
+    body.tenant-sidebar-open .tenant-sidebar {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .tenant-sidebar .sidebar-header .logo span,
+    .tenant-sidebar .nav-link span,
+    .tenant-sidebar .user-details,
+    .tenant-sidebar .sidebar-header .version,
+    .tenant-sidebar .sidebar-footer {
+        display: initial;
+    }
+
+    .tenant-sidebar .sidebar-header .logo { justify-content: flex-start; }
+    .tenant-sidebar .nav-link { justify-content: flex-start; padding: 12px 15px; }
+    .tenant-sidebar .nav-link i { margin: 0; font-size: 18px; }
+    .tenant-sidebar .nav-link .alert-badge { position: static; margin-left: auto; }
+    .tenant-sidebar .user-info { justify-content: flex-start; padding: 10px; }
+    .tenant-sidebar .sidebar-footer { display: block; padding: 15px; }
+    .tenant-sidebar .sidebar-footer .nav-link { justify-content: flex-start; padding: 10px 15px; }
+
+    .tenant-sidebar-close {
+        display: inline-flex;
+        position: sticky;
+        top: 10px;
+        align-self: flex-end;
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        margin: 10px 10px -50px auto;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, .45);
+        border-radius: 9px;
+        color: white;
+        background: rgba(255, 255, 255, .16);
+        font-size: 18px;
+        cursor: pointer;
+        z-index: 1;
+    }
+
+    .tenant-sidebar-backdrop { display: none; }
+    body.tenant-sidebar-open .tenant-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(17, 24, 39, .5);
+    }
+
+    body.tenant-sidebar-open { overflow: hidden; }
+
+    .tenant-sidebar ~ .main-content,
+    .tenant-sidebar ~ .container {
+        width: 100% !important;
+        max-width: 100%;
+        min-width: 0;
+        margin-left: 0 !important;
+        padding: 68px 16px 20px !important;
+        overflow-wrap: anywhere;
+    }
+
+    .tenant-sidebar ~ .navbar {
+        width: 100%;
+        margin-left: 0 !important;
+        padding: 62px 16px 15px;
+    }
+
+    .tenant-sidebar ~ .main-content table,
+    .tenant-sidebar ~ .container table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .tenant-sidebar ~ .main-content input,
+    .tenant-sidebar ~ .main-content select,
+    .tenant-sidebar ~ .main-content textarea,
+    .tenant-sidebar ~ .container input,
+    .tenant-sidebar ~ .container select,
+    .tenant-sidebar ~ .container textarea {
+        max-width: 100%;
+    }
+
+    .tenant-sidebar ~ .container .payment-card,
+    .tenant-sidebar ~ .container .profile-card {
+        padding: clamp(16px, 5vw, 28px);
+    }
+
+    .tenant-sidebar ~ .container h1,
+    .tenant-sidebar ~ .main-content h1 {
+        font-size: clamp(22px, 6vw, 28px);
+    }
+}
+
+@media (max-width: 480px) {
+    .tenant-sidebar ~ .main-content,
+    .tenant-sidebar ~ .container {
+        padding-right: 12px !important;
+        padding-left: 12px !important;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .tenant-sidebar-toggle { top: max(8px, env(safe-area-inset-top)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tenant-sidebar { transition: none; }
+}

@@ -1,75 +1,68 @@
-// active-nav.js - Automatic active highlight for sidebar navigation
-document.addEventListener('DOMContentLoaded', function() {
-    const currentPath = window.location.pathname;
-    console.log("Current path:", currentPath); // Debug: tignan sa browser console
-    
-    const navLinks = document.querySelectorAll('.nav-link');
-    
-    // Remove active class from all links
-    navLinks.forEach(link => {
-        link.classList.remove('active');
+// Keep Owner navigation highlighting and its scroll position consistent across pages.
+document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.querySelector('.sidebar');
+    const toggle = document.querySelector('.sidebar-toggle');
+    const closeButton = document.querySelector('.sidebar-close');
+    const backdrop = document.querySelector('.sidebar-backdrop');
+
+    if (!sidebar) return;
+
+    const scrollKey = 'owner-sidebar-scroll';
+    const savedScroll = sessionStorage.getItem(scrollKey);
+    if (savedScroll !== null) {
+        sidebar.scrollTop = Number(savedScroll) || 0;
+    }
+
+    sidebar.addEventListener('scroll', function () {
+        sessionStorage.setItem(scrollKey, String(sidebar.scrollTop));
+    }, { passive: true });
+
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const routeMatchers = {
+        dashboard: /^\/dashboard$/,
+        monitoring: /^\/monitoring$/,
+        tenants: /^\/tenants$/,
+        billing: /^\/billing$/,
+        history: /^\/billing\/history$/,
+        alerts: /^\/alerts$/,
+        settings: /^\/settings$/,
+        health: /^\/(?:health|system-health)$/,
+        activity: /^\/activity-log$/
+    };
+    let activeKey = Object.keys(routeMatchers).find(key => routeMatchers[key].test(path));
+    if (/^\/rooms?$/.test(path) || /^\/room\/(?:add|edit|delete)(?:\/|$)/.test(path)) {
+        activeKey = 'rooms';
+    }
+
+    sidebar.querySelectorAll('.nav-link[data-nav]').forEach(link => {
+        const active = link.dataset.nav === activeKey;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
     });
-    
-    // Map URL patterns - specific to each page
-    // Gamitin ang exact na URL patterns
-    const patterns = [
-        { match: '/dashboard', selector: 'a[href*="/dashboard"]' },
-        { match: '/monitoring', selector: 'a[href*="/monitoring"]' },
-        { match: '/room/add', selector: 'a[href*="/room/add"]' },
-        { match: '/room/add', selector: 'a[href*="add_room"]' }, // fallback
-        { match: '/tenants', selector: 'a[href*="/tenants"]' },
-        { match: '/tenant_list', selector: 'a[href*="tenant_list"]' }, // fallback
-        { match: '/billing/history', selector: 'a[href*="/billing/history"]' },
-        { match: '/billing/history', selector: 'a[href*="billing_history"]' }, // fallback
-        { match: '/billing', selector: 'a[href*="/billing"]:not([href*="/billing/history"])' },
-        { match: '/alerts', selector: 'a[href*="/alerts"]' },
-        { match: '/settings', selector: 'a[href*="/settings"]' },
-        { match: '/system-health', selector: 'a[href*="/system-health"]' },
-        { match: '/health', selector: 'a[href*="health"]' } // fallback for health
-    ];
-    
-    let found = false;
-    
-    for (const pattern of patterns) {
-        if (currentPath.includes(pattern.match)) {
-            console.log("Matching pattern:", pattern.match); // Debug
-            const activeLink = document.querySelector(pattern.selector);
-            if (activeLink) {
-                console.log("Found link, adding active class"); // Debug
-                activeLink.classList.add('active');
-                found = true;
-                break;
-            }
+
+    function setMobileOpen(open) {
+        document.body.classList.toggle('sidebar-open', open);
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
         }
+        if (open) sidebar.focus({ preventScroll: true });
     }
-    
-    // Special cases
-    if (!found) {
-        // Rooms page (add_room)
-        if (currentPath.includes('add_room') || currentPath.includes('room/add')) {
-            const roomsLink = document.querySelector('a[href*="add_room"], a[href*="room/add"]');
-            if (roomsLink) roomsLink.classList.add('active');
+
+    if (toggle) toggle.addEventListener('click', () => setMobileOpen(!document.body.classList.contains('sidebar-open')));
+    if (closeButton) closeButton.addEventListener('click', () => {
+        setMobileOpen(false);
+        if (toggle) toggle.focus();
+    });
+    if (backdrop) backdrop.addEventListener('click', () => setMobileOpen(false));
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+            setMobileOpen(false);
+            if (toggle) toggle.focus();
         }
-        // Tenants page
-        else if (currentPath.includes('tenants') || currentPath.includes('tenant_list')) {
-            const tenantsLink = document.querySelector('a[href*="tenant_list"], a[href*="/tenants"]');
-            if (tenantsLink) tenantsLink.classList.add('active');
-        }
-        // History page
-        else if (currentPath.includes('billing_history') || currentPath.includes('billing/history')) {
-            const historyLink = document.querySelector('a[href*="billing_history"], a[href*="/billing/history"]');
-            if (historyLink) historyLink.classList.add('active');
-        }
-        // Health page
-        else if (currentPath.includes('system-health') || currentPath.includes('health')) {
-            const healthLink = document.querySelector('a[href*="health"], a[href*="system-health"]');
-            if (healthLink) healthLink.classList.add('active');
-        }
-    }
-    
-    // Dashboard root path
-    if (currentPath === '/' || currentPath === '/dashboard') {
-        const dashboardLink = document.querySelector('a[href*="/dashboard"], a[href*="dashboard"]');
-        if (dashboardLink) dashboardLink.classList.add('active');
-    }
+    });
+    sidebar.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+        if (window.matchMedia('(max-width: 768px)').matches) setMobileOpen(false);
+    }));
 });

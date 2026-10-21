@@ -1,7 +1,12 @@
 {% load static %}
 <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
 
-<div class="sidebar">
+<button class="sidebar-toggle" type="button" aria-controls="owner-sidebar" aria-expanded="false" aria-label="Open navigation"><i class="fas fa-bars" aria-hidden="true"></i></button>
+<div class="sidebar-backdrop" data-sidebar-close></div>
+<aside class="sidebar" id="owner-sidebar" aria-label="Owner navigation">
+    <button class="sidebar-close" type="button" aria-label="Close navigation">
+        <i class="fas fa-times" aria-hidden="true"></i>
+    </button>
     <div class="sidebar-header">
         <div class="logo">
             <i class="fas fa-bolt"></i>
@@ -15,13 +20,13 @@
 
     <div class="nav-menu">
         <div class="nav-item">
-            <a href="{% url 'dashboard' %}" class="nav-link" data-tooltip="Dashboard">
+            <a href="{% url 'dashboard' %}" class="nav-link" data-tooltip="Dashboard" data-nav="dashboard">
                 <i class="fas fa-chart-line"></i>
                 <span>Dashboard</span>
             </a>
         </div>
         <div class="nav-item">
-            <a href="{% url 'monitoring_dashboard' %}" class="nav-link" data-tooltip="Monitoring">
+            <a href="{% url 'monitoring_dashboard' %}" class="nav-link" data-tooltip="Monitoring" data-nav="monitoring">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Monitoring</span>
             </a>
@@ -29,33 +34,33 @@
         <div class="nav-divider"></div>
         <div class="nav-item">
             <!-- ✅ UPDATED: Changed from add_room to rooms_page -->
-            <a href="{% url 'rooms_page' %}" class="nav-link" data-tooltip="Rooms">
+            <a href="{% url 'rooms_page' %}" class="nav-link" data-tooltip="Rooms" data-nav="rooms">
                 <i class="fas fa-door-open"></i>
                 <span>Rooms</span>
             </a>
         </div>
         <div class="nav-item">
-            <a href="{% url 'tenant_list' %}" class="nav-link" data-tooltip="Tenants">
+            <a href="{% url 'tenant_list' %}" class="nav-link" data-tooltip="Tenants" data-nav="tenants">
                 <i class="fas fa-users"></i>
                 <span>Tenants</span>
             </a>
         </div>
         <div class="nav-divider"></div>
         <div class="nav-item">
-            <a href="{% url 'billing_view' %}" class="nav-link" data-tooltip="Billing">
+            <a href="{% url 'billing_view' %}" class="nav-link" data-tooltip="Billing" data-nav="billing">
                 <i class="fas fa-file-invoice-dollar"></i>
                 <span>Billing</span>
             </a>
         </div>
         <div class="nav-item">
-            <a href="{% url 'billing_history' %}" class="nav-link" data-tooltip="History">
+            <a href="{% url 'billing_history' %}" class="nav-link" data-tooltip="History" data-nav="history">
                 <i class="fas fa-history"></i>
                 <span>History</span>
             </a>
         </div>
         <div class="nav-divider"></div>
         <div class="nav-item">
-            <a href="{% url 'alerts_view' %}" class="nav-link" data-tooltip="Alerts">
+            <a href="{% url 'alerts_view' %}" class="nav-link" data-tooltip="Alerts" data-nav="alerts">
                 <i class="fas fa-bell"></i>
                 <span>Alerts</span>
                 {% if unread_alerts_count > 0 %}
@@ -67,19 +72,19 @@
         </div>
         <div class="nav-divider"></div>
         <div class="nav-item">
-            <a href="{% url 'system_settings' %}" class="nav-link" data-tooltip="Settings">
+            <a href="{% url 'system_settings' %}" class="nav-link" data-tooltip="Settings" data-nav="settings">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
         </div>
         <div class="nav-item">
-            <a href="{% url 'system_health_dashboard' %}" class="nav-link" data-tooltip="Health">
+            <a href="{% url 'system_health_dashboard' %}" class="nav-link" data-tooltip="Health" data-nav="health">
                 <i class="fas fa-heartbeat"></i>
                 <span>Health</span>
             </a>
         </div>
         <div class="nav-item">
-            <a href="{% url 'activity_log' %}" class="nav-link" data-tooltip="Activity Log">
+            <a href="{% url 'activity_log' %}" class="nav-link" data-tooltip="Activity Log" data-nav="activity">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Activity</span>
             </a>
@@ -101,4 +106,4 @@
             <span>Logout</span>
         </a>
     </div>
-</div>
+</aside>

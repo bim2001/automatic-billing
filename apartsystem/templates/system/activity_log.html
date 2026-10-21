@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Activity Log - Smart Energy</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -36,6 +37,10 @@
             padding: 30px;
             min-height: 100vh;
         }
+
+        .navbar, .container { width: calc(100% - 280px); }
+        .logs-table { overflow-x: auto; }
+        .logs-table table { min-width: 680px; }
 
         .header-card {
             background: white;
@@ -161,11 +166,14 @@
 
         @media (max-width: 768px) {
             .navbar {
-                margin-left: 70px;
+                margin: 0 0 16px;
+                padding: 62px 16px 15px;
+                border-radius: 0 0 15px 15px;
             }
             .container {
-                margin-left: 70px;
-                padding: 20px;
+                width: 100%;
+                margin: 0;
+                padding: 16px 12px;
             }
             .filter-bar {
                 flex-direction: column;
@@ -284,5 +292,6 @@
         </div>
         {% endif %}
     </div>
+    <script src="{% static 'js/active-nav.js' %}" defer></script>
 </body>
 </html>

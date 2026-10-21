@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <title>Billing History - Smart Energy Monitor</title>
@@ -523,6 +524,34 @@
             text-transform: uppercase;
         }
 
+        .table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-scroll table {
+            width: max-content;
+            min-width: 760px;
+        }
+
+        .table-scroll .compact-table {
+            min-width: 1050px;
+        }
+
+        .table-scroll th,
+        .table-scroll td,
+        .payment-status,
+        .download-bill-btn {
+            white-space: nowrap;
+        }
+
+        .table-scroll .reference-code {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
         .transaction-empty {
             color: #8a94a6;
             font-size: 12px;
@@ -800,7 +829,7 @@
             </div>
             
             {% if bills %}
-            <div style="overflow-x: auto;">
+            <div class="table-scroll" role="region" aria-label="Billing records" tabindex="0">
                 <table>
                     <thead>
                         <tr>
@@ -850,7 +879,7 @@
                 <span class="badge badge-info">{{ receipt_records|length }} receipts</span>
             </div>
             {% if receipt_records %}
-            <div style="overflow-x: auto;">
+            <div class="table-scroll" role="region" aria-label="Official receipts" tabindex="0">
                 <table class="compact-table">
                     <thead>
                         <tr>
@@ -1168,7 +1197,6 @@
             }
         });
     </script>
-    <script src="{% static 'js/active-nav.js' %}"></script>
 
 </body>
 </html>
