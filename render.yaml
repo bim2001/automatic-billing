@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: apartment-app
+    runtime: python
+    buildCommand: bash build.sh
+    startCommand: PYTHONPATH=apartsystem gunicorn apartsystem.wsgi:application

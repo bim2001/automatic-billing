@@ -16,12 +16,15 @@ import logging
 import json
 import secrets
 import hashlib
+import os
 from django.db import models, transaction
 from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment, ActivityLog, APIToken
 from django.http import HttpResponse
 import csv
 from django.db import connection
 from dateutil.relativedelta import relativedelta
+from django.core.files.storage import default_storage
+from PIL import Image, UnidentifiedImageError
 
 # Try to import paymongo (optional - for GCash)
 try:
@@ -769,6 +772,77 @@ def register_tenant(request):
         
         # Validation
         errors = []
+
+        # Uploaded documents are private verification material. Validate both
+        # before creating the user or writing either file to storage.
+        valid_id_file = request.FILES.get('valid_id')
+        selfie_file = request.FILES.get('selfie')
+        upload_max_bytes = getattr(django_settings, 'REGISTRATION_UPLOAD_MAX_BYTES', 10 * 1024 * 1024)
+
+        if not valid_id_file:
+            errors.append("Valid ID upload is required")
+        if not selfie_file:
+            errors.append("Selfie upload is required")
+
+        def validate_upload(upload, label, allowed_extensions, allow_pdf=False):
+            if not upload:
+                return
+            extension = os.path.splitext(upload.name or '')[1].lower()
+            if extension not in allowed_extensions:
+                errors.append(f"{label} must be {', '.join(sorted(allowed_extensions))}")
+                return
+            if upload.size > upload_max_bytes:
+                errors.append(f"{label} must be no larger than {upload_max_bytes // (1024 * 1024)} MB")
+                return
+
+            try:
+                header = upload.read(16)
+                upload.seek(0)
+            except (AttributeError, OSError):
+                errors.append(f"{label} could not be read")
+                return
+
+            content_type = (getattr(upload, 'content_type', '') or '').lower()
+            if allow_pdf and extension == '.pdf':
+                try:
+                    upload.seek(max(upload.size - 1024, 0))
+                    pdf_trailer = upload.read(1024)
+                    upload.seek(0)
+                except (AttributeError, OSError):
+                    errors.append(f"{label} could not be read")
+                    return
+                if not header.startswith(b'%PDF-') or b'%%EOF' not in pdf_trailer:
+                    errors.append(f"{label} must be a valid PDF or image")
+                elif content_type and content_type not in ('application/pdf', 'application/octet-stream'):
+                    errors.append(f"{label} content type does not match its file format")
+                return
+
+            try:
+                image = Image.open(upload)
+                image_format = (image.format or '').upper()
+                image.verify()
+                upload.seek(0)
+            except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+                upload.seek(0)
+                errors.append(f"{label} must be a valid image")
+                return
+
+            signature_formats = {
+                'JPEG': {'JPEG', 'JPG'}, 'PNG': {'PNG'}, 'GIF': {'GIF'},
+                'WEBP': {'WEBP'}, 'BMP': {'BMP'}, 'TIFF': {'TIF', 'TIFF'},
+            }
+            if image_format not in signature_formats or extension.lstrip('.').upper() not in signature_formats[image_format]:
+                errors.append(f"{label} extension does not match its image format")
+                return
+            expected_type = {
+                'JPEG': 'image/jpeg', 'PNG': 'image/png', 'GIF': 'image/gif',
+                'WEBP': 'image/webp', 'BMP': 'image/bmp', 'TIFF': 'image/tiff',
+            }.get(image_format)
+            if content_type and content_type not in (expected_type, 'application/octet-stream'):
+                errors.append(f"{label} content type does not match its image format")
+
+        validate_upload(valid_id_file, 'Valid ID', {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tif', '.tiff', '.pdf'}, allow_pdf=True)
+        validate_upload(selfie_file, 'Selfie', {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tif', '.tiff'})
         
         if not email:
             errors.append("Email is required")
@@ -802,78 +876,52 @@ def register_tenant(request):
         while User.objects.filter(username=username).exists():
             username = username + str(random.randint(1, 999))
         
-        # Create user
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name
-        )
-        
-        # ========== FILE UPLOADS WITH AUTO CLEAN ==========
-        valid_id_path = ''
-        selfie_path = ''
-        
-        # Create media directories if they don't exist
-        media_root = settings.MEDIA_ROOT
-        ids_dir = os.path.join(media_root, 'ids')
-        selfies_dir = os.path.join(media_root, 'selfies')
-        
-        os.makedirs(ids_dir, exist_ok=True)
-        os.makedirs(selfies_dir, exist_ok=True)
-        
-        # Handle Valid ID upload
-        if request.FILES.get('valid_id'):
-            valid_id_file = request.FILES['valid_id']
-            original_name = valid_id_file.name
-            clean_name = clean_filename(original_name)
-            safe_filename = f"{username}_id_{clean_name}"
-            
-            file_path = os.path.join('ids', safe_filename)
-            full_path = os.path.join(media_root, file_path)
-            
-            # Save the file
-            with open(full_path, 'wb+') as destination:
-                for chunk in valid_id_file.chunks():
-                    destination.write(chunk)
-            
-            valid_id_path = file_path
-            print(f"✅ ID saved: {original_name} → {safe_filename}")
-        
-        # Handle Selfie upload
-        if request.FILES.get('selfie'):
-            selfie_file = request.FILES['selfie']
-            original_name = selfie_file.name
-            clean_name = clean_filename(original_name)
-            safe_filename = f"{username}_selfie_{clean_name}"
-            
-            file_path = os.path.join('selfies', safe_filename)
-            full_path = os.path.join(media_root, file_path)
-            
-            # Save the file
-            with open(full_path, 'wb+') as destination:
-                for chunk in selfie_file.chunks():
-                    destination.write(chunk)
-            
-            selfie_path = file_path
-            print(f"✅ Selfie saved: {original_name} → {safe_filename}")
-        
-        # Update profile
-        profile = user.userprofile
-        profile.middle_name = middle_name
-        profile.phone_number = phone_number
-        profile.emergency_contact_person = emergency_person
-        profile.emergency_contact_number = emergency_number
-        profile.number_of_occupants = occupants
-        profile.employment_status = employment_status
-        profile.valid_id_file = valid_id_path
-        profile.selfie_verification_file = selfie_path
-        profile.agreed_to_terms = agree_terms
-        profile.agreed_to_privacy = agree_privacy
-        profile.is_approved = False
-        profile.user_type = 'tenant'
-        profile.save()
+        saved_paths = []
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                    first_name=first_name,
+                    last_name=last_name
+                )
+
+                # Keep storage keys relative so both local storage and private
+                # S3 compatible storage can use the existing CharField fields.
+                valid_id_path = default_storage.save(
+                    f"ids/{username}_id_{clean_filename(valid_id_file.name)}", valid_id_file
+                )
+                saved_paths.append(valid_id_path)
+                selfie_path = default_storage.save(
+                    f"selfies/{username}_selfie_{clean_filename(selfie_file.name)}", selfie_file
+                )
+                saved_paths.append(selfie_path)
+
+                profile = user.userprofile
+                profile.middle_name = middle_name
+                profile.phone_number = phone_number
+                profile.emergency_contact_person = emergency_person
+                profile.emergency_contact_number = emergency_number
+                profile.number_of_occupants = occupants
+                profile.employment_status = employment_status
+                profile.valid_id_file = valid_id_path
+                profile.selfie_verification_file = selfie_path
+                profile.agreed_to_terms = agree_terms
+                profile.agreed_to_privacy = agree_privacy
+                profile.is_approved = False
+                profile.user_type = 'tenant'
+                profile.save()
+        except Exception:
+            for saved_path in saved_paths:
+                try:
+                    default_storage.delete(saved_path)
+                except Exception:
+                    logger.exception("Failed to clean up registration upload %s", saved_path)
+            logger.exception("Tenant registration failed")
+            return render(request, 'system/login.html', {
+                'register_error': 'Registration could not be completed. Please try again.'
+            })
         
         messages.success(request, "Registration complete! Your account is pending approval by the owner. You will receive an email once approved.")
         return redirect('login_view')

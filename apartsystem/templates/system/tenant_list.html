@@ -790,22 +790,6 @@
 <script>
     let currentTenantId = null;
 
-    function getMediaUrl(filePath) {
-        if (!filePath) return '';
-
-        let path = String(filePath).trim().replace(/\\/g, '/');
-        path = path.replace(/^\/?media\//i, '');
-
-        // Repair only the known directory prefix when its separator is missing.
-        if (path.startsWith('ids') && !path.startsWith('ids/')) {
-            path = 'ids/' + path.substring(3);
-        } else if (path.startsWith('selfies') && !path.startsWith('selfies/')) {
-            path = 'selfies/' + path.substring(7);
-        }
-
-        return '/media/' + path;
-    }
-
     function openFilePreview(url, title, type) {
         const modal = document.getElementById('filePreviewModal');
         const area = document.getElementById('filePreviewArea');
@@ -832,11 +816,6 @@
         const modal = document.getElementById('filePreviewModal');
         modal.classList.remove('show');
         document.getElementById('filePreviewArea').innerHTML = '';
-    }
-
-    function getValidIdPreviewType(filePath) {
-        const extension = filePath.split(/[?#]/)[0].split('.').pop().toLowerCase();
-        return extension === 'pdf' ? 'pdf' : 'image';
     }
 
     function showTenantDetails(tenantId) {
@@ -914,21 +893,21 @@
                             <span class="label">Employment Status:</span>
                             <span class="value">${employmentDisplay}</span>
                         </div>
-                        ${data.valid_id_file ? `
+                        ${data.valid_id_preview_url ? `
                         <div class="info-row">
                             <span class="label">Valid ID:</span>
                             <span class="value">
-                                <a href="#" onclick="event.preventDefault(); openFilePreview(getMediaUrl('${data.valid_id_file}'), 'Valid ID', getValidIdPreviewType('${data.valid_id_file}'))" class="file-link">
+                                <a href="#" onclick="event.preventDefault(); openFilePreview('${data.valid_id_preview_url}', 'Valid ID', '${data.valid_id_preview_type}')" class="file-link">
                                     <i class="fas fa-file-pdf"></i> View Document
                                 </a>
                             </span>
                         </div>
                         ` : ''}
-                        ${data.selfie_file ? `
+                        ${data.selfie_preview_url ? `
                         <div class="info-row">
                             <span class="label">Selfie Verification:</span>
                             <span class="value">
-                                <a href="#" onclick="event.preventDefault(); openFilePreview(getMediaUrl('${data.selfie_file}'), 'Selfie Verification', 'image')" class="file-link">
+                                <a href="#" onclick="event.preventDefault(); openFilePreview('${data.selfie_preview_url}', 'Selfie Verification', 'image')" class="file-link">
                                     <i class="fas fa-camera"></i> View Photo
                                 </a>
                             </span>

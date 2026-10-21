@@ -3,12 +3,15 @@ import secrets
 import hmac
 import hashlib
 import re
-from django.http import JsonResponse
+from pathlib import PurePosixPath
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from .models import EnergyUsage, Room, Alert, Billing, Payment
 
 import logging
@@ -763,10 +766,68 @@ def tenant_details_api(request, tenant_id):
             'room': tenant.room.name if tenant.room else None,
             'room_id': tenant.room.id if tenant.room else None,
             'created_at': tenant.created_at.strftime('%B %d, %Y'),
-            'valid_id_file': tenant.valid_id_file or '',
-            'selfie_file': tenant.selfie_verification_file or '',
+            'valid_id_preview_url': reverse('tenant_document_preview', kwargs={
+                'tenant_id': tenant.id, 'document_type': 'valid-id'
+            }) if tenant.valid_id_file else '',
+            'valid_id_preview_type': 'pdf' if (tenant.valid_id_file or '').lower().endswith('.pdf') else 'image',
+            'selfie_preview_url': reverse('tenant_document_preview', kwargs={
+                'tenant_id': tenant.id, 'document_type': 'selfie'
+            }) if tenant.selfie_verification_file else '',
         })
     except UserProfile.DoesNotExist:
         return JsonResponse({'error': 'Tenant not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def tenant_document_preview(request, tenant_id, document_type):
+    """Stream a tenant verification document to an authenticated owner only."""
+    try:
+        owner_profile = request.user.userprofile
+    except UserProfile.DoesNotExist:
+        return HttpResponse('Not found', status=404)
+    if owner_profile.user_type != 'owner':
+        return HttpResponse('Not found', status=404)
+
+    if document_type not in ('valid-id', 'selfie'):
+        return HttpResponse('Not found', status=404)
+
+    try:
+        tenant = UserProfile.objects.get(pk=tenant_id, user_type='tenant')
+    except UserProfile.DoesNotExist:
+        return HttpResponse('Not found', status=404)
+
+    stored_key = tenant.valid_id_file if document_type == 'valid-id' else tenant.selfie_verification_file
+    expected_directory = 'ids' if document_type == 'valid-id' else 'selfies'
+    if not stored_key:
+        return HttpResponse('Not found', status=404)
+
+    path = PurePosixPath(str(stored_key).replace('\\', '/'))
+    if len(path.parts) != 2 or path.parts[0] != expected_directory or any(part in ('', '.', '..') for part in path.parts):
+        return HttpResponse('Not found', status=404)
+
+    extension = path.suffix.lower()
+    content_types = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+        '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp',
+        '.tif': 'image/tiff', '.tiff': 'image/tiff',
+    }
+    if document_type == 'valid-id' and extension == '.pdf':
+        content_type = 'application/pdf'
+    else:
+        content_type = content_types.get(extension)
+    if not content_type:
+        return HttpResponse('Not found', status=404)
+
+    try:
+        document = default_storage.open(path.as_posix(), 'rb')
+    except (FileNotFoundError, OSError):
+        return HttpResponse('Not found', status=404)
+
+    response = FileResponse(document, content_type=content_type)
+    response['Content-Disposition'] = f'inline; filename="tenant-{document_type}.{extension.lstrip(".")}"'
+    response['Cache-Control'] = 'private, no-store'
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Content-Security-Policy'] = "frame-ancestors 'self'"
+    return response

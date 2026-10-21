@@ -34,6 +34,7 @@ urlpatterns = [
 
      # (for approve and assign room)
     path('api/tenant-details/<int:tenant_id>/', api.tenant_details_api, name='tenant_details_api'),
+    path('owner/tenant-document/<int:tenant_id>/<str:document_type>/', api.tenant_document_preview, name='tenant_document_preview'),
     path('approve-tenant/<int:tenant_id>/', views.approve_tenant, name='approve_tenant'),
     path('assign-room/<int:tenant_id>/', views.assign_room_to_tenant, name='assign_room_to_tenant'),
     

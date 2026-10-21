@@ -1,9 +1,18 @@
-# Python
+# ============================================================
+# PYTHON
+# ============================================================
+
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+
+# ============================================================
+# VIRTUAL ENVIRONMENT
+# ============================================================
+
 env/
 venv/
 .venv/
@@ -11,131 +20,186 @@ ENV/
 env.bak/
 venv.bak/
 
-# Django
+
+# ============================================================
+# DJANGO
+# ============================================================
+
 *.log
 *.pot
 *.pyc
 local_settings.py
+
+
+# ============================================================
+# DATABASE
+# ============================================================
+
 db.sqlite3
 db.sqlite3-journal
-/staticfiles/
-/static/
-/media/
-
-# Database
 *.db
 *.sqlite3
 *.sqlite3-journal
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
-# Testing
-.coverage
-htmlcov/
-.tox/
-.pytest_cache/
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+# ============================================================
+# STATIC / MEDIA GENERATED FILES
+# ============================================================
 
-# Project specific
-run_reminders.bat
-run_daily.bat
-simulate_iot.py
-test_system.py
-run_smart_features.bat
+staticfiles/
+media/
 
-# Secret keys and sensitive data
+
+# ============================================================
+# ENVIRONMENT / SECRETS
+# ============================================================
+
 .env
 config.py
 secrets.py
 *.key
 *.pem
 
-# Virtual Environment
-venv/
-.venv/
-ENV/
-env/
 
-# Python package files
-pip-log.txt
-pip-delete-this-directory.txt
+# ============================================================
+# IDE
+# ============================================================
 
-# Distribution / packaging
-.Python
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.code-workspace
+*.iml
+
+
+# ============================================================
+# TESTING
+# ============================================================
+
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.cache
+
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+
+# ============================================================
+# PROJECT-SPECIFIC DEVELOPMENT SCRIPTS
+# ============================================================
+
+run_reminders.bat
+run_daily.bat
+simulate_iot.py
+test_system.py
+run_smart_features.bat
+
+
+# ============================================================
+# DISTRIBUTION / PACKAGING
+# ============================================================
+
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
+
 lib/
 lib64/
 parts/
 sdist/
 var/
 wheels/
+
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# pyenv
+
+# ============================================================
+# PYENV
+# ============================================================
+
 .python-version
 
-# mypy
+
+# ============================================================
+# MYPY
+# ============================================================
+
 .mypy_cache/
 .dmypy.json
 dmypy.json
 
-# Pyre type checker
+
+# ============================================================
+# PYRE
+# ============================================================
+
 .pyre/
 
-# macOS
-.DS_Store
+
+# ============================================================
+# MACOS
+# ============================================================
+
 .AppleDouble
 .LSOverride
 
-# Windows
+
+# ============================================================
+# WINDOWS
+# ============================================================
+
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# Visual Studio Code
-.vscode/
-*.code-workspace
 
-# PyCharm
-.idea/
-*.iml
+# ============================================================
+# PYCHARM
+# ============================================================
 
-# Sublime Text
 *.sublime-project
 *.sublime-workspace
 
-# Logs
-logs/
-*.log
 
-# Local development files
+# ============================================================
+# LOGS / TEMPORARY FILES
+# ============================================================
+
+logs/
 *.bak
 *.tmp
 *.temp
+
+
+# ============================================================
+# ENVIRONMENT VARIABLES / SECRETS
+# ============================================================
+
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example

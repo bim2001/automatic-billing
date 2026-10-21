@@ -13,7 +13,7 @@ import dj_database_url
 # LOAD ENVIRONMENT VARIABLES
 # ============================================================
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 
 # ============================================================
@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     'system',
 ]
 
@@ -206,6 +207,12 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+USE_R2_STORAGE = os.getenv('USE_R2_STORAGE', 'false').lower() == 'true'
+REGISTRATION_UPLOAD_MAX_BYTES = min(
+    int(os.getenv('REGISTRATION_UPLOAD_MAX_BYTES', str(10 * 1024 * 1024))),
+    10 * 1024 * 1024,
+)
+
 STORAGES = {
     'default': {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
@@ -214,6 +221,44 @@ STORAGES = {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
+
+if USE_R2_STORAGE:
+    required_r2_variables = (
+        'R2_ACCESS_KEY_ID',
+        'R2_SECRET_ACCESS_KEY',
+        'R2_BUCKET_NAME',
+        'R2_ENDPOINT_URL',
+    )
+    missing_r2_variables = [
+        name for name in required_r2_variables
+        if not (os.getenv(name) or '').strip()
+    ]
+    if missing_r2_variables:
+        from django.core.exceptions import ImproperlyConfigured
+
+        raise ImproperlyConfigured(
+            'USE_R2_STORAGE=true requires non-empty environment variables: '
+            + ', '.join(missing_r2_variables)
+        )
+
+    STORAGES['default'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'access_key': os.getenv('R2_ACCESS_KEY_ID'),
+            'secret_key': os.getenv('R2_SECRET_ACCESS_KEY'),
+            'bucket_name': os.getenv('R2_BUCKET_NAME'),
+            'endpoint_url': os.getenv('R2_ENDPOINT_URL'),
+            'region_name': os.getenv('R2_REGION_NAME', 'auto'),
+            'signature_version': 's3v4',
+            'addressing_style': 'path',
+            'default_acl': None,
+            'querystring_auth': True,
+            'querystring_expire': int(
+                os.getenv('R2_SIGNED_URL_EXPIRE', '300')
+            ),
+            'file_overwrite': False,
+        },
+    }
 
 
 # ============================================================

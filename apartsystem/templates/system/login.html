@@ -319,6 +319,7 @@
 
                 <!-- STEP 3: Screening & Verification -->
                 <div id="step3" class="form-step">
+                    <div id="uploadValidationError" class="error-message" role="alert" aria-live="polite" style="display: none;"></div>
                     <div class="row-2">
                         <div class="input-group">
                             <label>Number of Occupants</label>
@@ -348,7 +349,7 @@
                             <div>Click to upload ID (Driver's License, Passport, National ID)</div>
                             <div class="file-name" id="valid_id_name">No file chosen</div>
                         </div>
-                        <input type="file" name="valid_id" id="valid_id" style="display: none;" accept="image/*,.pdf" onchange="updateFileName(this, 'valid_id_name')">
+                        <input type="file" name="valid_id" id="valid_id" style="display: none;" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff,.pdf" required>
                     </div>
                     <div class="input-group">
                         <label>Selfie with ID</label>
@@ -357,7 +358,7 @@
                             <div>Take a selfie holding your ID</div>
                             <div class="file-name" id="selfie_name">No file chosen</div>
                         </div>
-                        <input type="file" name="selfie" id="selfie" style="display: none;" accept="image/*" onchange="updateFileName(this, 'selfie_name')">
+                        <input type="file" name="selfie" id="selfie" style="display: none;" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff" required>
                         <div style="font-size: 11px; color: #dc3545; margin-top: 5px;">
                         <i class="fas fa-info-circle"></i> Note: Please use filename WITHOUT spaces or special characters (e.g., "my_selfie.jpg" not "my selfie (1).jpg")
                         </div>
@@ -589,6 +590,17 @@
             if (!firstName || !lastName || !phone) { showWarningModal('Please fill all required fields'); return false; }
             if (!emergencyPerson || !emergencyNumber) { showWarningModal('Please provide emergency contact information'); return false; }
         }
+        if (step === 3) {
+            validateRegistrationFile(document.getElementById('valid_id'), 'valid_id_name', 'id');
+            validateRegistrationFile(document.getElementById('selfie'), 'selfie_name', 'selfie');
+            if (!refreshUploadValidation()) return false;
+            if (!document.getElementById('valid_id').files.length) {
+                showWarningModal('Please upload your valid ID'); return false;
+            }
+            if (!document.getElementById('selfie').files.length) {
+                showWarningModal('Please upload your selfie with ID'); return false;
+            }
+        }
         if (step === 4) {
             const agreeTerms = document.getElementById('agree_terms').checked;
             const agreePrivacy = document.getElementById('agree_privacy').checked;
@@ -606,18 +618,174 @@
         }
     }
 
-    function updateFileName(input, spanId) {
-        const span = document.getElementById(spanId);
-        if (input.files && input.files[0]) {
-            span.textContent = input.files[0].name;
-        } else {
-            span.textContent = 'No file chosen';
+    const registrationUploadMaxBytes = 10 * 1024 * 1024;
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tif', '.tiff'];
+    const imageMimeByExtension = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+        '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp',
+        '.tif': 'image/tiff', '.tiff': 'image/tiff'
+    };
+
+    function registrationFileKey(file) {
+        return file ? `${file.name}:${file.size}:${file.lastModified}:${file.type}` : '';
+    }
+
+    async function validateRegistrationFileContent(file, kind, extension) {
+        try {
+            const firstBytes = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+            const firstText = String.fromCharCode(...firstBytes);
+
+            if (kind === 'id' && extension === '.pdf') {
+                const tailBytes = new Uint8Array(await file.slice(Math.max(0, file.size - 1024)).arrayBuffer());
+                const tailText = String.fromCharCode(...tailBytes);
+                return firstText.startsWith('%PDF-') && tailText.includes('%%EOF')
+                    ? ''
+                    : 'Your uploaded file does not meet the requirements. Select a valid PDF.';
+            }
+
+            let signatureMatches = false;
+            switch (extension) {
+                case '.jpg':
+                case '.jpeg':
+                    signatureMatches = firstBytes[0] === 0xff && firstBytes[1] === 0xd8 && firstBytes[2] === 0xff;
+                    break;
+                case '.png':
+                    signatureMatches = firstText.startsWith('\x89PNG\r\n\x1a\n');
+                    break;
+                case '.gif':
+                    signatureMatches = firstText.startsWith('GIF87a') || firstText.startsWith('GIF89a');
+                    break;
+                case '.webp':
+                    signatureMatches = firstText.startsWith('RIFF') && firstText.slice(8, 12) === 'WEBP';
+                    break;
+                case '.bmp':
+                    signatureMatches = firstText.startsWith('BM');
+                    break;
+                case '.tif':
+                case '.tiff':
+                    signatureMatches = firstBytes[0] === 0x49 && firstBytes[1] === 0x49 && firstBytes[2] === 0x2a && firstBytes[3] === 0x00
+                        || firstBytes[0] === 0x4d && firstBytes[1] === 0x4d && firstBytes[2] === 0x00 && firstBytes[3] === 0x2a;
+                    break;
+            }
+            if (!signatureMatches) {
+                return 'Your uploaded file does not meet the requirements. The file contents do not match a supported image.';
+            }
+
+            // Decode formats supported by the browser as well as checking the
+            // signature, so a corrupt file with a forged image header is rejected.
+            if (!['.tif', '.tiff'].includes(extension) && typeof createImageBitmap === 'function') {
+                let bitmap;
+                try {
+                    bitmap = await createImageBitmap(file);
+                } catch (error) {
+                    return 'Your uploaded file does not meet the requirements. The image file is damaged or incomplete.';
+                } finally {
+                    if (bitmap) bitmap.close();
+                }
+            }
+            return '';
+        } catch (error) {
+            return 'Your uploaded file does not meet the requirements. The file could not be checked.';
         }
     }
 
+    function validateRegistrationFile(input, spanId, kind) {
+        const span = document.getElementById(spanId);
+        const file = input.files && input.files[0];
+        const fileKey = registrationFileKey(file);
+        const previousError = input.dataset.validationError;
+        const previousStatus = input.dataset.validationStatus;
+        let error = '';
+
+        if (file) {
+            span.textContent = file.name;
+        } else {
+            span.textContent = 'No file chosen';
+            delete input.dataset.validationError;
+            delete input.dataset.validationStatus;
+            delete input.dataset.pendingFileKey;
+            delete input.dataset.validatedFileKey;
+            input.setCustomValidity('');
+            refreshUploadValidation();
+            return;
+        }
+
+        const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+        const isPdf = kind === 'id' && extension === '.pdf';
+        if (file.size > registrationUploadMaxBytes) {
+            error = 'Your uploaded file does not meet the requirements. Each file must be 10 MiB or smaller.';
+        } else if (!isPdf && !imageExtensions.includes(extension)) {
+            error = kind === 'id'
+                ? 'Your uploaded file does not meet the requirements. Valid ID must be a supported image or PDF.'
+                : 'Your uploaded file does not meet the requirements. Selfie must be a supported image; PDFs are not accepted.';
+        } else if (isPdf && file.type && file.type !== 'application/pdf' && file.type !== 'application/octet-stream') {
+            error = 'Your uploaded file does not meet the requirements. The PDF type does not match its extension.';
+        } else if (!isPdf && file.type && file.type !== imageMimeByExtension[extension] && file.type !== 'application/octet-stream') {
+            error = 'Your uploaded file does not meet the requirements. The image type does not match its extension.';
+        }
+
+        if (error) {
+            input.dataset.validationError = error;
+            input.dataset.validationStatus = 'invalid';
+            delete input.dataset.pendingFileKey;
+            delete input.dataset.validatedFileKey;
+            input.setCustomValidity(error);
+            refreshUploadValidation();
+            return;
+        }
+
+        if (input.dataset.validatedFileKey === fileKey) {
+            refreshUploadValidation();
+            return;
+        }
+        if (input.dataset.pendingFileKey === fileKey) {
+            refreshUploadValidation();
+            return;
+        }
+
+        input.dataset.pendingFileKey = fileKey;
+        input.dataset.validationStatus = 'pending';
+        delete input.dataset.validationError;
+        input.setCustomValidity('Checking file contents.');
+        refreshUploadValidation();
+
+        validateRegistrationFileContent(file, kind, extension).then(contentError => {
+            if (registrationFileKey(input.files && input.files[0]) !== fileKey) return;
+            delete input.dataset.pendingFileKey;
+            input.dataset.validationStatus = contentError ? 'invalid' : 'valid';
+            if (contentError) {
+                input.dataset.validationError = contentError;
+                delete input.dataset.validatedFileKey;
+            } else {
+                delete input.dataset.validationError;
+                input.dataset.validatedFileKey = fileKey;
+            }
+            input.setCustomValidity(contentError);
+            refreshUploadValidation();
+        });
+    }
+
+    function refreshUploadValidation() {
+        const idInput = document.getElementById('valid_id');
+        const selfieInput = document.getElementById('selfie');
+        const error = idInput.dataset.validationError || selfieInput.dataset.validationError;
+        const pending = idInput.dataset.validationStatus === 'pending' || selfieInput.dataset.validationStatus === 'pending';
+        const errorBox = document.getElementById('uploadValidationError');
+        errorBox.textContent = error || (pending ? 'Checking file contents… Please wait, then select Next again.' : '');
+        errorBox.style.display = error || pending ? 'block' : 'none';
+        return !error && !pending;
+    }
+
+    document.getElementById('valid_id').addEventListener('change', function() {
+        validateRegistrationFile(this, 'valid_id_name', 'id');
+    });
+    document.getElementById('selfie').addEventListener('change', function() {
+        validateRegistrationFile(this, 'selfie_name', 'selfie');
+    });
+
     // Handle form submission validation
     document.getElementById('registerForm').addEventListener('submit', function(e) {
-        if (!validateStep(4)) {
+        if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {
             e.preventDefault();
             showWarningModal('Please complete all steps and agree to the terms');
         }
