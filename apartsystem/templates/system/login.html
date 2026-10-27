@@ -615,7 +615,8 @@
             document.getElementById(`step${i}Indicator`).classList.add('completed');
         }
         
-        document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'inline-block';
+        const reviewStep = currentStep === 4;
+        document.getElementById('prevBtn').style.display = currentStep === 1 || reviewStep ? 'none' : 'inline-block';
         
         if (currentStep === totalSteps) {
             document.getElementById('nextBtn').style.display = 'none';
@@ -624,6 +625,7 @@
             document.getElementById('nextBtn').style.display = 'inline-block';
             document.getElementById('submitBtn').style.display = 'none';
         }
+        if (reviewStep) document.getElementById('nextBtn').style.display = 'none';
         document.getElementById('nextBtn').textContent = currentStep === 3
             ? 'Review Details'
             : currentStep === 4 ? 'Continue to Terms' : 'Next';

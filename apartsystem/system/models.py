@@ -94,6 +94,17 @@ class UserProfile(models.Model):
         return f"{self.user.get_full_name() or self.user.username} - {self.user_type}"
 
 
+class PasswordResetChallenge(models.Model):
+    """Short-lived, single-use email code challenge for password resets."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='password_reset_challenge')
+    code_hash = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_sent_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+
 class ActivityLog(models.Model):
     ACTIONS = [
         ('create', 'Create'),

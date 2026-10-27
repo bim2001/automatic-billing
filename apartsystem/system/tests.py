@@ -8,7 +8,6 @@ from pathlib import Path
 
 from django.contrib.auth.models import User
 from django.core import mail
-from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -20,7 +19,6 @@ from PIL import Image
 from unittest.mock import Mock, patch
 
 from .models import SystemSettings
-from .forms import AppBaseURLPasswordResetForm
 from .validators import normalize_philippine_mobile_number
 
 
@@ -308,6 +306,19 @@ await new Promise(resolve => setImmediate(resolve));
 assert.equal(selfie.dataset.validationError, undefined);
 context.changeStep(1);
 assert.equal(vm.runInContext('currentStep', context), 4);
+context.updateStepDisplay();
+assert.equal(element('prevBtn').style.display, 'none');
+assert.equal(element('nextBtn').style.display, 'none');
+context.editReviewedDetails();
+assert.equal(vm.runInContext('currentStep', context), 1);
+assert.equal(element('reg_email').value, 'tenant@example.com');
+assert.equal(element('valid_id').files[0].name, 'valid.jpg');
+assert.equal(element('selfie').files[0].name, 'selfie.jpg');
+vm.runInContext('currentStep = 4', context);
+context.changeStep(1);
+assert.equal(vm.runInContext('currentStep', context), 5);
+assert.equal(element('prevBtn').style.display, 'inline-block');
+assert.equal(element('nextBtn').style.display, 'none');
 })().catch(error => { console.error(error); process.exitCode = 1; });
 """
         script = harness + '\nconst context = {document, window, URLSearchParams};\nvm.createContext(context);\nvm.runInContext(' + repr(scripts[-1]) + ', context);\n' + checks
@@ -609,7 +620,6 @@ class TenantRegistrationUploadTests(TestCase):
 
 @override_settings(
     EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
-    APP_BASE_URL='https://accounts.example.test',
 )
 class PasswordResetFlowTests(TestCase):
     def setUp(self):
@@ -621,54 +631,116 @@ class PasswordResetFlowTests(TestCase):
         )
         self.reset_url = reverse('password_reset')
 
+    def request_code(self, email=None):
+        self.client.post(self.reset_url, {'email': email or self.user.email})
+        response = self.client.post(reverse('password_reset_confirm_email'))
+        self.assertRedirects(response, reverse('password_reset_verify_code'))
+        if mail.outbox:
+            match = re.search(r'(?<!\d)(\d{6})(?!\d)', mail.outbox[-1].body)
+            return match.group(1) if match else None
+        return None
+
+    def verify_code(self, code):
+        return self.client.post(reverse('password_reset_verify_code'), {'code': code})
+
     def test_login_page_has_forgot_password_link(self):
         response = self.client.get(reverse('login_view'))
         self.assertContains(response, reverse('password_reset'))
         self.assertContains(response, 'Forgot Password?')
 
-    def test_reset_request_is_generic_and_uses_configured_application_base_url(self):
-        known = self.client.post(self.reset_url, {'email': 'RESET-TENANT@example.com'})
-        self.assertRedirects(known, reverse('password_reset_done'))
-        self.assertContains(self.client.get(reverse('password_reset_done')), 'If an eligible account exists')
+    def test_confirmed_reset_sends_code_without_reset_link(self):
+        self.client.post(self.reset_url, {'email': 'RESET-TENANT@example.com'})
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertContains(self.client.get(reverse('password_reset_confirm_email')), self.user.email)
+        self.client.post(reverse('password_reset_confirm_email'))
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn('https://accounts.example.test/reset/', mail.outbox[0].body)
+        self.assertRegex(mail.outbox[0].body, r'(?<!\d)\d{6}(?!\d)')
+        self.assertNotIn('/reset/', mail.outbox[0].body)
+        challenge = self.user.password_reset_challenge
+        self.assertNotIn(re.search(r'(?<!\d)(\d{6})(?!\d)', mail.outbox[0].body).group(1), challenge.code_hash)
 
-        unknown = self.client.post(self.reset_url, {'email': 'no-account@example.com'})
-        self.assertRedirects(unknown, reverse('password_reset_done'))
-        self.assertEqual(len(mail.outbox), 1)
-
-    def test_reset_token_sets_password_and_cannot_be_reused(self):
+    def test_unknown_and_registered_addresses_have_generic_response(self):
         self.client.post(self.reset_url, {'email': self.user.email})
-        reset_link = re.search(
-            r'https://accounts\.example\.test/reset/[^\s]+', mail.outbox[0].body
-        ).group(0)
-        initial_response = self.client.get(reset_link)
-        self.assertEqual(initial_response.status_code, 302)
-        confirm_path = initial_response['Location']
-        confirm_page = self.client.get(confirm_path)
-        self.assertContains(confirm_page, 'Set a new password')
+        known = self.client.post(reverse('password_reset_confirm_email'), follow=True)
+        self.assertContains(known, 'If an account can receive a reset code')
+        self.client.get(self.reset_url)
+        self.client.post(self.reset_url, {'email': 'no-account@example.com'})
+        unknown = self.client.post(reverse('password_reset_confirm_email'), follow=True)
+        self.assertContains(unknown, 'If an account can receive a reset code')
+        self.assertEqual(len(mail.outbox), 1)
 
+    def test_correct_code_resets_password_once_and_invalidates_challenge(self):
+        code = self.request_code()
+        response = self.verify_code(code)
+        self.assertRedirects(response, reverse('password_reset_new_password'))
         new_password = 'A-unique-long-reset-passphrase-2026!'
-        response = self.client.post(confirm_path, {
+        response = self.client.post(reverse('password_reset_new_password'), {
             'new_password1': new_password,
             'new_password2': new_password,
         })
         self.assertRedirects(response, reverse('password_reset_complete'))
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(new_password))
+        self.assertFalse(hasattr(self.user, 'password_reset_challenge'))
+        self.assertRedirects(self.client.get(reverse('password_reset_complete')), reverse('password_reset'))
+        self.assertRedirects(self.verify_code(code), reverse('password_reset'))
 
-        reused = self.client.get(reset_link, follow=True)
-        self.assertContains(reused, 'invalid or expired')
+    def test_wrong_code_and_maximum_attempts(self):
+        self.request_code()
+        for attempt in range(5):
+            response = self.verify_code('000000' if attempt < 4 else '111111')
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, 'invalid or expired')
+        self.assertEqual(self.user.password_reset_challenge.failed_attempts, 5)
+        self.assertEqual(self.verify_code('999999').status_code, 200)
+        self.assertEqual(self.user.password_reset_challenge.failed_attempts, 5)
+
+    def test_expired_code_is_rejected(self):
+        self.request_code()
+        from django.utils import timezone
+        from datetime import timedelta
+        self.user.password_reset_challenge.__class__.objects.filter(user=self.user).update(
+            expires_at=timezone.now() - timedelta(seconds=1)
+        )
+        response = self.verify_code('123456')
+        self.assertContains(response, 'invalid or expired')
+        self.assertFalse('password_reset_verified_id' in self.client.session)
+
+    def test_resend_cooldown_does_not_send_another_code(self):
+        self.request_code()
+        original_hash = self.user.password_reset_challenge.code_hash
+        self.client.post(reverse('password_reset_confirm_email'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(self.user.password_reset_challenge.code_hash, original_hash)
+
+    def test_password_mismatch_and_django_password_validation(self):
+        code = self.request_code()
+        self.verify_code(code)
+        response = self.client.post(reverse('password_reset_new_password'), {
+            'new_password1': 'A-unique-long-reset-passphrase-2026!',
+            'new_password2': 'A-different-long-reset-passphrase-2026!',
+        })
+        self.assertContains(response, 'password fields didn')
+        response = self.client.post(reverse('password_reset_new_password'), {
+            'new_password1': 'password', 'new_password2': 'password',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'too common')
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('CurrentPassword-739!Secure'))
+
+    def test_registration_review_hides_duplicate_shared_navigation_buttons(self):
+        response = self.client.get(reverse('login_view'))
+        self.assertContains(response, 'Edit Details')
+        self.assertContains(response, 'Continue to Terms')
+        self.assertContains(response, "const reviewStep = currentStep === 4")
+        self.assertContains(response, "if (reviewStep) document.getElementById('nextBtn').style.display = 'none'")
 
     def test_password_reset_uses_django_password_validation(self):
-        self.client.post(self.reset_url, {'email': self.user.email})
-        reset_link = re.search(
-            r'https://accounts\.example\.test/reset/[^\s]+', mail.outbox[0].body
-        ).group(0)
-        initial_response = self.client.get(reset_link)
-        confirm_path = initial_response['Location']
+        code = self.request_code()
+        self.verify_code(code)
         weak_password = 'password'
-        response = self.client.post(confirm_path, {
+        response = self.client.post(reverse('password_reset_new_password'), {
             'new_password1': weak_password,
             'new_password2': weak_password,
         })
@@ -676,10 +748,3 @@ class PasswordResetFlowTests(TestCase):
         self.assertContains(response, 'too common')
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('CurrentPassword-739!Secure'))
-
-    @override_settings(DEBUG=False, APP_BASE_URL='http://127.0.0.1:8000')
-    def test_production_reset_rejects_local_http_base_url(self):
-        form = AppBaseURLPasswordResetForm(data={'email': self.user.email})
-        self.assertTrue(form.is_valid())
-        with self.assertRaisesMessage(ImproperlyConfigured, 'must use HTTPS'):
-            form.save()

@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.utils.timezone import now
@@ -20,7 +22,7 @@ import secrets
 import hashlib
 import os
 from django.db import models, transaction
-from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment, ActivityLog, APIToken
+from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment, ActivityLog, APIToken, PasswordResetChallenge
 from .validators import normalize_philippine_mobile_number
 from django.http import HttpResponse
 import csv
@@ -943,6 +945,155 @@ def register_tenant(request):
         return redirect('login_view')
     
     return redirect('login_view')
+
+PASSWORD_RESET_CODE_TTL = timedelta(minutes=10)
+PASSWORD_RESET_RESEND_COOLDOWN = timedelta(minutes=1)
+PASSWORD_RESET_MAX_ATTEMPTS = 5
+
+
+def _clear_password_reset_session(request):
+    for key in ('password_reset_email', 'password_reset_challenge_id', 'password_reset_verified_id'):
+        request.session.pop(key, None)
+
+
+def password_reset(request):
+    """Collect an address before asking the user to confirm a code request."""
+    if request.method == 'POST':
+        email = (request.POST.get('email') or '').strip().lower()
+        try:
+            EmailValidator()(email)
+        except ValidationError:
+            return render(request, 'registration/password_reset_form.html', {
+                'email': email, 'error': 'Enter a valid email address.'
+            })
+        _clear_password_reset_session(request)
+        request.session['password_reset_email'] = email
+        return redirect('password_reset_confirm_email')
+    return render(request, 'registration/password_reset_form.html')
+
+
+def password_reset_confirm_email(request):
+    email = request.session.get('password_reset_email')
+    if not email:
+        return redirect('password_reset')
+    if request.method != 'POST':
+        return render(request, 'registration/password_reset_confirm_email.html', {'email': email})
+
+    now = timezone.now()
+    code = f'{secrets.randbelow(1_000_000):06d}'
+    sent = False
+    challenge_id = None
+    with transaction.atomic():
+        user = User.objects.select_for_update().filter(email__iexact=email, is_active=True).order_by('pk').first()
+        if user:
+            challenge = PasswordResetChallenge.objects.select_for_update().filter(user=user).first()
+            if challenge and now - challenge.last_sent_at < PASSWORD_RESET_RESEND_COOLDOWN:
+                challenge_id = challenge.pk
+            else:
+                if challenge:
+                    challenge.code_hash = make_password(code)
+                    challenge.created_at = now
+                    challenge.last_sent_at = now
+                    challenge.expires_at = now + PASSWORD_RESET_CODE_TTL
+                    challenge.failed_attempts = 0
+                    challenge.verified_at = None
+                    challenge.save()
+                else:
+                    challenge = PasswordResetChallenge.objects.create(
+                        user=user, code_hash=make_password(code), last_sent_at=now,
+                        expires_at=now + PASSWORD_RESET_CODE_TTL,
+                    )
+                challenge_id = challenge.pk
+                sent = True
+
+    request.session['password_reset_challenge_id'] = challenge_id
+    request.session.pop('password_reset_verified_id', None)
+    if sent:
+        try:
+            send_mail(
+                'Your password reset verification code',
+                f'Your password reset verification code is {code}. It expires in 10 minutes. '
+                'Enter this code on the password reset page. If you did not request this, you can ignore this email.',
+                django_settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+        except Exception:
+            # Keep the response generic and avoid logging the code or account state.
+            logger.warning('Password reset code email could not be sent.')
+    return redirect('password_reset_verify_code')
+
+
+def password_reset_verify_code(request):
+    email = request.session.get('password_reset_email')
+    challenge_id = request.session.get('password_reset_challenge_id')
+    if not email:
+        return redirect('password_reset')
+    error = None
+    if request.method == 'POST':
+        now = timezone.now()
+        with transaction.atomic():
+            challenge = PasswordResetChallenge.objects.select_for_update().select_related('user').filter(
+                pk=challenge_id, user__email__iexact=email, user__is_active=True,
+            ).first() if challenge_id else None
+            if not challenge or challenge.expires_at <= now or challenge.failed_attempts >= PASSWORD_RESET_MAX_ATTEMPTS:
+                error = 'That code is invalid or expired. Request a new code.'
+            elif challenge.verified_at:
+                error = 'That code is invalid or expired. Request a new code.'
+            else:
+                code = (request.POST.get('code') or '').strip()
+                if len(code) != 6 or not code.isascii() or not code.isdigit() or not check_password(code, challenge.code_hash):
+                    challenge.failed_attempts += 1
+                    challenge.save(update_fields=['failed_attempts'])
+                    error = 'That code is invalid or expired. Request a new code.'
+                else:
+                    challenge.verified_at = now
+                    challenge.save(update_fields=['verified_at'])
+                    request.session['password_reset_verified_id'] = challenge.pk
+                    return redirect('password_reset_new_password')
+    return render(request, 'registration/password_reset_code.html', {'error': error})
+
+
+def password_reset_new_password(request):
+    email = request.session.get('password_reset_email')
+    challenge_id = request.session.get('password_reset_verified_id')
+    if not email or not challenge_id:
+        return redirect('password_reset')
+    now = timezone.now()
+    challenge = PasswordResetChallenge.objects.select_related('user').filter(
+        pk=challenge_id, user__email__iexact=email, verified_at__isnull=False,
+        expires_at__gt=now, failed_attempts__lt=PASSWORD_RESET_MAX_ATTEMPTS,
+    ).first()
+    if not challenge:
+        _clear_password_reset_session(request)
+        return redirect('password_reset')
+    form = SetPasswordForm(challenge.user, request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        with transaction.atomic():
+            locked = PasswordResetChallenge.objects.select_for_update().select_related('user').filter(
+                pk=challenge_id, user__email__iexact=email, verified_at__isnull=False,
+                expires_at__gt=timezone.now(), failed_attempts__lt=PASSWORD_RESET_MAX_ATTEMPTS,
+            ).first()
+            if not locked:
+                _clear_password_reset_session(request)
+                return redirect('password_reset')
+            user = User.objects.select_for_update().get(pk=locked.user_id)
+            form = SetPasswordForm(user, request.POST)
+            if not form.is_valid():
+                return render(request, 'registration/password_reset_new_password.html', {'form': form})
+            form.save()
+            locked.delete()
+        _clear_password_reset_session(request)
+        request.session['password_reset_completed'] = True
+        return redirect('password_reset_complete')
+    return render(request, 'registration/password_reset_new_password.html', {'form': form})
+
+
+def password_reset_complete(request):
+    if not request.session.pop('password_reset_completed', False):
+        return redirect('password_reset')
+    return render(request, 'registration/password_reset_complete.html')
+
 
 def login_view(request):
     error = None
