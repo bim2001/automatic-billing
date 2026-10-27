@@ -164,27 +164,189 @@
             color: white;
         }
 
-        @media (max-width: 768px) {
-            .navbar {
-                margin: 0 0 16px;
-                padding: 62px 16px 15px;
-                border-radius: 0 0 15px 15px;
-            }
-            .container {
-                width: 100%;
-                margin: 0;
-                padding: 16px 12px;
-            }
-            .filter-bar {
-                flex-direction: column;
-            }
-            table {
-                font-size: 12px;
-            }
-            th, td {
-                padding: 8px;
-            }
-        }
+
+@media (max-width: 768px) {
+    /* Mobile header */
+    .navbar {
+        width: 100%;
+        margin: 0 0 16px;
+        padding: 68px 16px 16px;
+        border-radius: 0 0 15px 15px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .navbar > div {
+        width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .navbar > div:first-child {
+        font-size: 18px;
+        line-height: 1.4;
+    }
+
+    .navbar > div:last-child {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* Main content */
+    .container {
+        width: 100%;
+        margin: 0;
+        padding: 16px 12px;
+        min-width: 0;
+    }
+
+    /* Statistics: 2 columns on mobile */
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        min-width: 0;
+        padding: 16px 8px;
+        border-radius: 12px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    /* Search and filters */
+    .filter-bar {
+        padding: 14px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .filter-bar form {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px !important;
+    }
+
+    .filter-bar input[name="search"],
+    .filter-bar select {
+        width: 100%;
+        min-width: 0;
+        height: 44px;
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    .filter-bar input[name="search"] {
+        grid-column: 1 / -1;
+    }
+
+    .filter-bar .btn {
+        width: 100%;
+        min-width: 0;
+        min-height: 42px;
+        padding: 10px 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    /* Keep table readable and scrollable */
+    .logs-table {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 12px;
+    }
+
+    .logs-table table {
+        width: 100%;
+        min-width: 680px;
+        border-collapse: collapse;
+    }
+
+    .logs-table th,
+    .logs-table td {
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .logs-table th {
+        white-space: nowrap;
+    }
+
+    .action-badge {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    /* Pagination */
+    .pagination {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 14px 8px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 380px) {
+    .container {
+        padding: 12px 8px;
+    }
+
+    .navbar {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .stats-grid {
+        gap: 8px;
+    }
+
+    .stat-card {
+        padding: 14px 5px;
+    }
+
+    .stat-value {
+        font-size: 25px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+    }
+
+    .filter-bar {
+        padding: 10px;
+    }
+}
+
     </style>
 </head>
 <body>

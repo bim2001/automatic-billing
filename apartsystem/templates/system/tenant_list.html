@@ -588,15 +588,215 @@
             }
         }
         
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .tenants-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+
+/* Tenant Management responsive layout */
+@media (max-width: 768px) {
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        margin-left: 0;
+        padding: 16px;
+        box-sizing: border-box;
+    }
+
+    /* Page heading */
+    .page-header-custom {
+        margin-bottom: 20px;
+        min-width: 0;
+    }
+
+    .page-header-custom h1 {
+        font-size: 23px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+
+    .page-header-custom p {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    /* Four statistics cards: 2 columns */
+    .stats-grid,
+    .stats-grid-tenant {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        width: 100%;
+        min-width: 0;
+        margin-bottom: 20px;
+    }
+
+    .stat-card,
+    .stat-card-tenant {
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+        padding: 16px 8px;
+        box-sizing: border-box;
+        overflow-wrap: anywhere;
+    }
+
+    .stat-value,
+    .stat-card-tenant .number {
+        font-size: 26px;
+    }
+
+    .stat-label,
+    .stat-card-tenant h3 {
+        font-size: 11px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    /* Tenant cards: one column on mobile */
+    .tenants-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        width: 100%;
+        min-width: 0;
+        margin-bottom: 20px;
+    }
+
+    .tenant-card {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding: 14px;
+        box-sizing: border-box;
+        overflow-wrap: anywhere;
+    }
+
+    /* Tenant name, approval badge, and room badge */
+    .tenant-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .tenant-info {
+        flex: 1 1 150px;
+        min-width: 0;
+    }
+
+    .tenant-name {
+        flex-wrap: wrap;
+        gap: 5px;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
+
+    .tenant-username {
+        flex-wrap: wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .room-badge,
+    .no-room-badge,
+    .approval-badge {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Email and other tenant details */
+    .detail-item {
+        align-items: flex-start;
+        gap: 8px;
+        min-width: 0;
+        font-size: 12px;
+    }
+
+    .detail-label {
+        flex: 0 0 65px;
+        width: auto;
+        min-width: 0;
+        font-size: 11px;
+    }
+
+    .detail-value {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        font-size: 12px;
+    }
+
+    .status-badge {
+        overflow-wrap: anywhere;
+        line-height: 1.5;
+    }
+
+    /* Keep modals inside narrow screens */
+    .modal-content {
+        width: calc(100% - 24px);
+        max-width: 550px;
+        max-height: 90vh;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .modal-body {
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overflow-wrap: anywhere;
+    }
+
+    .info-row {
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .info-row .label,
+    .info-row .value {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+}
+
+/* Extra-small phones */
+@media (max-width: 380px) {
+    .main-content {
+        padding: 12px 10px;
+    }
+
+    .page-header-custom h1 {
+        font-size: 20px;
+    }
+
+    .stats-grid,
+    .stats-grid-tenant {
+        gap: 8px;
+    }
+
+    .stat-card,
+    .stat-card-tenant {
+        padding: 14px 6px;
+    }
+
+    .stat-value,
+    .stat-card-tenant .number {
+        font-size: 24px;
+    }
+
+    .tenant-card {
+        padding: 12px;
+    }
+
+    .tenant-header {
+        gap: 6px;
+    }
+
+    .detail-item {
+        gap: 6px;
+    }
+}
+
     </style>
 </head>
 <body>

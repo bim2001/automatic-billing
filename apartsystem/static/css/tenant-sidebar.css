@@ -33,7 +33,7 @@
     .tenant-sidebar-toggle {
         display: inline-flex !important;
         position: fixed;
-        z-index: 10002;
+        z-index: 1002;
         top: max(12px, env(safe-area-inset-top));
         left: max(12px, env(safe-area-inset-left));
         width: 44px;
@@ -47,31 +47,51 @@
         box-shadow: 0 2px 10px rgba(0, 0, 0, .22);
         font-size: 20px;
         cursor: pointer;
+        touch-action: manipulation;
         -webkit-appearance: none;
         appearance: none;
     }
 
     .tenant-sidebar {
         display: flex !important;
-        width: min(300px, 86vw) !important;
+        box-sizing: border-box;
+        width: min(300px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px);
         height: 100vh !important;
         height: 100dvh !important;
         padding-bottom: env(safe-area-inset-bottom);
+        overflow: hidden;
         transform: translateX(-105%);
         visibility: hidden;
         pointer-events: none;
         transition: transform .25s ease, visibility .25s;
-        z-index: 10001;
+        z-index: 1001;
         will-change: transform;
     }
 
-    /* The dashboard's inline .sidebar rule is later in the cascade. */
-    #tenant-sidebar { z-index: 10001; }
+    /* Keep the drawer above the backdrop despite page-specific sidebar rules. */
+    #tenant-sidebar { z-index: 1001; }
 
     body.tenant-sidebar-open .tenant-sidebar {
         transform: translateX(0);
         visibility: visible;
         pointer-events: auto;
+    }
+
+    .tenant-sidebar .sidebar-header,
+    .tenant-sidebar .sidebar-footer,
+    .tenant-sidebar-close {
+        flex-shrink: 0;
+    }
+
+    .tenant-sidebar .nav-menu {
+        flex: 1 1 0%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
     }
 
     .tenant-sidebar .sidebar-header .logo span,
@@ -92,8 +112,6 @@
 
     .tenant-sidebar-close {
         display: inline-flex;
-        position: sticky;
-        top: 10px;
         align-self: flex-end;
         flex: 0 0 40px;
         width: 40px;
@@ -115,7 +133,7 @@
         display: block;
         position: fixed;
         inset: 0;
-        z-index: 10000;
+        z-index: 1000;
         background: rgba(17, 24, 39, .5);
     }
 
@@ -127,14 +145,24 @@
         max-width: 100%;
         min-width: 0;
         margin-left: 0 !important;
+        box-sizing: border-box;
         padding: 68px 16px 20px !important;
         overflow-wrap: anywhere;
     }
 
     .tenant-sidebar ~ .navbar {
         width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
         margin-left: 0 !important;
         padding: 62px 16px 15px;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .tenant-sidebar ~ .navbar > * {
+        min-width: 0;
+        max-width: 100%;
     }
 
     .tenant-sidebar ~ .main-content table,
@@ -151,6 +179,23 @@
     .tenant-sidebar ~ .container select,
     .tenant-sidebar ~ .container textarea {
         max-width: 100%;
+    }
+
+    .tenant-sidebar ~ .main-content > *,
+    .tenant-sidebar ~ .container > * {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .tenant-sidebar ~ .container .header-card {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .tenant-sidebar ~ .container .header-card > div {
+        max-width: 100%;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
     }
 
     .tenant-sidebar ~ .container .payment-card,
