@@ -7,6 +7,8 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from django.contrib.auth.models import User
+from django.core import mail
+from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -18,6 +20,8 @@ from PIL import Image
 from unittest.mock import Mock, patch
 
 from .models import SystemSettings
+from .forms import AppBaseURLPasswordResetForm
+from .validators import normalize_philippine_mobile_number
 
 
 class R2SmokeTestCommandTests(SimpleTestCase):
@@ -238,18 +242,31 @@ const document = {
   getElementById: element,
   querySelector: selector => {
     const field = element(selector);
-    field.value = 'filled';
+    if (selector.includes('select')) field.selectedOptions = [{textContent: 'Test option'}];
+    else field.value = 'filled';
     return field;
   }
 };
 element('reg_email').value = 'tenant@example.com';
 element('reg_password').value = 'password123';
 element('reg_password2').value = 'password123';
+element('reg_phone_number').value = '09123456789';
 const window = { location: { search: '' } };
 """
         checks = r"""
 (async () => {
+element('reg_email').value = '@hfaskjdhkjahd';
 context.changeStep(1);
+assert.equal(vm.runInContext('currentStep', context), 1);
+assert.match(element('emailValidationError').textContent, /valid email/);
+element('reg_email').value = 'tenant@example.com';
+context.changeStep(1);
+assert.equal(vm.runInContext('currentStep', context), 2);
+element('reg_phone_number').value = '2352352';
+context.changeStep(1);
+assert.equal(vm.runInContext('currentStep', context), 2);
+assert.match(element('phoneValidationError').textContent, /Philippine mobile/);
+element('reg_phone_number').value = '+63 917-123-4567';
 context.changeStep(1);
 assert.equal(vm.runInContext('currentStep', context), 3);
 const id = element('valid_id');
@@ -351,6 +368,96 @@ class TenantRegistrationUploadTests(TestCase):
     def test_missing_selfie_is_rejected(self):
         response = self.client.post(self.url, self.registration_data(valid_id=self.jpeg_upload('id.jpg')))
         self.assert_rejected_without_user(response, 'Selfie upload is required')
+
+    def test_malformed_emails_are_rejected_without_creating_users_or_files(self):
+        for email in ('@hfaskjdhkjahd', 'missing-domain@', 'bad..local@example.com', 'no-at-sign.example.com'):
+            with self.subTest(email=email):
+                response = self.client.post(self.url, self.registration_data(
+                    email=email,
+                    valid_id=self.jpeg_upload('id.jpg'),
+                    selfie=self.jpeg_upload('selfie.jpg'),
+                ))
+                self.assert_rejected_without_user(response, 'Enter a valid email address')
+
+    def test_email_is_trimmed_lowercased_and_duplicates_are_case_insensitive(self):
+        response = self.client.post(self.url, self.registration_data(
+            email='  TENANT@EXAMPLE.COM  ',
+            valid_id=self.jpeg_upload('id.jpg'),
+            selfie=self.jpeg_upload('selfie.jpg'),
+        ))
+        self.assertRedirects(response, reverse('login_view'))
+        user = User.objects.get(email='tenant@example.com')
+        self.assertEqual(user.email, 'tenant@example.com')
+
+        duplicate = self.client.post(self.url, self.registration_data(
+            email='Tenant@Example.Com',
+            valid_id=self.jpeg_upload('duplicate-id.jpg'),
+            selfie=self.jpeg_upload('duplicate-selfie.jpg'),
+        ))
+        self.assertContains(duplicate, 'Email already registered')
+        self.assertEqual(User.objects.filter(email__iexact='tenant@example.com').count(), 1)
+
+    def test_philippine_mobile_numbers_normalize_to_local_format(self):
+        for number in ('09171234567', '+639171234567', '+63 917-123-4567'):
+            with self.subTest(number=number):
+                self.assertEqual(normalize_philippine_mobile_number(number), '09171234567')
+
+        response = self.client.post(self.url, self.registration_data(
+            phone_number='+63 917-123-4567',
+            valid_id=self.jpeg_upload('id.jpg'),
+            selfie=self.jpeg_upload('selfie.jpg'),
+        ))
+        self.assertRedirects(response, reverse('login_view'))
+        self.assertEqual(User.objects.get(email='tenant@example.com').userprofile.phone_number, '09171234567')
+
+    def test_malformed_philippine_mobile_numbers_are_rejected_without_creation(self):
+        for number in ('2352352', '0912345678', '08123456789', '09123abc4567', '+638171234567'):
+            with self.subTest(number=number):
+                response = self.client.post(self.url, self.registration_data(
+                    phone_number=number,
+                    valid_id=self.jpeg_upload('id.jpg'),
+                    selfie=self.jpeg_upload('selfie.jpg'),
+                ))
+                self.assert_rejected_without_user(response, 'Enter a valid Philippine mobile number')
+
+    def test_repeated_final_registration_does_not_create_a_second_account(self):
+        data = self.registration_data(valid_id=self.jpeg_upload('id.jpg'), selfie=self.jpeg_upload('selfie.jpg'))
+        first_response = self.client.post(self.url, data)
+        self.assertRedirects(first_response, reverse('login_view'))
+
+        duplicate_response = self.client.post(self.url, self.registration_data(
+            email='TENANT@example.com',
+            valid_id=self.jpeg_upload('id-again.jpg'),
+            selfie=self.jpeg_upload('selfie-again.jpg'),
+        ))
+        self.assertContains(duplicate_response, 'Email already registered')
+        self.assertEqual(User.objects.filter(email__iexact='tenant@example.com').count(), 1)
+
+    def test_final_registration_requires_both_consents_server_side(self):
+        response = self.client.post(self.url, self.registration_data(
+            agree_terms='',
+            agree_privacy='',
+            valid_id=self.jpeg_upload('id.jpg'),
+            selfie=self.jpeg_upload('selfie.jpg'),
+        ))
+
+        self.assert_rejected_without_user(response, 'You must agree to the terms and privacy policy')
+
+    def test_login_with_case_variant_email_preserves_pending_approval_gate(self):
+        user = User.objects.create_user(
+            username='pending-tenant', email='tenant@example.com', password='password123'
+        )
+        user.userprofile.user_type = 'tenant'
+        user.userprofile.is_approved = False
+        user.userprofile.save()
+
+        response = self.client.post(reverse('login_view'), {
+            'username': ' TENANT@EXAMPLE.COM ',
+            'password': 'password123',
+        })
+
+        self.assertContains(response, 'pending approval')
+        self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_valid_images_within_limit_register(self):
         response = self.client.post(self.url, self.registration_data(
@@ -498,3 +605,81 @@ class TenantRegistrationUploadTests(TestCase):
         }))
         self.assertEqual(data['valid_id_preview_type'], 'pdf')
         self.assertNotIn('valid_id_file', data)
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    APP_BASE_URL='https://accounts.example.test',
+)
+class PasswordResetFlowTests(TestCase):
+    def setUp(self):
+        SystemSettings.objects.create(id=1, system_name='Password reset test')
+        self.user = User.objects.create_user(
+            username='reset-tenant',
+            email='reset-tenant@example.com',
+            password='CurrentPassword-739!Secure',
+        )
+        self.reset_url = reverse('password_reset')
+
+    def test_login_page_has_forgot_password_link(self):
+        response = self.client.get(reverse('login_view'))
+        self.assertContains(response, reverse('password_reset'))
+        self.assertContains(response, 'Forgot Password?')
+
+    def test_reset_request_is_generic_and_uses_configured_application_base_url(self):
+        known = self.client.post(self.reset_url, {'email': 'RESET-TENANT@example.com'})
+        self.assertRedirects(known, reverse('password_reset_done'))
+        self.assertContains(self.client.get(reverse('password_reset_done')), 'If an eligible account exists')
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('https://accounts.example.test/reset/', mail.outbox[0].body)
+
+        unknown = self.client.post(self.reset_url, {'email': 'no-account@example.com'})
+        self.assertRedirects(unknown, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_reset_token_sets_password_and_cannot_be_reused(self):
+        self.client.post(self.reset_url, {'email': self.user.email})
+        reset_link = re.search(
+            r'https://accounts\.example\.test/reset/[^\s]+', mail.outbox[0].body
+        ).group(0)
+        initial_response = self.client.get(reset_link)
+        self.assertEqual(initial_response.status_code, 302)
+        confirm_path = initial_response['Location']
+        confirm_page = self.client.get(confirm_path)
+        self.assertContains(confirm_page, 'Set a new password')
+
+        new_password = 'A-unique-long-reset-passphrase-2026!'
+        response = self.client.post(confirm_path, {
+            'new_password1': new_password,
+            'new_password2': new_password,
+        })
+        self.assertRedirects(response, reverse('password_reset_complete'))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(new_password))
+
+        reused = self.client.get(reset_link, follow=True)
+        self.assertContains(reused, 'invalid or expired')
+
+    def test_password_reset_uses_django_password_validation(self):
+        self.client.post(self.reset_url, {'email': self.user.email})
+        reset_link = re.search(
+            r'https://accounts\.example\.test/reset/[^\s]+', mail.outbox[0].body
+        ).group(0)
+        initial_response = self.client.get(reset_link)
+        confirm_path = initial_response['Location']
+        weak_password = 'password'
+        response = self.client.post(confirm_path, {
+            'new_password1': weak_password,
+            'new_password2': weak_password,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'too common')
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('CurrentPassword-739!Secure'))
+
+    @override_settings(DEBUG=False, APP_BASE_URL='http://127.0.0.1:8000')
+    def test_production_reset_rejects_local_http_base_url(self):
+        form = AppBaseURLPasswordResetForm(data={'email': self.user.email})
+        self.assertTrue(form.is_valid())
+        with self.assertRaisesMessage(ImproperlyConfigured, 'must use HTTPS'):
+            form.save()

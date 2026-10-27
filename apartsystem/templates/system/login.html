@@ -93,6 +93,15 @@
         .form-step { display: none; }
         .form-step.active { display: block; }
         .input-group { margin-bottom: 15px; text-align: left; }
+        .field-error { display: block; min-height: 0; margin-top: 4px; color: #b42318; font-size: 0.8rem; }
+        .review-section { margin: 14px 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f8f9fa; text-align: left; }
+        .review-section h4 { margin-bottom: 8px; color: #444; }
+        .review-section dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+        .review-section dl > div { min-width: 0; }
+        .review-section dt { color: #666; font-size: 0.75rem; }
+        .review-section dd { margin: 2px 0 0; overflow-wrap: anywhere; color: #333; font-size: 0.9rem; }
+        .review-actions { flex-wrap: wrap; }
+        .review-actions .btn { min-width: 130px; }
         label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; font-size: 0.85rem; }
         input, select {
             width: 100%;
@@ -199,6 +208,7 @@
             .step .circle { width: 28px; height: 28px; font-size: 12px; }
             .step-label { font-size: 8px; }
             .row-2 { grid-template-columns: 1fr; }
+            .review-section dl { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -231,6 +241,8 @@
         </div>
         <button type="submit" class="btn">Login</button>
     </form>
+
+    <p class="info-text"><a href="{% url 'password_reset' %}">Forgot Password?</a></p>
     
     <div class="info-text" style="margin-top: 20px;">
         <i class="fas fa-info-circle"></i> Tenants: Use the email you registered with. Wait for owner approval first.
@@ -262,6 +274,10 @@
                 </div>
                 <div class="step" id="step4Indicator">
                     <div class="circle">4</div>
+                    <span class="step-label">Review</span>
+                </div>
+                <div class="step" id="step5Indicator">
+                    <div class="circle">5</div>
                     <span class="step-label">Consent</span>
                 </div>
             </div>
@@ -274,6 +290,7 @@
                     <div class="input-group">
                         <label>Email Address</label>
                         <input type="email" name="email" id="reg_email" required placeholder="your@email.com">
+                        <span class="field-error" id="emailValidationError" role="alert" aria-live="polite"></span>
                     </div>
                     <div class="input-group">
                         <label>Password</label>
@@ -303,7 +320,8 @@
                     </div>
                     <div class="input-group">
                         <label>Mobile Number</label>
-                        <input type="tel" name="phone_number" placeholder="09XXXXXXXXX" required>
+                        <input type="tel" name="phone_number" id="reg_phone_number" placeholder="09XXXXXXXXX or +639XXXXXXXXX" maxlength="20" autocomplete="tel" required>
+                        <span class="field-error" id="phoneValidationError" role="alert" aria-live="polite"></span>
                     </div>
                     <div class="row-2">
                         <div class="input-group">
@@ -365,8 +383,44 @@
                     </div>
                 </div>
 
-<!-- STEP 4: Consent with Rental Agreement -->
+<!-- STEP 4: Review details before consent -->
 <div id="step4" class="form-step">
+    <h3>Review Your Details</h3>
+    <p class="info-text">Check the information below. Your password is not shown. Uploaded documents are shown by filename only.</p>
+    <div class="review-section">
+        <h4>Account</h4>
+        <dl>
+            <div><dt>Email</dt><dd id="reviewEmail"></dd></div>
+        </dl>
+    </div>
+    <div class="review-section">
+        <h4>Personal details</h4>
+        <dl>
+            <div><dt>First name</dt><dd id="reviewFirstName"></dd></div>
+            <div><dt>Middle name</dt><dd id="reviewMiddleName"></dd></div>
+            <div><dt>Last name</dt><dd id="reviewLastName"></dd></div>
+            <div><dt>Mobile number</dt><dd id="reviewPhone"></dd></div>
+            <div><dt>Emergency contact</dt><dd id="reviewEmergencyPerson"></dd></div>
+            <div><dt>Emergency number</dt><dd id="reviewEmergencyNumber"></dd></div>
+        </dl>
+    </div>
+    <div class="review-section">
+        <h4>Screening and documents</h4>
+        <dl>
+            <div><dt>Occupants</dt><dd id="reviewOccupants"></dd></div>
+            <div><dt>Employment status</dt><dd id="reviewEmployment"></dd></div>
+            <div><dt>Valid ID</dt><dd id="reviewValidId"></dd></div>
+            <div><dt>Selfie</dt><dd id="reviewSelfie"></dd></div>
+        </dl>
+    </div>
+    <div class="btn-group review-actions">
+        <button type="button" class="btn btn-secondary" onclick="editReviewedDetails()">Edit Details</button>
+        <button type="button" class="btn" onclick="changeStep(1)">Continue to Terms</button>
+    </div>
+</div>
+
+<!-- STEP 5: Consent with Rental Agreement -->
+<div id="step5" class="form-step">
     <h3><i class="fas fa-file-contract"></i> Rental Agreement</h3>
     
     <!-- Rental Agreement Content -->
@@ -509,7 +563,7 @@
 
 <script>
     let currentStep = 1;
-    const totalSteps = 4;
+    const totalSteps = 5;
 
     function showWarningModal(message) {
         const modal = document.getElementById('warningModal');
@@ -570,24 +624,109 @@
             document.getElementById('nextBtn').style.display = 'inline-block';
             document.getElementById('submitBtn').style.display = 'none';
         }
+        document.getElementById('nextBtn').textContent = currentStep === 3
+            ? 'Review Details'
+            : currentStep === 4 ? 'Continue to Terms' : 'Next';
+    }
+
+    function getRegistrationEmailError(value, nativeTypeMismatch = false) {
+        const email = (value || '').trim();
+        const parts = email.split('@');
+        if (!email) return 'Email is required.';
+        if (nativeTypeMismatch) return 'Enter a valid email address.';
+        if (email.length > 254 || parts.length !== 2 || !parts[0] || !parts[1] || /\s/.test(email)) {
+            return 'Enter a valid email address.';
+        }
+        const [localPart, domain] = parts;
+        if (localPart.length > 64 || localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) {
+            return 'Enter a valid email address.';
+        }
+        const labels = domain.split('.');
+        if (labels.length < 2 || labels.some(label => !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label))) {
+            return 'Enter a valid email address.';
+        }
+        const topLevelDomain = labels[labels.length - 1];
+        if (!/^(?:[A-Za-z]{2,63}|xn--[A-Za-z0-9-]{2,59})$/.test(topLevelDomain)) {
+            return 'Enter a valid email address.';
+        }
+        return '';
+    }
+
+    function validateRegistrationEmail(normalize = false) {
+        const input = document.getElementById('reg_email');
+        const value = input.value.trim();
+        if (normalize) input.value = value.toLowerCase();
+        const error = getRegistrationEmailError(value, Boolean(input.validity && input.validity.typeMismatch));
+        if (normalize && !error) input.value = input.value.toLowerCase();
+        input.setCustomValidity(error);
+        document.getElementById('emailValidationError').textContent = error;
+        return !error;
+    }
+
+    function normalizePhilippineMobile(value) {
+        const trimmed = (value || '').trim();
+        if (!trimmed) return '';
+        if (!/^[0-9+()\-\s]+$/.test(trimmed)) return null;
+        const compact = trimmed.replace(/[\s()-]/g, '');
+        if (/^09[0-9]{9}$/.test(compact)) return compact;
+        if (/^\+639[0-9]{9}$/.test(compact)) return `0${compact.slice(3)}`;
+        return null;
+    }
+
+    function validateRegistrationPhone(normalize = false) {
+        const input = document.getElementById('reg_phone_number');
+        const trimmed = input.value.trim();
+        const normalized = normalizePhilippineMobile(trimmed);
+        let error = '';
+        if (!trimmed) {
+            error = 'Mobile number is required.';
+        } else if (normalized === null) {
+            error = 'Enter a valid Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX).';
+        }
+        if (normalize && !error) input.value = normalized;
+        input.setCustomValidity(error);
+        document.getElementById('phoneValidationError').textContent = error;
+        return !error;
+    }
+
+    function updateReviewDetails() {
+        const text = selector => document.querySelector(selector).value.trim();
+        const setText = (id, value) => { document.getElementById(id).textContent = value || 'Not provided'; };
+        setText('reviewEmail', document.getElementById('reg_email').value.trim());
+        setText('reviewFirstName', text('#step2 input[name="first_name"]'));
+        setText('reviewMiddleName', text('#step2 input[name="middle_name"]'));
+        setText('reviewLastName', text('#step2 input[name="last_name"]'));
+        setText('reviewPhone', document.getElementById('reg_phone_number').value.trim());
+        setText('reviewEmergencyPerson', text('#step2 input[name="emergency_person"]'));
+        setText('reviewEmergencyNumber', text('#step2 input[name="emergency_number"]'));
+        setText('reviewOccupants', document.querySelector('#step3 select[name="occupants"]').selectedOptions[0].textContent);
+        setText('reviewEmployment', document.querySelector('#step3 select[name="employment_status"]').selectedOptions[0].textContent);
+        setText('reviewValidId', document.getElementById('valid_id').files[0]?.name || 'No file selected');
+        setText('reviewSelfie', document.getElementById('selfie').files[0]?.name || 'No file selected');
+    }
+
+    function editReviewedDetails() {
+        currentStep = 1;
+        updateStepDisplay();
     }
 
     function validateStep(step) {
         if (step === 1) {
-            const email = document.getElementById('reg_email').value;
+            const emailIsValid = validateRegistrationEmail(true);
             const password = document.getElementById('reg_password').value;
             const password2 = document.getElementById('reg_password2').value;
-            if (!email) { showWarningModal('Please enter email'); return false; }
+            if (!emailIsValid) { showWarningModal('Please enter a valid email address'); return false; }
             if (password.length < 6) { showWarningModal('Password must be at least 6 characters'); return false; }
             if (password !== password2) { showWarningModal('Passwords do not match'); return false; }
         }
         if (step === 2) {
             const firstName = document.querySelector('#step2 input[name="first_name"]').value;
             const lastName = document.querySelector('#step2 input[name="last_name"]').value;
-            const phone = document.querySelector('#step2 input[name="phone_number"]').value;
+            const phoneIsValid = validateRegistrationPhone(true);
             const emergencyPerson = document.querySelector('#step2 input[name="emergency_person"]').value;
             const emergencyNumber = document.querySelector('#step2 input[name="emergency_number"]').value;
-            if (!firstName || !lastName || !phone) { showWarningModal('Please fill all required fields'); return false; }
+            if (!firstName || !lastName) { showWarningModal('Please fill all required fields'); return false; }
+            if (!phoneIsValid) { showWarningModal('Enter a valid Philippine mobile number'); return false; }
             if (!emergencyPerson || !emergencyNumber) { showWarningModal('Please provide emergency contact information'); return false; }
         }
         if (step === 3) {
@@ -601,7 +740,7 @@
                 showWarningModal('Please upload your selfie with ID'); return false;
             }
         }
-        if (step === 4) {
+        if (step === 5) {
             const agreeTerms = document.getElementById('agree_terms').checked;
             const agreePrivacy = document.getElementById('agree_privacy').checked;
             if (!agreeTerms || !agreePrivacy) { showWarningModal('Please agree to all terms to continue'); return false; }
@@ -614,6 +753,7 @@
             currentStep += delta;
             if (currentStep < 1) currentStep = 1;
             if (currentStep > totalSteps) currentStep = totalSteps;
+            if (currentStep === 4) updateReviewDetails();
             updateStepDisplay();
         }
     }
@@ -783,11 +923,31 @@
         validateRegistrationFile(this, 'selfie_name', 'selfie');
     });
 
+    document.getElementById('reg_email').addEventListener('input', function() {
+        validateRegistrationEmail(false);
+    });
+    document.getElementById('reg_email').addEventListener('blur', function() {
+        validateRegistrationEmail(true);
+    });
+    document.getElementById('reg_phone_number').addEventListener('input', function() {
+        validateRegistrationPhone(false);
+    });
+    document.getElementById('reg_phone_number').addEventListener('blur', function() {
+        validateRegistrationPhone(true);
+    });
+
     // Handle form submission validation
     document.getElementById('registerForm').addEventListener('submit', function(e) {
-        if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(4)) {
+        if (!validateStep(1) || !validateStep(2) || !validateStep(3) || !validateStep(5)) {
             e.preventDefault();
             showWarningModal('Please complete all steps and agree to the terms');
+        } else if (this.dataset.submitting === 'true') {
+            e.preventDefault();
+        } else {
+            this.dataset.submitting = 'true';
+            const submitButton = document.getElementById('submitBtn');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Registering…';
         }
     });
 

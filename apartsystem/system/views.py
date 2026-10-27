@@ -9,6 +9,8 @@ from django.core.mail import send_mail
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.core.validators import EmailValidator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
@@ -19,6 +21,7 @@ import hashlib
 import os
 from django.db import models, transaction
 from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment, ActivityLog, APIToken
+from .validators import normalize_philippine_mobile_number
 from django.http import HttpResponse
 import csv
 from django.db import connection
@@ -750,7 +753,7 @@ def clean_filename(filename):
 def register_tenant(request):
     if request.method == 'POST':
         # Step 1: Account
-        email = request.POST.get('email')
+        email = (request.POST.get('email') or '').strip().lower()
         password = request.POST.get('password')
         password2 = request.POST.get('password2')
         
@@ -758,7 +761,8 @@ def register_tenant(request):
         first_name = request.POST.get('first_name', '').strip()
         middle_name = request.POST.get('middle_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
-        phone_number = request.POST.get('phone_number', '').strip()
+        phone_number_input = request.POST.get('phone_number', '').strip()
+        phone_number = normalize_philippine_mobile_number(phone_number_input)
         emergency_person = request.POST.get('emergency_person', '').strip()
         emergency_number = request.POST.get('emergency_number', '').strip()
         
@@ -846,8 +850,14 @@ def register_tenant(request):
         
         if not email:
             errors.append("Email is required")
-        elif User.objects.filter(email=email).exists():
-            errors.append("Email already registered")
+        else:
+            try:
+                EmailValidator()(email)
+            except ValidationError:
+                errors.append("Enter a valid email address")
+            else:
+                if User.objects.filter(email__iexact=email).exists():
+                    errors.append("Email already registered")
         
         if not password:
             errors.append("Password is required")
@@ -860,8 +870,14 @@ def register_tenant(request):
             errors.append("First name is required")
         if not last_name:
             errors.append("Last name is required")
-        if not phone_number:
+        if not phone_number_input:
             errors.append("Mobile number is required")
+        elif phone_number is None:
+            errors.append("Enter a valid Philippine mobile number (09XXXXXXXXX or +639XXXXXXXXX)")
+        if not emergency_person:
+            errors.append("Emergency contact person is required")
+        if not emergency_number:
+            errors.append("Emergency contact number is required")
         
         if not agree_terms or not agree_privacy:
             errors.append("You must agree to the terms and privacy policy")
@@ -932,7 +948,7 @@ def login_view(request):
     error = None
     
     if request.method == 'POST':
-        username_or_email = request.POST.get('username')
+        username_or_email = (request.POST.get('username') or '').strip()
         password = request.POST.get('password')
         
         if not username_or_email or not password:
@@ -942,7 +958,7 @@ def login_view(request):
             if '@' in username_or_email:
                 # Try to find user by email
                 try:
-                    user_obj = User.objects.get(email=username_or_email)
+                    user_obj = User.objects.get(email__iexact=username_or_email.lower())
                     username = user_obj.username
                 except User.DoesNotExist:
                     username = username_or_email
