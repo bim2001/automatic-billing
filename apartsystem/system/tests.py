@@ -571,6 +571,119 @@ class TenantRegistrationUploadTests(TestCase):
         self.assertEqual(response['Content-Type'], 'image/jpeg')
         self.assertTrue(b''.join(response.streaming_content).startswith(b'\xff\xd8'))
 
+    def test_unauthenticated_document_request_returns_401_without_redirect(self):
+        tenant = User.objects.create_user(username='tenant-anon-doc', email='anon-doc@example.com')
+        tenant_profile = tenant.userprofile
+        tenant_profile.user_type = 'tenant'
+        tenant_profile.valid_id_file = 'ids/tenant-anon-doc_id.jpg'
+        tenant_profile.save()
+
+        response = self.client.get(reverse('tenant_document_preview', kwargs={
+            'tenant_id': tenant_profile.id, 'document_type': 'valid-id'
+        }))
+
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn('Location', response)
+
+    def test_missing_document_returns_404(self):
+        tenant = User.objects.create_user(username='tenant-missing-doc', email='missing-doc@example.com')
+        tenant_profile = tenant.userprofile
+        tenant_profile.user_type = 'tenant'
+        tenant_profile.valid_id_file = 'ids/tenant-missing-doc_id.jpg'
+        tenant_profile.save()
+        owner = User.objects.create_user(username='owner-missing-doc', email='owner-missing@example.com')
+        owner.userprofile.user_type = 'owner'
+        owner.userprofile.save()
+        self.client.force_login(owner)
+
+        response = self.client.get(reverse('tenant_document_preview', kwargs={
+            'tenant_id': tenant_profile.id, 'document_type': 'valid-id'
+        }))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn(b'tenant-missing-doc_id.jpg', response.content)
+
+    def test_unsupported_document_type_returns_415(self):
+        tenant = User.objects.create_user(username='tenant-unsupported-doc', email='unsupported@example.com')
+        tenant_profile = tenant.userprofile
+        tenant_profile.user_type = 'tenant'
+        tenant_profile.valid_id_file = 'ids/tenant-unsupported-doc_id.txt'
+        tenant_profile.save()
+        owner = User.objects.create_user(username='owner-unsupported-doc', email='owner-unsupported@example.com')
+        owner.userprofile.user_type = 'owner'
+        owner.userprofile.save()
+        self.client.force_login(owner)
+
+        response = self.client.get(reverse('tenant_document_preview', kwargs={
+            'tenant_id': tenant_profile.id, 'document_type': 'valid-id'
+        }))
+
+        self.assertEqual(response.status_code, 415)
+        self.assertNotIn(b'tenant-unsupported-doc_id.txt', response.content)
+
+    def test_path_traversal_key_is_rejected_before_storage_access(self):
+        tenant = User.objects.create_user(username='tenant-traversal', email='traversal@example.com')
+        tenant_profile = tenant.userprofile
+        tenant_profile.user_type = 'tenant'
+        tenant_profile.valid_id_file = 'ids/../private.jpg'
+        tenant_profile.save()
+        owner = User.objects.create_user(username='owner-traversal', email='owner-traversal@example.com')
+        owner.userprofile.user_type = 'owner'
+        owner.userprofile.save()
+        self.client.force_login(owner)
+
+        with patch('system.api.default_storage') as storage:
+            response = self.client.get(reverse('tenant_document_preview', kwargs={
+                'tenant_id': tenant_profile.id, 'document_type': 'valid-id'
+            }))
+
+        self.assertEqual(response.status_code, 404)
+        storage.open.assert_not_called()
+
+    def test_preview_reads_through_default_storage_backend(self):
+        tenant = User.objects.create_user(username='tenant-storage', email='storage@example.com')
+        tenant_profile = tenant.userprofile
+        tenant_profile.user_type = 'tenant'
+        tenant_profile.selfie_verification_file = 'selfies/tenant-storage_selfie.jpg'
+        tenant_profile.save()
+        owner = User.objects.create_user(username='owner-storage', email='owner-storage@example.com')
+        owner.userprofile.user_type = 'owner'
+        owner.userprofile.save()
+        self.client.force_login(owner)
+        image_bytes = self.jpeg_upload().read()
+        storage_file = BytesIO(image_bytes)
+
+        with patch('system.api.default_storage') as storage:
+            storage.open.return_value = storage_file
+            response = self.client.get(reverse('tenant_document_preview', kwargs={
+                'tenant_id': tenant_profile.id, 'document_type': 'selfie'
+            }))
+
+        self.assertEqual(response.status_code, 200)
+        storage.open.assert_called_once_with('selfies/tenant-storage_selfie.jpg', 'rb')
+        self.assertTrue(b''.join(response.streaming_content).startswith(b'\xff\xd8'))
+
+    def test_storage_failure_returns_503_without_exposing_the_key(self):
+        tenant = User.objects.create_user(username='tenant-storage-error', email='storage-error@example.com')
+        tenant_profile = tenant.userprofile
+        tenant_profile.user_type = 'tenant'
+        tenant_profile.valid_id_file = 'ids/tenant-storage-error_id.jpg'
+        tenant_profile.save()
+        owner = User.objects.create_user(username='owner-storage-error', email='owner-storage-error@example.com')
+        owner.userprofile.user_type = 'owner'
+        owner.userprofile.save()
+        self.client.force_login(owner)
+
+        with patch('system.api.default_storage') as storage:
+            storage.open.side_effect = OSError('private backend path/details')
+            response = self.client.get(reverse('tenant_document_preview', kwargs={
+                'tenant_id': tenant_profile.id, 'document_type': 'valid-id'
+            }))
+
+        self.assertEqual(response.status_code, 503)
+        self.assertNotIn(b'tenant-storage-error_id.jpg', response.content)
+        self.assertNotIn(b'private backend path/details', response.content)
+
     def test_non_owner_cannot_preview_tenant_document(self):
         tenant = User.objects.create_user(username='tenant-private', email='private@example.com')
         tenant_profile = tenant.userprofile

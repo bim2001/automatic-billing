@@ -8,7 +8,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
@@ -780,34 +780,42 @@ def tenant_details_api(request, tenant_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@login_required
+@require_GET
 def tenant_document_preview(request, tenant_id, document_type):
     """Stream a tenant verification document to an authenticated owner only."""
+    if not request.user.is_authenticated:
+        return HttpResponse(status=401)
+
     try:
         owner_profile = request.user.userprofile
     except UserProfile.DoesNotExist:
-        return HttpResponse('Not found', status=404)
+        return HttpResponse(status=404)
     if owner_profile.user_type != 'owner':
-        return HttpResponse('Not found', status=404)
+        return HttpResponse(status=404)
 
     if document_type not in ('valid-id', 'selfie'):
-        return HttpResponse('Not found', status=404)
+        return HttpResponse(status=404)
 
     try:
         tenant = UserProfile.objects.get(pk=tenant_id, user_type='tenant')
     except UserProfile.DoesNotExist:
-        return HttpResponse('Not found', status=404)
+        return HttpResponse(status=404)
 
     stored_key = tenant.valid_id_file if document_type == 'valid-id' else tenant.selfie_verification_file
     expected_directory = 'ids' if document_type == 'valid-id' else 'selfies'
     if not stored_key:
-        return HttpResponse('Not found', status=404)
+        return HttpResponse(status=404)
 
-    path = PurePosixPath(str(stored_key).replace('\\', '/'))
-    if len(path.parts) != 2 or path.parts[0] != expected_directory or any(part in ('', '.', '..') for part in path.parts):
-        return HttpResponse('Not found', status=404)
+    raw_parts = str(stored_key).replace('\\', '/').split('/')
+    if (
+        len(raw_parts) != 2
+        or raw_parts[0] != expected_directory
+        or any(part in ('', '.', '..') for part in raw_parts)
+        or '\x00' in str(stored_key)
+    ):
+        return HttpResponse(status=404)
 
-    extension = path.suffix.lower()
+    extension = PurePosixPath(raw_parts[1]).suffix.lower()
     content_types = {
         '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
         '.gif': 'image/gif', '.webp': 'image/webp', '.bmp': 'image/bmp',
@@ -818,16 +826,24 @@ def tenant_document_preview(request, tenant_id, document_type):
     else:
         content_type = content_types.get(extension)
     if not content_type:
-        return HttpResponse('Not found', status=404)
+        return HttpResponse(status=415)
 
     try:
-        document = default_storage.open(path.as_posix(), 'rb')
-    except (FileNotFoundError, OSError):
-        return HttpResponse('Not found', status=404)
+        document = default_storage.open('/'.join(raw_parts), 'rb')
+    except FileNotFoundError:
+        return HttpResponse(status=404)
+    except Exception:
+        logger.warning(
+            'Verification document storage unavailable (tenant_id=%s, document_type=%s)',
+            tenant_id,
+            document_type,
+        )
+        return HttpResponse(status=503)
 
     response = FileResponse(document, content_type=content_type)
     response['Content-Disposition'] = f'inline; filename="tenant-{document_type}.{extension.lstrip(".")}"'
     response['Cache-Control'] = 'private, no-store'
     response['X-Content-Type-Options'] = 'nosniff'
     response['Content-Security-Policy'] = "frame-ancestors 'self'"
+    response['Referrer-Policy'] = 'no-referrer'
     return response

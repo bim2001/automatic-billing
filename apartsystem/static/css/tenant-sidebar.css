@@ -224,3 +224,9 @@
 @media (prefers-reduced-motion: reduce) {
     .tenant-sidebar { transition: none; }
 }
+
+@media (max-width: 768px) {
+    body.tenant-sidebar-open .tenant-sidebar-toggle {
+        display: none !important;
+    }
+}
