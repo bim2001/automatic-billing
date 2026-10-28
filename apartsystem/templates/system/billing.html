@@ -376,6 +376,182 @@
                 flex-direction: column;
             }
         }
+
+        /* Compact mobile billing table */
+        .mobile-billing-list {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .page-header-custom {
+                padding: 16px 12px;
+                gap: 14px;
+                margin-bottom: 20px;
+                align-items: stretch;
+            }
+
+            .page-header-custom h1 {
+                font-size: 23px;
+                gap: 8px;
+            }
+
+            .stats-summary {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 9px;
+                width: 100%;
+            }
+
+            .stat-box {
+                min-width: 0;
+                padding: 12px 6px;
+                box-sizing: border-box;
+            }
+
+            .stat-box .stat-value {
+                font-size: 19px;
+                overflow-wrap: anywhere;
+            }
+
+            .stat-box .stat-label {
+                font-size: 10px;
+            }
+
+            .stat-box:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .section-title {
+                margin: 20px 0 10px;
+                gap: 7px;
+            }
+
+            .section-title h2 {
+                font-size: 16px;
+                gap: 7px;
+            }
+
+            .section-title .status-badge {
+                flex-shrink: 0;
+                padding: 5px 8px;
+                font-size: 10px;
+            }
+
+            /* Desktop tables stay hidden on mobile */
+            .billing-table-container {
+                display: none;
+            }
+
+            /* Compact row-based billing list */
+            .mobile-billing-list {
+                display: block;
+                width: 100%;
+                min-width: 0;
+                overflow: hidden;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+                border: 1px solid #e8ebf2;
+            }
+
+            .mobile-billing-header,
+            .mobile-billing-row {
+                display: grid;
+                grid-template-columns: 1.05fr 1.2fr 0.75fr 0.95fr;
+                gap: 5px;
+                align-items: center;
+                padding: 10px 8px;
+            }
+
+            .mobile-billing-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #fff;
+                font-size: 10px;
+                font-weight: 700;
+                line-height: 1.35;
+            }
+
+            .mobile-billing-row {
+                border-bottom: 1px solid #edf0f5;
+            }
+
+            .mobile-billing-row:last-child {
+                border-bottom: none;
+            }
+
+            .mobile-billing-cell {
+                min-width: 0;
+                color: #2c3e50;
+                font-size: 10px;
+                line-height: 1.45;
+                overflow-wrap: anywhere;
+                word-break: normal;
+            }
+
+            .mobile-billing-room {
+                display: block;
+                font-size: 12px;
+                font-weight: 700;
+                color: #2c3e50;
+            }
+
+            .mobile-billing-tenant {
+                display: block;
+                margin-top: 3px;
+                color: #7f8c8d;
+                font-size: 9px;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
+            }
+
+            .mobile-billing-rate {
+                display: block;
+                font-size: 10px;
+                font-weight: 600;
+            }
+
+            .mobile-billing-status {
+                display: inline-block;
+                margin-top: 4px;
+                padding: 3px 5px;
+                border-radius: 20px;
+                font-size: 8px;
+                font-weight: 700;
+            }
+
+            .mobile-billing-status.unpaid {
+                background: #f8d7da;
+                color: #721c24;
+            }
+
+            .mobile-billing-status.paid {
+                background: #d4edda;
+                color: #155724;
+            }
+
+            .mobile-billing-action {
+                display: flex;
+                justify-content: flex-end;
+                padding: 0 8px 9px;
+                background: #fff;
+            }
+
+            .mobile-billing-action .btn-view {
+                padding: 5px 9px;
+                font-size: 10px;
+                color: #fff;
+                background: #667eea;
+                border-color: #667eea;
+            }
+
+            .mobile-billing-empty {
+                padding: 22px 12px;
+                color: #7f8c8d;
+                text-align: center;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+        }
     </style>
 </head>
 <body>
@@ -405,7 +581,8 @@
             <h2><i class="fas fa-hourglass-half"></i> Unpaid Tenants</h2>
             <span class="status-badge status-unpaid">{{ unpaid_count }} unpaid</span>
         </div>
-        <!-- Unpaid Billing Table -->
+
+        <!-- Unpaid Billing Table (Desktop) -->
         <div class="billing-table-container">
             <table class="billing-table">
                 <thead>
@@ -438,10 +615,61 @@
             </table>
         </div>
 
+        <!-- Mobile Unpaid Billing Table -->
+        <div class="mobile-billing-list">
+            <div class="mobile-billing-header">
+                <div>Room / Tenant</div>
+                <div>Billing Cycle</div>
+                <div>Days<br>Occupied</div>
+                <div>Rate</div>
+            </div>
+
+            {% for bill in unpaid_bills %}
+            <div class="mobile-billing-row">
+                <div class="mobile-billing-cell">
+                    <span class="mobile-billing-room">{{ bill.room.name }}</span>
+                    <span class="mobile-billing-tenant">
+                        <i class="fas fa-user"></i>
+                        {{ bill.tenant_name|default:"No tenant" }}
+                    </span>
+                </div>
+
+                <div class="mobile-billing-cell">
+                    {{ bill.billing_cycle_label }}
+                </div>
+
+                <div class="mobile-billing-cell">
+                    {{ bill.days_occupied_display }} days
+                </div>
+
+                <div class="mobile-billing-cell">
+                    <span class="mobile-billing-rate">
+                        PHP {{ electricity_rate|floatformat:2 }}/kWh
+                    </span>
+                    <span class="mobile-billing-status unpaid">UNPAID</span>
+                </div>
+            </div>
+
+            <div class="mobile-billing-action">
+                <button class="btn-view"
+                        onclick="openBillModal('{{ bill.id }}')">
+                    <i class="fas fa-eye"></i> View Bill
+                </button>
+            </div>
+            {% empty %}
+            <div class="mobile-billing-empty">
+                <i class="fas fa-check-circle"></i>
+                No unpaid bills for {{ current_month }}.
+            </div>
+            {% endfor %}
+        </div>
+
         <div class="section-title">
             <h2><i class="fas fa-check-circle"></i> Paid Tenants</h2>
             <span class="status-badge status-paid">{{ paid_count }} paid</span>
         </div>
+
+        <!-- Paid Billing Table (Desktop) -->
         <div class="billing-table-container">
             <table class="billing-table">
                 <thead>
@@ -472,6 +700,55 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Paid Billing Table -->
+        <div class="mobile-billing-list">
+            <div class="mobile-billing-header">
+                <div>Room / Tenant</div>
+                <div>Billing Cycle</div>
+                <div>Days<br>Occupied</div>
+                <div>Rate</div>
+            </div>
+
+            {% for bill in paid_bills %}
+            <div class="mobile-billing-row">
+                <div class="mobile-billing-cell">
+                    <span class="mobile-billing-room">{{ bill.room.name }}</span>
+                    <span class="mobile-billing-tenant">
+                        <i class="fas fa-user"></i>
+                        {{ bill.tenant_name|default:"No tenant" }}
+                    </span>
+                </div>
+
+                <div class="mobile-billing-cell">
+                    {{ bill.billing_cycle_label }}
+                </div>
+
+                <div class="mobile-billing-cell">
+                    {{ bill.days_occupied_display }} days
+                </div>
+
+                <div class="mobile-billing-cell">
+                    <span class="mobile-billing-rate">
+                        PHP {{ electricity_rate|floatformat:2 }}/kWh
+                    </span>
+                    <span class="mobile-billing-status paid">PAID</span>
+                </div>
+            </div>
+
+            <div class="mobile-billing-action">
+                <button class="btn-view"
+                        onclick="openBillModal('{{ bill.id }}')">
+                    <i class="fas fa-eye"></i> View Bill
+                </button>
+            </div>
+            {% empty %}
+            <div class="mobile-billing-empty">
+                <i class="fas fa-receipt"></i>
+                No paid bills for {{ current_month }}.
+            </div>
+            {% endfor %}
         </div>
     </div>
 
@@ -712,7 +989,3 @@
 <script src="{% static 'js/active-nav.js' %}"></script>
 </body>
 </html>
-
-
-
-

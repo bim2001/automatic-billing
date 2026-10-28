@@ -195,6 +195,116 @@
             border-radius: 6px;
             margin-top: 15px;
         }
+
+        
+@media (max-width: 600px) {
+    .rooms-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .rooms-header h1 {
+        justify-content: center;
+        font-size: 22px;
+        margin: 0;
+    }
+
+    .btn-add-room {
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+        min-height: 42px;
+    }
+
+    .rooms-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .room-card {
+        min-width: 0;
+        padding: 10px 8px;
+        border-radius: 10px;
+        overflow-wrap: anywhere;
+    }
+
+    .room-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+        padding-bottom: 8px;
+    }
+
+    .room-name {
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        line-height: 1.35;
+        min-width: 0;
+    }
+
+    .room-name i {
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    .room-status {
+        align-self: flex-start;
+        font-size: 9px;
+        padding: 3px 5px;
+    }
+
+    .room-usage {
+        margin-top: 6px;
+    }
+
+    .usage-value {
+        font-size: 18px;
+    }
+
+    .usage-unit {
+        font-size: 10px;
+    }
+
+    .usage-limit {
+        font-size: 9px;
+        line-height: 1.4;
+    }
+
+    .room-tenant {
+        margin-top: 8px;
+        padding: 6px;
+        font-size: 10px;
+        overflow-wrap: anywhere;
+    }
+
+    .unpaid-billing-badge,
+    .paid-billing-badge {
+        font-size: 9px;
+        padding: 3px 5px;
+    }
+
+    .unpaid-billing-detail {
+        font-size: 9px;
+        line-height: 1.4;
+    }
+
+    .room-actions-card {
+        margin-top: 8px;
+    }
+
+    .btn-view {
+        width: 100%;
+        padding: 6px 3px;
+        font-size: 10px;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -203,9 +313,6 @@
     <div class="main-content">
         <div class="rooms-header">
             <h1><i class="fas fa-door-open"></i> Room Management</h1>
-            <a href="{% url 'add_room' %}" class="btn-add-room">
-                <i class="fas fa-plus"></i> Add New Room
-            </a>
         </div>
 
         <div class="rooms-grid">
@@ -266,6 +373,11 @@
             {% empty %}
             <div class="no-rooms-message">No rooms added yet. <a href="{% url 'add_room' %}">Add your first room</a></div>
             {% endfor %}
+        </div>
+        <div class="add-room-bottom">
+             <a href="{% url 'add_room' %}" class="btn-add-room">
+                <i class="fas fa-plus"></i> Add New Room
+             </a>
         </div>
     </div>
 

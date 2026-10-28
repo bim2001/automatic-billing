@@ -244,11 +244,168 @@
     }
 }
 
+
 @media (max-width: 768px) {
+    .main-content {
+        margin-left: 70px;
+        width: calc(100% - 70px);
+        min-width: 0;
+        padding: 12px 10px;
+        box-sizing: border-box;
+    }
+
+    .page-header {
+        margin-bottom: 16px;
+    }
+
+    .page-header h1 {
+        font-size: 21px;
+        line-height: 1.35;
+        margin-bottom: 5px;
+    }
+
+    .page-header h1 i {
+        margin-right: 5px;
+    }
+
+    .page-header p {
+        font-size: 12px;
+    }
+
+    /* Two compact columns instead of four tall cards */
     .stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+    }
+
+    .stat-card {
+        min-width: 0;
+        min-height: 112px;
+        padding: 14px 8px;
+        border-radius: 13px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .stat-card:hover {
+        transform: none;
+    }
+
+    .stat-icon {
+        margin-bottom: 5px;
+    }
+
+    .stat-icon i {
+        font-size: 25px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        line-height: 1.25;
+        margin: 4px 0 6px;
+        overflow-wrap: anywhere;
+    }
+
+    .stat-label {
+        font-size: 10px;
+        line-height: 1.35;
+    }
+
+    .stat-label i {
+        font-size: 10px;
+        margin-right: 3px;
+    }
+
+    /* Compact history section */
+    .card {
+        padding: 14px 11px;
+        margin-bottom: 16px;
+        border-radius: 14px;
+    }
+
+    .card-header {
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+    }
+
+    .card-header h2 {
+        font-size: 15px;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    .badge {
+        flex-shrink: 0;
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .history-tabs {
+        gap: 7px;
+        margin-bottom: 12px;
+    }
+
+    .history-tab {
+        padding: 8px 10px;
+        font-size: 11px;
+        border-radius: 8px;
+    }
+
+    .compact-card {
+        padding: 14px 11px;
+    }
+
+    .compact-card .card-header h2 {
+        font-size: 14px;
+    }
+
+    .modal-content {
+        width: calc(100% - 24px);
+        max-height: 88vh;
+    }
+
+    .modal-body {
+        padding: 12px;
     }
 }
+
+@media (max-width: 380px) {
+    .main-content {
+        padding: 10px 7px;
+    }
+
+    .stats-grid {
+        gap: 8px;
+    }
+
+    .stat-card {
+        min-height: 104px;
+        padding: 12px 5px;
+    }
+
+    .stat-value {
+        font-size: 21px;
+    }
+
+    .stat-label {
+        font-size: 9px;
+    }
+
+    .card {
+        padding: 12px 8px;
+    }
+
+    .card-header h2 {
+        font-size: 13px;
+    }
+}
+
 
 .stat-card {
     background: white;
@@ -753,6 +910,228 @@
             color: #dc3545;
         }
 
+        
+/* Fix: aligned statistics cards on mobile */
+@media (max-width: 768px) {
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .stats-grid .stat-card {
+        width: 100%;
+        min-width: 0;
+        min-height: 112px;
+        height: 112px;
+        padding: 12px 6px;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        border-radius: 13px;
+    }
+
+    .stats-grid .stat-icon {
+        margin: 0 0 5px;
+        line-height: 1;
+    }
+
+    .stats-grid .stat-icon i {
+        font-size: 25px;
+    }
+
+    .stats-grid .stat-value {
+        width: 100%;
+        font-size: clamp(19px, 5vw, 24px);
+        line-height: 1.2;
+        margin: 4px 0 6px;
+        white-space: nowrap;
+        overflow-wrap: normal;
+        word-break: normal;
+        letter-spacing: -0.5px;
+    }
+
+    .stats-grid .stat-label {
+        font-size: 9px;
+        line-height: 1.3;
+        margin-top: 0;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 380px) {
+    .stats-grid {
+        gap: 8px;
+    }
+
+    .stats-grid .stat-card {
+        height: 105px;
+        min-height: 105px;
+        padding: 10px 4px;
+    }
+
+    .stats-grid .stat-value {
+        font-size: 19px;
+    }
+
+    .stats-grid .stat-label {
+        font-size: 8px;
+    }
+}
+
+/* Mobile billing history cards */
+.mobile-record-list {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    /* Hide wide tables only on mobile */
+    .main-content > .card:not(.history-panel) .table-scroll,
+    .history-panel .table-scroll {
+        display: none;
+    }
+
+    .mobile-record-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        width: 100%;
+    }
+
+    .mobile-record-card {
+        min-width: 0;
+        padding: 13px;
+        background: #fff;
+        border: 1px solid #e8ebf3;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .mobile-record-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #edf0f5;
+    }
+
+    .mobile-record-title {
+        color: #2c3e50;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .mobile-record-subtitle {
+        color: #8993a4;
+        font-size: 10px;
+        margin-top: 3px;
+    }
+
+    .mobile-record-card .payment-status {
+        flex-shrink: 0;
+        font-size: 9px;
+        padding: 4px 7px;
+    }
+
+    .mobile-record-details {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 8px;
+        padding: 12px 0;
+    }
+
+    .mobile-record-label {
+        display: block;
+        color: #8a94a6;
+        font-size: 10px;
+        margin-bottom: 4px;
+    }
+
+    .mobile-record-value {
+        display: block;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    .mobile-record-amount {
+        color: #2c3e50;
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .mobile-record-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        padding-top: 10px;
+        border-top: 1px solid #edf0f5;
+    }
+
+    .mobile-record-actions .btn-view-bill,
+    .mobile-record-actions .download-bill-btn {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 10px;
+        margin: 0;
+        border-radius: 7px;
+        font-size: 10px;
+        text-decoration: none;
+    }
+
+    .mobile-record-actions .btn-view-bill {
+        background: #667eea;
+        color: #fff;
+    }
+
+    .mobile-record-actions .print-receipt-btn {
+        background: #2c3e50;
+        color: #fff;
+    }
+
+    .mobile-record-empty {
+        padding: 22px 10px;
+        color: #8a94a6;
+        font-size: 12px;
+        text-align: center;
+        line-height: 1.5;
+    }
+
+    .card {
+        padding: 13px 10px;
+        margin-bottom: 14px;
+        border-radius: 14px;
+    }
+
+    .card-header h2 {
+        font-size: 14px;
+        gap: 6px;
+    }
+
+    .history-tabs {
+        gap: 7px;
+        margin-bottom: 12px;
+    }
+
+    .history-tab {
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -865,6 +1244,62 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Billing Records -->
+            <div class="mobile-record-list">
+                {% for bill in bills %}
+                <div class="mobile-record-card bill-row"
+                     data-status="{% if bill.is_paid %}paid{% else %}latest{% endif %}">
+
+                    <div class="mobile-record-top">
+                        <div>
+                            <div class="mobile-record-title">
+                                {{ bill.billing_month }}
+                            </div>
+                            <div class="mobile-record-subtitle">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ bill.created_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+
+                        <span class="payment-status {% if bill.is_paid %}paid{% else %}unpaid{% endif %}">
+                            {% if bill.is_paid %}PAID{% else %}UNPAID{% endif %}
+                        </span>
+                    </div>
+
+                    <div class="mobile-record-details">
+                        <div>
+                            <span class="mobile-record-label">Energy Used</span>
+                            <span class="mobile-record-value">
+                                {{ bill.kwh|floatformat:2 }} kWh
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="mobile-record-label">Electricity Rate</span>
+                            <span class="mobile-record-value">
+                                ₱{{ electricity_rate|floatformat:2 }}/kWh
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="mobile-record-label">Total Amount</span>
+                            <span class="mobile-record-value mobile-record-amount">
+                                ₱{{ bill.cost|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mobile-record-actions">
+                        <button type="button"
+                                class="btn-view-bill"
+                                onclick="showBillDetails('{{ bill.id }}')">
+                            <i class="fas fa-receipt"></i> View Transaction
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             {% else %}
             <div style="text-align: center; padding: 60px 20px; color: #666;">
                 <i class="fas fa-folder-open" style="font-size: 48px; margin-bottom: 15px;"></i>
@@ -936,6 +1371,80 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Mobile Official Receipt Cards -->
+            <div class="mobile-record-list">
+                {% for payment in receipt_records %}
+                <div class="mobile-record-card">
+
+                    <div class="mobile-record-top">
+                        <div>
+                            <div class="mobile-record-title">
+                                OR-{{ payment.id|stringformat:"06d" }}
+                            </div>
+                            <div class="mobile-record-subtitle">
+                                {{ payment.bill.billing_month }}
+                            </div>
+                        </div>
+
+                        <span class="payment-status paid">
+                            {{ payment.status|upper }}
+                        </span>
+                    </div>
+
+                    <div class="mobile-record-details">
+                        <div>
+                            <span class="mobile-record-label">Payment Method</span>
+                            <span class="mobile-record-value">
+                                {{ payment.get_payment_method_display }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="mobile-record-label">Date Paid</span>
+                            <span class="mobile-record-value">
+                                {{ payment.paid_at|date:"M d, Y" }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="mobile-record-label">Amount Paid</span>
+                            <span class="mobile-record-value mobile-record-amount">
+                                ₱{{ payment.amount|floatformat:2 }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <span class="mobile-record-label">Reference Number</span>
+                            <span class="mobile-record-value">
+                                {{ payment.reference_number|default:"N/A" }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mobile-record-actions">
+                        <a href="{% url 'tenant_download_bill' payment.bill.id %}"
+                           class="download-bill-btn">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+
+                        <button type="button"
+                                class="download-bill-btn print-receipt-btn"
+                                onclick="printReceipt(this)"
+                                data-or="OR-{{ payment.id|stringformat:'06d' }}"
+                                data-month="{{ payment.bill.billing_month }}"
+                                data-method="{{ payment.get_payment_method_display }}"
+                                data-paid-date="{{ payment.paid_at|date:'M d, Y h:i A' }}"
+                                data-reference="{{ payment.reference_number }}"
+                                data-transaction="{{ payment.transaction_id|default:'No transaction ID' }}"
+                                data-status="{{ payment.status|upper }}"
+                                data-amount="₱{{ payment.amount|floatformat:2 }}">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             {% else %}
             <div class="empty-compact">
@@ -1166,13 +1675,19 @@
     document.addEventListener('keydown', function(event) { if (event.key === 'Escape') closeBillModal(); });
 
     function showHistoryTab(tab, button) {
-        document.querySelectorAll('.history-tab').forEach(button => button.classList.remove('active'));
+        document.querySelectorAll('.history-tab').forEach(item => {
+            item.classList.remove('active');
+        });
+
         button.classList.add('active');
+
         document.querySelectorAll('.bill-row').forEach(row => {
             row.style.display = row.dataset.status === tab ? '' : 'none';
         });
+
         document.querySelectorAll('.history-panel').forEach(panel => {
-            panel.style.display = panel.dataset.historyPanel === tab ? '' : 'none';
+            panel.style.display =
+                panel.dataset.historyPanel === tab ? '' : 'none';
         });
     }
 
@@ -1200,4 +1715,3 @@
 
 </body>
 </html>
-

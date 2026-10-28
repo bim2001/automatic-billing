@@ -465,36 +465,263 @@
             border-left: 4px solid #ffc107;
         }
 
-        @media (max-width: 768px) {
 
-            .sidebar {
-                width: 70px;
-                height: 100vh;
-                position: fixed;
+@media (max-width: 768px) {
+    .container {
+        margin-left: 70px;
+        width: calc(100% - 70px);
+        padding: 10px;
+        min-width: 0;
+    }
+
+    .payment-card {
+        width: 100%;
+        max-width: 100%;
+        padding: 16px 12px;
+        border-radius: 14px;
+    }
+
+    h1 {
+        font-size: 20px;
+        line-height: 1.35;
+        margin-bottom: 6px;
+    }
+
+    .subtitle {
+        font-size: 12px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .paid-notice {
+        padding: 12px;
+        margin-bottom: 14px;
+        border-radius: 10px;
+    }
+
+    .paid-notice i {
+        font-size: 16px;
+    }
+
+    .paid-notice strong {
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .paid-notice p {
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
+    /* Compact bill summary */
+    .bill-summary {
+        padding: 14px;
+        margin-bottom: 14px;
+        border-radius: 12px;
+    }
+
+    .bill-summary h3 {
+        font-size: 15px;
+        margin-bottom: 10px;
+    }
+
+    .bill-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .bill-detail {
+        min-width: 0;
+        padding: 9px;
+        border-radius: 8px;
+    }
+
+    .bill-detail-label {
+        font-size: 10px;
+        line-height: 1.4;
+    }
+
+    .bill-detail-value {
+        font-size: 12px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    .amount-due {
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+
+    .amount-due .label {
+        font-size: 11px;
+    }
+
+    .amount-due .value {
+        font-size: 24px;
+    }
+
+    .paid-badge {
+        font-size: 11px;
+        padding: 5px 11px;
+        margin-top: 8px;
+    }
+
+    .paid-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .paid-summary-item {
+        min-width: 0;
+        padding: 9px 6px;
+    }
+
+    .paid-summary-item .label {
+        font-size: 10px;
+    }
+
+    .paid-summary-item .value {
+        font-size: 15px;
+        overflow-wrap: anywhere;
+    }
+
+    /* Compact bill computation */
+    .breakdown-table-wrap {
+        padding: 12px 10px;
+        margin-bottom: 14px;
+        border-radius: 12px;
+    }
+
+    .breakdown-table-wrap h3 {
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .breakdown-table {
+        font-size: 11px;
+        table-layout: fixed;
+    }
+
+    .breakdown-table td {
+        padding: 8px 5px;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+    }
+
+    .breakdown-table td:first-child {
+        width: 42%;
+    }
+
+    /* GCash and Cash side by side */
+    .payment-options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .payment-option {
+        min-width: 0;
+        padding: 14px 8px;
+        border-radius: 12px;
+        border-width: 1.5px;
+    }
+
+    .payment-option:hover {
+        transform: none;
+    }
+
+    .payment-icon {
+        font-size: 30px;
+        margin-bottom: 7px;
+    }
+
+    .gcash-payment-logo {
+        width: 42px;
+    }
+
+    .payment-option h3 {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+
+    .payment-option p {
+        font-size: 10px;
+        line-height: 1.4;
+    }
+
+    .btn {
+        padding: 12px 14px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .gcash-button-logo {
+        width: 35px;
+        margin-right: 5px;
+    }
+
+    .payment-warning,
+    .pending-status {
+        padding: 12px;
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .btn-secondary {
+        margin-top: 10px;
+    }
+}
+
+@media (max-width: 380px) {
+    .container {
+        padding: 7px;
+    }
+
+    .payment-card {
+        padding: 12px 9px;
+    }
+
+    .bill-details {
+        gap: 6px;
+    }
+
+    .payment-options {
+        gap: 7px;
+    }
+
+    .payment-option {
+        padding: 12px 5px;
+    }
+
+    .payment-option p {
+        font-size: 9px;
+    }
+
+    .breakdown-table {
+        font-size: 10px;
+    }
+}
+
+        @media (max-width: 380px) {
+            .stats-grid {
+                gap: 8px;
             }
 
-            .container {
-                margin-left: 70px;
-                width: calc(100% - 70px);
-                padding: 20px;
+            .stat-card {
+                padding: 14px 5px;
             }
 
-            .payment-options {
-                grid-template-columns: 1fr;
+            .stat-value {
+                font-size: 25px;
             }
 
-            .bill-details {
-                grid-template-columns: 1fr;
-            }
-
-            .paid-summary {
-                grid-template-columns: 1fr;
-            }
-
-            .payment-card {
-                padding: 25px;
+            .stat-label {
+                font-size: 11px;
             }
         }
+
     </style>
 </head>
 

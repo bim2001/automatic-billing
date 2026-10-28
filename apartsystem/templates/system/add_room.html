@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Add New Room - Smart Energy System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <style>
     * {
@@ -155,15 +156,126 @@
         display: none;
     }
 
-    @media (max-width: 480px) {
-        .form-card {
-            padding: 25px;
-        }
-        
-        .btn-group {
-            flex-direction: column;
-        }
+
+@media (max-width: 600px) {
+    body {
+        padding: 12px;
+        min-height: 100dvh;
     }
+
+    .navbar {
+        width: 100%;
+        max-width: none;
+        padding: 14px 16px;
+        margin: 0 auto 18px;
+        border-radius: 12px;
+        font-size: 17px;
+    }
+
+    .container {
+        width: 100%;
+        max-width: none;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        width: 100%;
+        padding: 24px 18px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    h1 {
+        font-size: 23px;
+        line-height: 1.35;
+        margin-bottom: 26px;
+    }
+
+    .form-group {
+        margin-bottom: 23px;
+    }
+
+    label {
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    input:not([type="checkbox"]) {
+        width: 100%;
+        min-height: 50px;
+        padding: 13px 14px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+
+    .help-text {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .checkbox-group {
+        padding: 15px 12px;
+        margin-bottom: 22px;
+    }
+
+    .checkbox-group label {
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin: 2px 2px 0 0;
+    }
+
+    .checkbox-group label i {
+        margin-top: 3px;
+        flex-shrink: 0;
+    }
+
+    .checkbox-group .help-text {
+        margin-left: 28px !important;
+    }
+
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 26px;
+    }
+
+    .btn {
+        width: 100%;
+        min-height: 48px;
+        padding: 13px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 360px) {
+    body {
+        padding: 8px;
+    }
+
+    .form-card {
+        padding: 20px 14px;
+    }
+
+    h1 {
+        font-size: 21px;
+    }
+
+    .navbar {
+        font-size: 15px;
+        padding: 12px;
+    }
+}
+
 </style>
 </head>
 <body>

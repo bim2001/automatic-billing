@@ -17,6 +17,13 @@
             color: #2c3e50;
             margin-bottom: 5px;
         }
+
+        .page-header-custom h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            text-align: center;
+        }
         
         .page-header-custom p {
             color: #7f8c8d;
@@ -617,6 +624,31 @@
         line-height: 1.5;
     }
 
+
+
+.page-header-custom {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.page-header-custom h1 {
+    font-size: 28px;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.page-header-custom p {
+    color: #7f8c8d;
+    font-size: 14px;
+    text-align: center;
+}
+
+
     /* Four statistics cards: 2 columns */
     .stats-grid,
     .stats-grid-tenant {
@@ -650,24 +682,6 @@
         overflow-wrap: anywhere;
     }
 
-    /* Tenant cards: one column on mobile */
-    .tenants-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 14px;
-        width: 100%;
-        min-width: 0;
-        margin-bottom: 20px;
-    }
-
-    .tenant-card {
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        padding: 14px;
-        box-sizing: border-box;
-        overflow-wrap: anywhere;
-    }
 
     /* Tenant name, approval badge, and room badge */
     .tenant-header {
@@ -759,6 +773,12 @@
     }
 }
 
+    .page-header-custom p {
+        color: #7f8c8d;
+        font-size: 14px;
+        text-align: center;
+    }
+
 /* Extra-small phones */
 @media (max-width: 380px) {
     .main-content {
@@ -795,6 +815,7 @@
     .detail-item {
         gap: 6px;
     }
+    
 }
 
     </style>
