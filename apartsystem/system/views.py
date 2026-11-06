@@ -1128,8 +1128,10 @@ def login_view(request):
                     user_type = 'owner' if user.is_staff or user.is_superuser else 'tenant'
                     profile = UserProfile.objects.create(user=user, user_type=user_type)
                 
-                # For tenant users, check if approved
-                if profile.user_type == 'tenant' and not profile.is_approved:
+                # For tenant users, check archived and approval status
+                if profile.user_type == 'tenant' and profile.is_archived:
+                    error = "This account is archived and cannot log in."
+                elif profile.user_type == 'tenant' and not profile.is_approved:
                     error = "Your account is pending approval. Please wait for the owner to approve your registration."
                 else:
                     login(request, user)
@@ -1192,7 +1194,8 @@ def dashboard(request):
     
     available_tenants = UserProfile.objects.filter(
         user_type='tenant', 
-        room__isnull=True
+        room__isnull=True,
+        is_archived=False
     ).select_related('user')
     
     from datetime import date
@@ -1623,7 +1626,12 @@ def assign_tenant(request, room_id):
         room = get_object_or_404(Room, id=room_id)
 
         if tenant_id:
-            tenant_profile = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant')
+            tenant_profile = get_object_or_404(
+                UserProfile,
+                id=tenant_id,
+                user_type='tenant',
+                is_archived=False
+            )
 
             if move_in_date_str:
                 move_in_date = datetime.strptime(move_in_date_str, '%Y-%m-%d').date()
@@ -1688,27 +1696,38 @@ def remove_tenant(request, room_id):
 def tenant_list(request):
     if request.user.userprofile.user_type != 'owner':
         return redirect('dashboard')
-    
+
     tenants = UserProfile.objects.filter(
-        user_type='tenant'
+        user_type='tenant',
+        is_archived=False
     ).select_related('user', 'room')
-    
+
     total_tenants = tenants.count()
     with_room = tenants.filter(room__isnull=False).count()
     without_room = tenants.filter(room__isnull=True).count()
     pending_approval = tenants.filter(is_approved=False).count()
-    pending_approvals_count = UserProfile.objects.filter(user_type='tenant', is_approved=False).count()
-    
+
+    pending_approvals_count = tenants.filter(
+        is_approved=False
+    ).count()
+
     rooms = Room.objects.all()
     available_rooms = rooms.filter(userprofile__isnull=True).count()
-    
+
+    archived_count = UserProfile.objects.filter(
+        user_type='tenant',
+        is_archived=True
+    ).count()
+
     return render(request, 'system/tenant_list.html', {
         'tenants': tenants,
         'total_tenants': total_tenants,
         'with_room': with_room,
         'without_room': without_room,
         'pending_approval': pending_approval,
+        'pending_approvals_count': pending_approvals_count,
         'available_rooms': available_rooms,
+        'archived_count': archived_count,
         'username': request.user.username,
         'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
     })
@@ -2947,7 +2966,8 @@ def rooms_page(request):
     available_tenants = UserProfile.objects.filter(
         user_type='tenant', 
         room__isnull=True,
-        is_approved=True
+        is_approved=True,
+        is_archived=False
     ).select_related('user')
     
     for room in rooms:
@@ -3093,24 +3113,134 @@ def regenerate_bills_for_room(room, month=None, year=None):
     bill, _, _ = _generate_assignment_cycle(room, assignment, target_date)
     return bill
 
+@login_required
+@require_POST
 def delete_tenant(request, tenant_id):
+
     if request.user.userprofile.user_type != 'owner':
         messages.error(request, "You don't have permission to do that.")
         return redirect('dashboard')
-    
-    tenant = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant')
-    username = tenant.user.username
-    
+
     try:
-        tenant.delete()
-        tenant.user.delete()
-        
-        messages.success(request, f"Tenant '{username}' has been deleted successfully.")
-        
+        with transaction.atomic():
+
+            tenant = get_object_or_404(
+                UserProfile.objects.select_for_update(),
+                id=tenant_id,
+                user_type='tenant',
+                is_archived=False
+            )
+
+            today = timezone.localdate()
+
+            # Preserve all assignment records and close active assignments.
+            active_assignments = TenantAssignment.objects.select_for_update().filter(
+                tenant=tenant,
+                is_active=True
+            )
+
+            for assignment in active_assignments:
+                assignment.is_active = False
+                if assignment.move_out_date is None:
+                    assignment.move_out_date = today
+
+                assignment.save(update_fields=[
+                    'is_active',
+                    'move_out_date'
+                ])
+
+            # Release the room without deleting tenant history.
+            tenant.room = None
+            tenant.is_archived = True
+            tenant.archived_at = timezone.now()
+
+            tenant.save(update_fields=[
+                'room',
+                'is_archived',
+                'archived_at'
+            ])
+
+            # Disable login while archived.
+            tenant.user.is_active = False
+            tenant.user.save(update_fields=['is_active'])
+
+            username = tenant.user.username
+
+        messages.success(
+            request,
+            f"Tenant '{username}' has been moved to the archive successfully."
+        )
+
     except Exception as e:
-        messages.error(request, f"Error deleting tenant: {str(e)}")
-    
+        messages.error(request, f"Unable to archive tenant: {str(e)}")
+
     return redirect('tenant_list')
+
+
+@login_required
+def tenant_archive(request):
+
+    if request.user.userprofile.user_type != 'owner':
+        return redirect('dashboard')
+
+    archived_tenants = UserProfile.objects.filter(
+        user_type='tenant',
+        is_archived=True
+    ).select_related('user').prefetch_related(
+        'assignments__room'
+    ).order_by('-archived_at')
+
+    return render(request, 'system/tenant_archive.html', {
+        'archived_tenants': archived_tenants,
+        'username': request.user.username,
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
+    })
+
+
+@login_required
+@require_POST
+def restore_tenant(request, tenant_id):
+
+    if request.user.userprofile.user_type != 'owner':
+        messages.error(request, "You don't have permission to do that.")
+        return redirect('dashboard')
+
+    try:
+        with transaction.atomic():
+
+            tenant = get_object_or_404(
+                UserProfile.objects.select_for_update(),
+                id=tenant_id,
+                user_type='tenant',
+                is_archived=True
+            )
+
+            tenant.is_archived = False
+            tenant.archived_at = None
+
+            # Restored tenants return without a room assignment.
+            tenant.room = None
+
+            tenant.save(update_fields=[
+                'is_archived',
+                'archived_at',
+                'room'
+            ])
+
+            tenant.user.is_active = True
+            tenant.user.save(update_fields=['is_active'])
+
+            username = tenant.user.username
+
+        messages.success(
+            request,
+            f"Tenant '{username}' has been restored successfully."
+        )
+
+    except Exception as e:
+        messages.error(request, f"Unable to restore tenant: {str(e)}")
+
+    return redirect('tenant_archive')
 
 
 from django.utils import timezone
@@ -3158,7 +3288,13 @@ def assign_room_to_tenant(request, tenant_id):
         messages.error(request, "You don't have permission to do that.")
         return redirect('dashboard')
     
-    tenant = get_object_or_404(UserProfile, id=tenant_id, user_type='tenant', is_approved=True)
+    tenant = get_object_or_404(
+        UserProfile,
+        id=tenant_id,
+        user_type='tenant',
+        is_approved=True,
+        is_archived=False
+    )
     
     if request.method == 'POST':
         room_id = request.POST.get('room_id')
@@ -3242,3 +3378,4 @@ def clean_filename(filename):
         name = 'upload'
     
     return f"{name}{ext}"
+    

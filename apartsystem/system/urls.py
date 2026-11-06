@@ -36,6 +36,8 @@ urlpatterns = [
     path('tenants/', views.tenant_list, name='tenant_list'),
     path('tenant/billing-history/', views.tenant_billing_history, name='tenant_billing_history'),
     path('tenant/billing-history/download/<int:bill_id>/', views.tenant_download_bill, name='tenant_download_bill'),
+    path('tenant/archive/', views.tenant_archive, name='tenant_archive'),
+    path('tenant/restore/<int:tenant_id>/', views.restore_tenant, name='restore_tenant'),
 
      # (for approve and assign room)
     path('api/tenant-details/<int:tenant_id>/', api.tenant_details_api, name='tenant_details_api'),

@@ -832,6 +832,36 @@
             <p>View and manage all registered tenants in the system</p>
         </div>
 
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <a href="{% url 'tenant_archive' %}"
+               style="
+                   display: inline-flex;
+                   align-items: center;
+                   gap: 9px;
+                   padding: 12px 18px;
+                   background: #667eea;
+                   color: white;
+                   text-decoration: none;
+                   border-radius: 8px;
+                   font-weight: 600;
+                   font-size: 14px;
+                   transition: 0.3s;
+               ">
+                <i class="fas fa-box-archive"></i>
+                Archived Tenants
+
+                <span style="
+                    background: white;
+                    color: #667eea;
+                    padding: 3px 8px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                ">
+                    {{ archived_count|default:0 }}
+                </span>
+            </a>
+        </div>
+
         <!-- Stats Cards -->
         <div class="stats-grid" style="margin-bottom: 20px;">
             <div class="stat-card" style="text-align: center;">
@@ -964,36 +994,42 @@
         </div>
     </div>
 
-    <!-- Delete Tenant Confirmation Modal -->
-    <div id="deleteModal" class="modal delete-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-exclamation-triangle"></i> Delete Tenant</h3>
-                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+<!-- Delete Tenant Confirmation Modal -->
+<div id="deleteModal" class="modal delete-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-archive"></i> Archive Tenant</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="warning-icon">
+                <i class="fas fa-user-slash"></i>
             </div>
-            <div class="modal-body">
-                <div class="warning-icon">
-                    <i class="fas fa-user-slash"></i>
-                </div>
-                <p>Are you sure you want to delete <strong id="deleteTenantName"></strong>?</p>
-                <p class="warning-text">
-                    <i class="fas fa-exclamation-circle"></i> This action cannot be undone!
-                </p>
-                <p style="font-size: 13px; color: #666;">This will permanently remove the tenant and all their records from the system.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
-                    <i class="fas fa-times"></i> Cancel
+            <p>Are you sure you want to archive <strong id="deleteTenantName"></strong>?</p>
+            <p class="warning-text">
+                <i class="fas fa-info-circle"></i>
+                This tenant will no longer appear in the active Tenant Management list.
+            </p>
+            <p style="font-size: 13px; color: #666;">
+                This tenant will be moved to the Tenant Archive.
+                Their account information, billing records, payment history,
+                and previous room assignments will be preserved.
+                Their login access will also be disabled until restored.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+            <form id="deleteTenantForm" method="post" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-archive"></i> Archive Tenant
                 </button>
-                <form id="deleteTenantForm" method="post" style="margin: 0;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash-alt"></i> Yes, Delete Tenant
-                    </button>
-                </form>
-            </div>
+            </form>
         </div>
     </div>
+</div>
 
     <!-- Reusable image and document preview modal -->
     <div id="filePreviewModal" class="file-preview-modal" onclick="if (event.target === this) closeFilePreview()">
