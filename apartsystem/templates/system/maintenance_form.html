@@ -1,0 +1,218 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_edit %}Edit Maintenance{% else %}Submit Maintenance Report{% endif %} | Smart Energy</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    {% if user_type != 'owner' %}
+    <link rel="stylesheet" href="{% static 'css/tenant-sidebar.css' %}">
+    {% endif %}
+
+    <style>
+        .maintenance-form-page { max-width:850px; margin:0 auto; }
+        .form-card { background:white; border:1px solid #edf0f5; border-radius:15px; padding:25px; box-shadow:0 3px 14px rgba(0,0,0,.05); }
+        .form-section-title { color:#2c3e50; font-size:16px; font-weight:700; margin:22px 0 15px; padding-bottom:10px; border-bottom:1px solid #edf0f5; }
+        .form-section-title:first-child { margin-top:0; }
+        .form-group { margin-bottom:17px; }
+        .form-group label { display:block; margin-bottom:7px; color:#475569; font-size:13px; font-weight:600; }
+        .form-control { width:100%; padding:12px 13px; border:1px solid #dfe4ea; border-radius:8px; font-size:14px; color:#334155; background:#fff; }
+        .form-control:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,.12); }
+        textarea.form-control { min-height:125px; resize:vertical; }
+        .form-help { display:block; margin-top:5px; color:#94a3b8; font-size:11px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+        .form-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:25px; }
+        .form-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 18px; border:0; border-radius:8px; font-weight:600; font-size:13px; text-decoration:none; cursor:pointer; }
+        .form-btn-primary { background:#667eea; color:white; }
+        .form-btn-primary:hover { background:#5a67d8; color:white; }
+        .form-btn-secondary { background:#e9ecef; color:#475569; }
+        .form-btn-secondary:hover { background:#dfe3e8; color:#334155; }
+        .form-notice { padding:12px 14px; margin-bottom:18px; border-radius:8px; background:#eef2ff; color:#475569; font-size:13px; line-height:1.5; }
+        .message-item { padding:12px 15px; border-radius:8px; margin-bottom:8px; font-size:13px; }
+        .message-success { background:#d1fae5; color:#065f46; }
+        .message-error { background:#fee2e2; color:#991b1b; }
+        .message-warning { background:#fff3cd; color:#856404; }
+        .message-info { background:#dbeafe; color:#1e40af; }
+        @media(max-width:600px) { .form-card { padding:17px; } .form-row { grid-template-columns:1fr; gap:0; } .form-actions { flex-direction:column-reverse; } .form-btn { width:100%; } }
+    </style>
+</head>
+<body>
+
+{% if user_type == 'owner' %}
+    {% include 'system/sidebar.html' %}
+{% else %}
+    {% include 'user/tenant_sidebar.html' with tenant_sidebar_css_in_head=True %}
+{% endif %}
+
+<div class="main-content">
+    <div class="maintenance-form-page">
+
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-tools"></i>
+                {% if is_edit %}Edit Maintenance Request{% else %}Submit Maintenance Report{% endif %}
+            </h1>
+            <p>
+                {% if is_edit %}
+                    Update the maintenance details and repair progress.
+                {% else %}
+                    Report a room or property issue that needs attention.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="message-item message-{{ message.tags|default:'info' }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="form-card">
+
+            {% if not is_edit %}
+            <div class="form-notice">
+                <i class="fas fa-info-circle"></i>
+                Please provide accurate details so the maintenance issue can be reviewed and addressed properly.
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <h3 class="form-section-title">
+                    <i class="fas fa-clipboard-list" style="color:#667eea;margin-right:7px;"></i>
+                    Maintenance Information
+                </h3>
+
+                {% if user_type == 'owner' %}
+                <div class="form-group">
+                    <label for="room_id">Room / Area</label>
+                    <select name="room_id" id="room_id" class="form-control">
+                        <option value="">Common Area / No Specific Room</option>
+                        {% for room in rooms %}
+                        <option value="{{ room.id }}"
+                            {% if maintenance and maintenance.room_id == room.id %}selected{% endif %}>
+                            {{ room.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-help">Select the affected room, or leave as Common Area.</small>
+                </div>
+                {% else %}
+                    {% if profile.room %}
+                    <div class="form-group">
+                        <label>Assigned Room</label>
+                        <input type="text" class="form-control" value="{{ profile.room.name }}" readonly>
+                        <small class="form-help">Your report will automatically be associated with this room.</small>
+                    </div>
+                    {% else %}
+                    <div class="form-notice" style="background:#fff3cd;color:#856404;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        You do not currently have an assigned room. Contact the owner before submitting a maintenance report.
+                    </div>
+                    {% endif %}
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="title">Issue Title <span style="color:#dc3545;">*</span></label>
+                    <input
+                        type="text"
+                        name="title"
+                        id="title"
+                        class="form-control"
+                        maxlength="150"
+                        placeholder="e.g. Leaking faucet, Broken light, Faulty outlet"
+                        value="{{ maintenance.title|default:'' }}"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description <span style="color:#dc3545;">*</span></label>
+                    <textarea
+                        name="description"
+                        id="description"
+                        class="form-control"
+                        placeholder="Describe the issue, its location, and any relevant details..."
+                        required>{{ maintenance.description|default:'' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="priority">Priority</label>
+                    <select name="priority" id="priority" class="form-control" required>
+                        <option value="low" {% if maintenance.priority == 'low' %}selected{% elif not maintenance %}{% endif %}>Low</option>
+                        <option value="medium" {% if maintenance.priority == 'medium' or not maintenance %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if maintenance.priority == 'high' %}selected{% endif %}>High</option>
+                        <option value="urgent" {% if maintenance.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                    </select>
+                </div>
+
+                {% if is_edit and user_type == 'owner' %}
+                <h3 class="form-section-title">
+                    <i class="fas fa-wrench" style="color:#667eea;margin-right:7px;"></i>
+                    Repair and Resolution Details
+                </h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="status">Request Status</label>
+                        <select name="status" id="status" class="form-control" required>
+                            <option value="pending" {% if maintenance.status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="in_progress" {% if maintenance.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="completed" {% if maintenance.status == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maintenance_cost">Maintenance Cost (₱)</label>
+                        <input
+                            type="number"
+                            name="maintenance_cost"
+                            id="maintenance_cost"
+                            class="form-control"
+                            min="0"
+                            max="99999999.99"
+                            step="0.01"
+                            value="{{ maintenance.maintenance_cost|default:'0.00' }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="resolution_notes">Resolution Notes</label>
+                    <textarea
+                        name="resolution_notes"
+                        id="resolution_notes"
+                        class="form-control"
+                        placeholder="Describe the repair performed or action taken...">{{ maintenance.resolution_notes|default:'' }}</textarea>
+                    <small class="form-help">Add details about the repair, materials used, or remaining work.</small>
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <a href="{% url 'maintenance_management' %}" class="form-btn form-btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancel
+                    </a>
+
+                    <button type="submit" class="form-btn form-btn-primary">
+                        <i class="fas fa-save"></i>
+                        {% if is_edit %}Save Changes{% else %}Submit Report{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{% if user_type == 'owner' %}
+<script src="{% static 'js/active-nav.js' %}"></script>
+{% endif %}
+
+</body>
+</html>

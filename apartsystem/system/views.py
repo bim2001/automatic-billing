@@ -22,7 +22,11 @@ import secrets
 import hashlib
 import os
 from django.db import models, transaction
-from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsage, Payment, TenantAssignment, ActivityLog, APIToken, PasswordResetChallenge
+from .models import (
+    Room, Billing, Alert, UserProfile, SystemSettings,
+    EnergyUsage, Payment, TenantAssignment, ActivityLog,
+    APIToken, PasswordResetChallenge, MaintenanceRequest
+)
 from .validators import normalize_philippine_mobile_number
 from django.http import HttpResponse
 import csv
@@ -1231,12 +1235,18 @@ def tenant_dashboard(request):
     settings = get_settings()
     admin_info = settings
 
+    # Get tenant's recent maintenance reports
+    my_maintenance_requests = MaintenanceRequest.objects.filter(
+        reported_by=request.user
+    ).select_related('room').order_by('-date_reported')[:5]
+
     if not room:
         return render(request, 'user/tenant_dashboard.html', {
             'no_room': True,
             'admin_info': admin_info,
             'username': request.user.username,
             'owner_announcement': settings.owner_announcement,
+            'my_maintenance_requests': my_maintenance_requests,
         })
 
     ELECTRICITY_RATE = settings.electricity_rate
@@ -1283,7 +1293,16 @@ def tenant_dashboard(request):
     except TenantAssignment.DoesNotExist:
         pass
 
-    tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing']
+    tenant_alert_types = [
+        'over_limit',
+        'power_off',
+        'power_on',
+        'billing',
+        'late_payment',
+        'abnormal_usage',
+        'high_consumption',
+        'maintenance'
+    ]
     recent_alerts = Alert.objects.filter(
         room=room,
         alert_type__in=tenant_alert_types
@@ -1339,6 +1358,7 @@ def tenant_dashboard(request):
         'may_bill_amount': may_bill_amount,
         'late_penalty': late_penalty,
         'owner_announcement': settings.owner_announcement,
+        'my_maintenance_requests': my_maintenance_requests,
     })
 
 @login_required
@@ -1361,6 +1381,7 @@ def tenant_notifications(request):
         'late_payment',
         'abnormal_usage',
         'high_consumption'
+        'maintenance'
     ]
 
     all_alerts = Alert.objects.filter(
@@ -3378,4 +3399,302 @@ def clean_filename(filename):
         name = 'upload'
     
     return f"{name}{ext}"
-    
+
+
+
+# ============== MAINTENANCE MANAGEMENT ==============
+
+@login_required
+def maintenance_management(request):
+    profile = request.user.userprofile
+
+    if profile.user_type not in ['owner', 'tenant']:
+        return redirect('login_view')
+
+    maintenance_requests = MaintenanceRequest.objects.select_related(
+        'room', 'reported_by'
+    )
+
+    # Tenants can only see their own submitted reports.
+    if profile.user_type == 'tenant':
+        maintenance_requests = maintenance_requests.filter(
+            reported_by=request.user
+        )
+
+    # Search and filters
+    search = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    priority_filter = request.GET.get('priority', '').strip()
+
+    if search:
+        maintenance_requests = maintenance_requests.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(room__name__icontains=search) |
+            Q(reported_by__username__icontains=search)
+        )
+
+    valid_statuses = dict(MaintenanceRequest.STATUS_CHOICES)
+    valid_priorities = dict(MaintenanceRequest.PRIORITY_CHOICES)
+
+    if status_filter in valid_statuses:
+        maintenance_requests = maintenance_requests.filter(
+            status=status_filter
+        )
+
+    if priority_filter in valid_priorities:
+        maintenance_requests = maintenance_requests.filter(
+            priority=priority_filter
+        )
+
+    # Statistics
+    total_requests = maintenance_requests.count()
+    pending_count = maintenance_requests.filter(status='pending').count()
+    in_progress_count = maintenance_requests.filter(status='in_progress').count()
+    completed_count = maintenance_requests.filter(status='completed').count()
+
+    return render(request, 'system/maintenance_management.html', {
+        'maintenance_requests': maintenance_requests,
+        'total_requests': total_requests,
+        'pending_count': pending_count,
+        'in_progress_count': in_progress_count,
+        'completed_count': completed_count,
+        'search': search,
+        'status_filter': status_filter,
+        'priority_filter': priority_filter,
+        'user_type': profile.user_type,
+        'username': request.user.username,
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
+        'admin_contact': SystemSettings.get_settings().get_admin_contact(),
+    })
+
+
+@login_required
+def maintenance_create(request):
+    profile = request.user.userprofile
+
+    if profile.user_type not in ['owner', 'tenant']:
+        return redirect('login_view')
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        priority = request.POST.get('priority', 'medium')
+
+        if not title or not description:
+            messages.error(request, "Please complete the title and description.")
+            return redirect('maintenance_create')
+
+        if priority not in dict(MaintenanceRequest.PRIORITY_CHOICES):
+            messages.error(request, "Invalid maintenance priority.")
+            return redirect('maintenance_create')
+
+        # Tenant reports must automatically use their assigned room.
+        if profile.user_type == 'tenant':
+            if not profile.room:
+                messages.error(
+                    request,
+                    "You need an assigned room before reporting a maintenance issue."
+                )
+                return redirect('tenant_dashboard')
+
+            room = profile.room
+
+        else:
+            # Owner can select a room or leave it blank for a common area.
+            room_id = request.POST.get('room_id', '').strip()
+
+            if room_id:
+                room = get_object_or_404(Room, pk=room_id)
+            else:
+                room = None
+
+        maintenance = MaintenanceRequest.objects.create(
+            room=room,
+            reported_by=request.user,
+            title=title,
+            description=description,
+            priority=priority,
+            status='pending'
+        )
+
+        room_label = room.name if room else 'Common Area'
+
+        messages.success(
+            request,
+            f"Maintenance report '{maintenance.title}' submitted successfully."
+        )
+
+        log_activity(
+            request,
+            'create',
+            f"Submitted maintenance report: {title} ({room_label})."
+        )
+
+        if profile.user_type == 'owner':
+            return redirect('maintenance_management')
+
+        return redirect('maintenance_management')
+
+    rooms = Room.objects.all() if profile.user_type == 'owner' else None
+
+    return render(request, 'system/maintenance_form.html', {
+        'rooms': rooms,
+        'profile': profile,
+        'user_type': profile.user_type,
+        'username': request.user.username,
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
+        'admin_contact': SystemSettings.get_settings().get_admin_contact(),
+    })
+
+
+@login_required
+def maintenance_edit(request, maintenance_id):
+    profile = request.user.userprofile
+
+    if profile.user_type != 'owner':
+        messages.error(request, "Only the owner can edit maintenance records.")
+        return redirect('maintenance_management')
+
+    maintenance = get_object_or_404(
+        MaintenanceRequest,
+        pk=maintenance_id
+    )
+
+    if request.method == 'POST':
+        from decimal import Decimal, InvalidOperation
+
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        priority = request.POST.get('priority', '')
+        status = request.POST.get('status', '')
+        room_id = request.POST.get('room_id', '').strip()
+        cost_input = request.POST.get('maintenance_cost', '0').strip()
+        resolution_notes = request.POST.get('resolution_notes', '').strip()
+
+        if not title or not description:
+            messages.error(request, "Title and description are required.")
+            return redirect('maintenance_edit', maintenance_id=maintenance.id)
+
+        if priority not in dict(MaintenanceRequest.PRIORITY_CHOICES):
+            messages.error(request, "Invalid maintenance priority.")
+            return redirect('maintenance_edit', maintenance_id=maintenance.id)
+
+        if status not in dict(MaintenanceRequest.STATUS_CHOICES):
+            messages.error(request, "Invalid maintenance status.")
+            return redirect('maintenance_edit', maintenance_id=maintenance.id)
+
+        try:
+            maintenance_cost = Decimal(cost_input or '0')
+
+            if not maintenance_cost.is_finite() or maintenance_cost < 0:
+                raise InvalidOperation
+
+            maintenance_cost = maintenance_cost.quantize(Decimal('0.01'))
+
+            if maintenance_cost > Decimal('99999999.99'):
+                raise InvalidOperation
+
+        except (InvalidOperation, ValueError):
+            messages.error(
+                request,
+                "Please enter a valid non-negative maintenance cost."
+            )
+            return redirect('maintenance_edit', maintenance_id=maintenance.id)
+
+        room = get_object_or_404(Room, pk=room_id) if room_id else None
+
+        # IMPORTANT: Save the previous status BEFORE changing it.
+        previous_status = maintenance.status
+
+        maintenance.title = title
+        maintenance.description = description
+        maintenance.priority = priority
+        maintenance.status = status
+        maintenance.room = room
+        maintenance.maintenance_cost = maintenance_cost
+        maintenance.resolution_notes = resolution_notes
+
+        if status == 'completed':
+            if not maintenance.date_completed:
+                maintenance.date_completed = timezone.now()
+        else:
+            maintenance.date_completed = None
+
+        maintenance.save()
+
+        # Notify the tenant when their maintenance report is completed.
+        # Only notify when the status changes to completed.
+        if (
+            status == 'completed'
+            and previous_status != 'completed'
+            and maintenance.room
+            and maintenance.reported_by
+        ):
+            reporter_profile = getattr(
+                maintenance.reported_by,
+                'userprofile',
+                None
+            )
+
+            if reporter_profile and reporter_profile.user_type == 'tenant':
+                Alert.objects.create(
+                    room=maintenance.room,
+                    alert_type='maintenance',
+                    message=(
+                        f"Your maintenance report '{maintenance.title}' "
+                        f"has been marked as completed by the owner."
+                    ),
+                    visibility='tenant_only',
+                    action_url='/tenant/notifications/'
+                )
+
+        messages.success(request, "Maintenance record updated successfully.")
+
+        log_activity(
+            request,
+            'update',
+            f"Updated maintenance request #{maintenance.id}: {maintenance.title}."
+        )
+
+        return redirect('maintenance_management')
+
+    return render(request, 'system/maintenance_form.html', {
+        'maintenance': maintenance,
+        'rooms': Room.objects.all(),
+        'user_type': profile.user_type,
+        'is_edit': True,
+        'username': request.user.username,
+        'unread_alerts_count': Alert.objects.filter(is_read=False).count(),
+        'admin_contact': SystemSettings.get_settings().get_admin_contact(),
+    })
+
+
+@login_required
+@require_POST
+def maintenance_delete(request, maintenance_id):
+    profile = request.user.userprofile
+
+    if profile.user_type != 'owner':
+        messages.error(request, "Only the owner can delete maintenance records.")
+        return redirect('maintenance_management')
+
+    maintenance = get_object_or_404(
+        MaintenanceRequest,
+        pk=maintenance_id
+    )
+
+    title = maintenance.title
+    maintenance_id = maintenance.id
+
+    maintenance.delete()
+
+    messages.success(request, f"Maintenance record '{title}' deleted successfully.")
+
+    log_activity(
+        request,
+        'delete',
+        f"Deleted maintenance request #{maintenance_id}: {title}."
+    )
+
+    return redirect('maintenance_management')

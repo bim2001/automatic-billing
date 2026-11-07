@@ -22,46 +22,82 @@
         </div>
     </div>
 
-    <div class="nav-menu">
-        <div class="nav-item">
-            <a href="{% url 'tenant_dashboard' %}" class="nav-link" data-tooltip="Dashboard" data-tenant-nav="dashboard">
-                <i class="fas fa-chart-line"></i>
-                <span>Dashboard</span>
-            </a>
-        </div>
-        <div class="nav-divider"></div>
-        <div class="nav-item">
-            <a href="{% url 'payment_method' %}" class="nav-link" data-tooltip="Payment" data-tenant-nav="payment">
-                <i class="fas fa-credit-card"></i>
-                <span>Payment</span>
-            </a>
-        </div>
-        <div class="nav-item">
-            <a href="{% url 'tenant_notifications' %}" class="nav-link" data-tooltip="Notifications" data-tenant-nav="notifications">
-                <i class="fas fa-bell"></i>
-                <span>Notifications</span>
-                {% if unread_alerts_count > 0 %}
+   
+<div class="nav-menu">
+
+    <div class="nav-item">
+        <a href="{% url 'tenant_dashboard' %}"
+           class="nav-link"
+           data-tooltip="Dashboard"
+           data-tenant-nav="dashboard">
+            <i class="fas fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-item">
+        <a href="{% url 'payment_method' %}"
+           class="nav-link"
+           data-tooltip="Payment"
+           data-tenant-nav="payment">
+            <i class="fas fa-credit-card"></i>
+            <span>Payment</span>
+        </a>
+    </div>
+
+    <div class="nav-item">
+        <a href="{% url 'tenant_notifications' %}"
+           class="nav-link"
+           data-tooltip="Notifications"
+           data-tenant-nav="notifications">
+            <i class="fas fa-bell"></i>
+            <span>Notifications</span>
+            {% if unread_alerts_count > 0 %}
                 <span class="alert-badge">
                     {{ unread_alerts_count }}
                 </span>
-                {% endif %}
-            </a>
-        </div>
-        <!-- ✅ BILLING HISTORY LINK - NASA SIDEBAR NA -->
-        <div class="nav-item">
-            <a href="{% url 'tenant_billing_history' %}" class="nav-link" data-tooltip="Billing History" data-tenant-nav="history">
-                <i class="fas fa-history"></i>
-                <span>Billing History</span>
-            </a>
-        </div>
-        <div class="nav-divider"></div>
-        <div class="nav-item">
-            <a href="{% url 'edit_profile' %}" class="nav-link" data-tooltip="Profile" data-tenant-nav="profile">
-                <i class="fas fa-user-edit"></i>
-                <span>Edit Profile</span>
-            </a>
-        </div>
+            {% endif %}
+        </a>
     </div>
+
+    <div class="nav-item">
+        <a href="{% url 'tenant_billing_history' %}"
+           class="nav-link"
+           data-tooltip="Billing History"
+           data-tenant-nav="history">
+            <i class="fas fa-history"></i>
+            <span>Billing History</span>
+        </a>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <!-- MAINTENANCE MANAGEMENT -->
+    <div class="nav-item">
+        <a href="{% url 'maintenance_management' %}"
+           class="nav-link"
+           data-tooltip="Maintenance"
+           data-tenant-nav="maintenance">
+            <i class="fas fa-tools"></i>
+            <span>Maintenance Management</span>
+        </a>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-item">
+        <a href="{% url 'edit_profile' %}"
+           class="nav-link"
+           data-tooltip="Profile"
+           data-tenant-nav="profile">
+            <i class="fas fa-user-edit"></i>
+            <span>Edit Profile</span>
+        </a>
+    </div>
+
+</div>
 
     <div class="sidebar-footer">
         <div class="user-info">

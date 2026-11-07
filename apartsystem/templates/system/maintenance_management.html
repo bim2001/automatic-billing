@@ -1,0 +1,770 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance Management | Smart Energy</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    {% if user_type != 'owner' %}
+    <link rel="stylesheet" href="{% static 'css/tenant-sidebar.css' %}">
+    {% endif %}
+
+    <style>
+        .maintenance-page {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .maintenance-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .maintenance-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .maintenance-btn:hover {
+            background: #5a67d8;
+            color: white;
+        }
+
+        .maintenance-stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+
+        .maintenance-stat {
+            background: white;
+            border: 1px solid #edf0f5;
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.04);
+        }
+
+        .maintenance-stat .stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #718096;
+            font-size: 13px;
+        }
+
+        .maintenance-stat .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: #eef2ff;
+            color: #667eea;
+            font-size: 17px;
+        }
+
+        .maintenance-stat strong {
+            display: block;
+            margin-top: 10px;
+            font-size: 27px;
+            color: #2c3e50;
+        }
+
+        .maintenance-panel {
+            background: white;
+            border: 1px solid #edf0f5;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.04);
+        }
+
+        .maintenance-panel h3 {
+            margin: 0 0 16px;
+            color: #2c3e50;
+            font-size: 17px;
+        }
+
+        .maintenance-filters {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .maintenance-filters input,
+        .maintenance-filters select {
+            width: 100%;
+            min-width: 0;
+            padding: 11px 12px;
+            border: 1px solid #dfe4ea;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 14px;
+        }
+
+        .filter-btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .maintenance-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        .maintenance-table th {
+            background: #f7f8fc;
+            color: #64748b;
+            text-align: left;
+            padding: 13px 12px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .maintenance-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #edf0f5;
+            font-size: 13px;
+            color: #475569;
+            vertical-align: middle;
+        }
+
+        .maintenance-table tr:hover td {
+            background: #fafbff;
+        }
+
+        .request-title {
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .request-description {
+            display: block;
+            max-width: 260px;
+            margin-top: 4px;
+            color: #8793a3;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status-badge,
+        .priority-badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-in_progress {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        .priority-low {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .priority-medium {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .priority-high {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        .priority-urgent {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .action-links {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+        }
+
+        .action-icon {
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 7px;
+            display: inline-grid;
+            place-items: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .action-edit {
+            background: #eef2ff;
+            color: #5968d8;
+        }
+
+        .action-delete {
+            background: #fee2e2;
+            color: #dc3545;
+        }
+
+        .action-delete:hover {
+            background: #fecaca;
+            color: #b91c1c;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 45px 15px;
+            color: #8793a3;
+        }
+
+        .empty-state i {
+            display: block;
+            font-size: 42px;
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+
+        .message-list {
+            margin-bottom: 16px;
+        }
+
+        .message-item {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .message-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .message-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .message-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* DELETE CONFIRMATION MODAL */
+
+        .maintenance-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .maintenance-modal-overlay.show {
+            display: flex;
+        }
+
+        .maintenance-modal {
+            background: #fff;
+            width: 100%;
+            max-width: 420px;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+            animation: maintenanceModalIn 0.2s ease;
+        }
+
+        @keyframes maintenanceModalIn {
+            from {
+                opacity: 0;
+                transform: translateY(15px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .maintenance-modal-icon {
+            width: 65px;
+            height: 65px;
+            margin: 0 auto 18px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: #dc2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+        }
+
+        .maintenance-modal h3 {
+            color: #1f2937;
+            font-size: 21px;
+            margin-bottom: 10px;
+        }
+
+        .maintenance-modal p {
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .maintenance-modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .maintenance-cancel-btn,
+        .maintenance-confirm-delete-btn {
+            padding: 11px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .maintenance-cancel-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .maintenance-cancel-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .maintenance-confirm-delete-btn {
+            background: #dc2626;
+            color: #fff;
+        }
+
+        .maintenance-confirm-delete-btn:hover {
+            background: #b91c1c;
+        }
+
+        @media(max-width: 900px) {
+            .maintenance-stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .maintenance-filters {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media(max-width: 600px) {
+            .maintenance-stats {
+                gap: 9px;
+            }
+
+            .maintenance-stat {
+                padding: 13px;
+            }
+
+            .maintenance-stat strong {
+                font-size: 22px;
+            }
+
+            .maintenance-filters {
+                grid-template-columns: 1fr;
+            }
+
+            .maintenance-panel {
+                padding: 13px;
+            }
+
+            .maintenance-modal {
+                padding: 24px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    {% if user_type == 'owner' %}
+        {% include 'system/sidebar.html' %}
+    {% else %}
+        {% include 'user/tenant_sidebar.html' with tenant_sidebar_css_in_head=True %}
+    {% endif %}
+
+    <div class="main-content">
+        <div class="maintenance-page">
+
+            <div class="page-header">
+                <h1><i class="fas fa-tools"></i> Maintenance Management</h1>
+                <p>Track, manage, and monitor maintenance requests.</p>
+            </div>
+
+            {% if messages %}
+            <div class="message-list">
+                {% for message in messages %}
+                <div class="message-item message-{{ message.tags|default:'info' }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="maintenance-actions">
+                <div>
+                    <h2 style="font-size:19px;color:#2c3e50;margin:0;">
+                        {% if user_type == 'owner' %}
+                            All Maintenance Requests
+                        {% else %}
+                            My Maintenance Reports
+                        {% endif %}
+                    </h2>
+
+                    <p style="font-size:13px;color:#8793a3;margin-top:5px;">
+                        {% if user_type == 'owner' %}
+                            Review and manage reported maintenance issues.
+                        {% else %}
+                            View the status of your submitted maintenance reports.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <a href="{% url 'maintenance_create' %}" class="maintenance-btn">
+                    <i class="fas fa-plus"></i> Submit Maintenance Report
+                </a>
+            </div>
+
+            <div class="maintenance-stats">
+
+                <div class="maintenance-stat">
+                    <div class="stat-top">
+                        <span>Total Requests</span>
+                        <span class="stat-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                    </div>
+                    <strong>{{ total_requests }}</strong>
+                </div>
+
+                <div class="maintenance-stat">
+                    <div class="stat-top">
+                        <span>Pending</span>
+                        <span class="stat-icon" style="background:#fff3cd;color:#d69e00;">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                    </div>
+                    <strong>{{ pending_count }}</strong>
+                </div>
+
+                <div class="maintenance-stat">
+                    <div class="stat-top">
+                        <span>In Progress</span>
+                        <span class="stat-icon" style="background:#dbeafe;color:#2563eb;">
+                            <i class="fas fa-tools"></i>
+                        </span>
+                    </div>
+                    <strong>{{ in_progress_count }}</strong>
+                </div>
+
+                <div class="maintenance-stat">
+                    <div class="stat-top">
+                        <span>Completed</span>
+                        <span class="stat-icon" style="background:#d1fae5;color:#059669;">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </div>
+                    <strong>{{ completed_count }}</strong>
+                </div>
+
+            </div>
+
+            <div class="maintenance-panel">
+
+                <h3>
+                    <i class="fas fa-list" style="color:#667eea;margin-right:7px;"></i>
+                    Maintenance Records
+                </h3>
+
+                <form method="get" class="maintenance-filters">
+
+                    <input
+                        type="text"
+                        name="search"
+                        value="{{ search }}"
+                        placeholder="Search title, room, description..."
+                    >
+
+                    <select name="status">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+
+                    <select name="priority">
+                        <option value="">All Priorities</option>
+                        <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+                        <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Urgent</option>
+                    </select>
+
+                    <button type="submit" class="filter-btn">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+
+                </form>
+
+                <div class="table-wrap">
+                    <table class="maintenance-table">
+
+                        <thead>
+                            <tr>
+                                <th>Request</th>
+                                <th>Room</th>
+
+                                {% if user_type == 'owner' %}
+                                    <th>Reported By</th>
+                                {% endif %}
+
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Date Reported</th>
+
+                                {% if user_type == 'owner' %}
+                                    <th>Cost</th>
+                                    <th>Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for item in maintenance_requests %}
+                            <tr>
+
+                                <td>
+                                    <span class="request-title">{{ item.title }}</span>
+                                    <span class="request-description">{{ item.description }}</span>
+                                </td>
+
+                                <td>
+                                    {% if item.room %}
+                                        {{ item.room.name }}
+                                    {% else %}
+                                        Common Area
+                                    {% endif %}
+                                </td>
+
+                                {% if user_type == 'owner' %}
+                                <td>
+                                    {% if item.reported_by %}
+                                        {{ item.reported_by.get_full_name|default:item.reported_by.username }}
+                                    {% else %}
+                                        Unknown
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+
+                                <td>
+                                    <span class="priority-badge priority-{{ item.priority }}">
+                                        {{ item.get_priority_display }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="status-badge status-{{ item.status }}">
+                                        {{ item.get_status_display }}
+                                    </span>
+                                </td>
+
+                                <td>{{ item.date_reported|date:"M d, Y" }}</td>
+
+                                {% if user_type == 'owner' %}
+                                <td>₱{{ item.maintenance_cost|floatformat:2 }}</td>
+
+                                <td>
+                                    <div class="action-links">
+
+                                        <a
+                                            href="{% url 'maintenance_edit' item.id %}"
+                                            class="action-icon action-edit"
+                                            title="Edit"
+                                        >
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+
+                                        <!-- Opens the custom delete modal -->
+                                        <button
+                                            type="button"
+                                            class="action-icon action-delete"
+                                            title="Delete"
+                                            aria-label="Delete maintenance record"
+                                            onclick="openDeleteModal('{% url 'maintenance_delete' item.id %}')"
+                                        >
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+
+                                    </div>
+                                </td>
+                                {% endif %}
+
+                            </tr>
+
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if user_type == 'owner' %}8{% else %}5{% endif %}">
+                                    <div class="empty-state">
+                                        <i class="fas fa-tools"></i>
+                                        <strong>No maintenance requests found.</strong>
+                                        <p style="margin-top:6px;">
+                                            Submit a report when a maintenance issue needs attention.
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div
+        class="maintenance-modal-overlay"
+        id="deleteMaintenanceModal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deleteModalTitle"
+    >
+        <div class="maintenance-modal">
+
+            <div class="maintenance-modal-icon">
+                <i class="fas fa-trash-alt"></i>
+            </div>
+
+            <h3 id="deleteModalTitle">Delete Maintenance Record?</h3>
+
+            <p>
+                Delete this maintenance record?
+                This action cannot be undone.
+            </p>
+
+            <div class="maintenance-modal-actions">
+
+                <button
+                    type="button"
+                    class="maintenance-cancel-btn"
+                    onclick="closeDeleteModal()"
+                >
+                    Cancel
+                </button>
+
+                <form method="POST" id="deleteMaintenanceForm">
+                    {% csrf_token %}
+
+                    <button type="submit" class="maintenance-confirm-delete-btn">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openDeleteModal(deleteUrl) {
+            const modal = document.getElementById('deleteMaintenanceModal');
+            const form = document.getElementById('deleteMaintenanceForm');
+
+            form.action = deleteUrl;
+            modal.classList.add('show');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteMaintenanceModal');
+            modal.classList.remove('show');
+        }
+
+        // Close modal when clicking outside the modal box
+        document.getElementById('deleteMaintenanceModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeDeleteModal();
+            }
+        });
+
+        // Close modal using the Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDeleteModal();
+            }
+        });
+    </script>
+
+    {% if user_type == 'owner' %}
+    <script src="{% static 'js/active-nav.js' %}"></script>
+    {% endif %}
+
+</body>
+</html>

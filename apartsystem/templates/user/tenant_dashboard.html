@@ -1,4 +1,5 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -141,7 +142,7 @@
         }
 
         /* ============================================ */
-        /* MAIN CONTENT                               */
+        /* MAIN CONTENT                                */
         /* ============================================ */
         .main-content {
             margin-left: 280px;
@@ -854,7 +855,7 @@
             }
         }
 
-        
+
 /* ========================================
    TENANT DASHBOARD - MOBILE UI POLISH
    Desktop styles remain unchanged
@@ -1242,17 +1243,15 @@
 }
 
     </style>
-
-    <!-- Chart.js for graphs -->
+<!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <!-- SIDEBAR NAVIGATION -->
+<!-- SIDEBAR NAVIGATION -->
     {% include 'user/tenant_sidebar.html' with tenant_sidebar_css_in_head=True %}
-
 <!-- MAIN CONTENT -->
     <div class="main-content">
-        <!-- Page Header -->
+<!-- Page Header -->
         <div class="page-header">
             <h1><i class="fas fa-home"></i> My Dashboard</h1>
             <p>Welcome back, {{ username }}! Here's your energy overview for {{ current_month }}</p>
@@ -1282,10 +1281,9 @@
             </div>
         </div>
         {% else %}
-
-        <!-- Quick Stats (3 cards only) -->
+<!-- Quick Stats (3 cards only) -->
         <div class="stats-grid">
-            <!-- Current Bill Card -->
+<!-- Current Bill Card -->
             <div class="stat-card {% if current_bill and not current_bill.is_paid %}warning{% endif %}">
                 <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
                 <div class="stat-value">₱{{ bill_amount|floatformat:2 }}</div>
@@ -1302,16 +1300,14 @@
                     {% endif %}
                 {% endif %}
             </div>
-
-            <!-- Average Daily Card -->
+<!-- Average Daily Card -->
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
                 <div class="stat-value">{{ avg_daily_usage|floatformat:1 }}</div>
                 <div class="stat-label">Avg Daily (kWh)</div>
                 <div class="stat-sub">Last 30 days</div>
             </div>
-
-            <!-- Power Status Card  -->
+<!-- Power Status Card  -->
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-plug"></i></div>
                 <div class="stat-value">
@@ -1325,8 +1321,7 @@
                 <div class="stat-sub">{% if room.power_status %}Active{% else %}Inactive{% endif %}</div>
             </div>
         </div>
-
-        <!-- Room Information Card -->
+<!-- Room Information Card -->
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-home"></i> Room Information</h2>
@@ -1334,7 +1329,7 @@
                     {% if room.power_status %}<i class="fas fa-check-circle"></i> Active{% else %}<i class="fas fa-times-circle"></i> Inactive{% endif %}
                 </span>
             </div>
-            
+
             <div class="room-info-grid">
                 <div class="info-item">
                     <div class="info-label"><i class="fas fa-tag"></i> Room Name</div>
@@ -1363,7 +1358,7 @@
         </div>
 
         <div class="energy-overview-grid">
-            <!-- Energy Usage Graph Card -->
+<!-- Energy Usage Graph Card -->
             <div class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-chart-line"></i> Daily Energy Consumption</h2>
@@ -1431,36 +1426,7 @@
                 </div>
             </div>
         </div>
-
-        <!-- Recent Alerts -->
-        {% if recent_alerts %}
-        <div class="card">
-            <div class="card-header">
-                <h2><i class="fas fa-bell"></i> Recent Notifications</h2>
-                <div>
-                    {% if unread_alerts_count > 0 %}
-                    <span class="badge badge-info" style="margin-right: 10px;">{{ unread_alerts_count }} new</span>
-                    {% endif %}
-                    <a href="{% url 'tenant_notifications' %}" class="btn-view-all">View All →</a>
-                </div>
-            </div>
-            <div class="alerts-list">
-                {% for alert in recent_alerts|slice:":3" %}
-                <div class="alert-item {{ alert.alert_type }}">
-                    <div>
-                        <div class="alert-message">{{ alert.message|truncatechars:80 }}</div>
-                        <div class="alert-time">{{ alert.created_at|timesince }} ago</div>
-                    </div>
-                    {% if not alert.is_read %}
-                    <span class="badge-new">New</span>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Energy Saving Tips -->
+<!-- Energy Saving Tips -->
         <div class="card">
             <div class="card-header">
                 <h2><i class="fas fa-lightbulb"></i> Energy Saving Tips</h2>
@@ -1486,13 +1452,12 @@
 
         {% endif %}
     </div>
-
-    <!-- Bill Details Modal -->
+<!-- Bill Details Modal -->
     <div id="billModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-file-invoice-dollar"></i> Bill Details</h3>
-                <button class="modal-close" onclick="closeBillModal()">&times;</button>
+                <button class="modal-close" onclick="closeBillModal()">×</button>
             </div>
             <div class="modal-body">
                 <div id="billDetailsContent"><div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div></div>

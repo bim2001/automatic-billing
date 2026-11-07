@@ -50,6 +50,12 @@ urlpatterns = [
     path('billing/history/', views.billing_history, name='billing_history'),
     path('billing/export/', views.export_billing_csv, name='export_billing_csv'),
     path('billing/report/', views.billing_report_html, name='billing_report_html'),
+
+# ==================== MAINTENANCE MANAGEMENT ==================== 
+    path('maintenance/', views.maintenance_management, name='maintenance_management'),
+    path('maintenance/create/', views.maintenance_create, name='maintenance_create'),
+    path('maintenance/<int:maintenance_id>/edit/', views.maintenance_edit, name='maintenance_edit'),
+    path('maintenance/<int:maintenance_id>/delete/', views.maintenance_delete, name='maintenance_delete'),
     
     # ==================== ALERTS ====================
     path('alerts/', views.alerts_view, name='alerts_view'),

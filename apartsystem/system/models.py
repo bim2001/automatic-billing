@@ -257,33 +257,70 @@ class Alert(models.Model):
         ('abnormal_usage', 'Abnormal Usage Detected'),
         ('late_payment', 'Late Payment Penalty'),
         ('high_consumption', 'High Consumption Alert'),
+        ('maintenance', 'Maintenance Update'),
     ]
-    
+
     VISIBILITY = [
         ('both', 'Both Admin and Tenant'),
         ('admin_only', 'Admin Only'),
         ('tenant_only', 'Tenant Only'),
     ]
-    
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, null=True, blank=True)
-    alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
+
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    alert_type = models.CharField(
+        max_length=20,
+        choices=ALERT_TYPES
+    )
+
     message = models.TextField()
+
     is_read = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
-    visibility = models.CharField(max_length=20, choices=VISIBILITY, default='both')
-    action_url = models.CharField(max_length=200, null=True, blank=True)  # ✅ BAGO: link para sa action button
-    
+
+    visibility = models.CharField(
+        max_length=20,
+        choices=VISIBILITY,
+        default='both'
+    )
+
+    action_url = models.CharField(
+        max_length=200,
+        null=True,
+        blank=True
+    )
+
     def save(self, *args, **kwargs):
-        # Auto-set visibility based on alert_type
+        # Automatically set visibility based on alert type
+
         if self.alert_type in ['tenant_assigned', 'tenant_removed']:
             self.visibility = 'admin_only'
-        elif self.alert_type in ['over_limit', 'power_off', 'power_on', 'billing', 'abnormal_usage', 'late_payment', 'high_consumption']:
+
+        elif self.alert_type == 'maintenance':
+            self.visibility = 'tenant_only'
+
+        elif self.alert_type in [
+            'over_limit',
+            'power_off',
+            'power_on',
+            'billing',
+            'abnormal_usage',
+            'late_payment',
+            'high_consumption'
+        ]:
             self.visibility = 'both'
+
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return f"{self.get_alert_type_display()} - {self.room.name if self.room else 'System'}"
-    
+
     class Meta:
         ordering = ['-created_at']
 
@@ -424,3 +461,82 @@ class Payment(models.Model):
     
     class Meta:
         ordering = ['-created_at']
+
+
+# ============ MAINTENANCE MANAGEMENT ============
+
+class MaintenanceRequest(models.Model):
+
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+        ('urgent', 'Urgent'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+    ]
+
+    # Maintenance Information
+    room = models.ForeignKey(
+        Room,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='maintenance_requests'
+    )
+
+    reported_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='maintenance_reports'
+    )
+
+    title = models.CharField(max_length=150)
+    description = models.TextField()
+
+    # Priority and Status
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='medium'
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    # Repair Details
+    maintenance_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+
+    resolution_notes = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    # Dates
+    date_reported = models.DateTimeField(auto_now_add=True)
+    date_completed = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        room_name = self.room.name if self.room else 'Deleted Room'
+        return f"{self.title} - {room_name}"
+
+    class Meta:
+        ordering = ['-date_reported']
+        verbose_name = "Maintenance Request"
+        verbose_name_plural = "Maintenance Requests"
