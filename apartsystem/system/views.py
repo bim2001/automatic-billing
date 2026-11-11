@@ -333,6 +333,150 @@ def paymongo_webhook(request):
         traceback.print_exc()
         return JsonResponse({"error": "Internal server error"}, status=500)
 
+
+
+@login_required
+def summary_reports(request):
+    profile = request.user.userprofile
+
+    # Owner-only access
+    if profile.user_type != 'owner':
+        return redirect('dashboard')
+
+    today = timezone.localdate()
+
+    # Default date range: current month
+    start_input = request.GET.get('start')
+    end_input = request.GET.get('end')
+
+    try:
+        start_date = (
+            date.fromisoformat(start_input)
+            if start_input else today.replace(day=1)
+        )
+        end_date = (
+            date.fromisoformat(end_input)
+            if end_input else today
+        )
+
+        if start_date > end_date:
+            raise ValueError
+
+    except (ValueError, TypeError):
+        start_date = today.replace(day=1)
+        end_date = today
+
+    # ================= BILLING SUMMARY =================
+
+    bills = Billing.objects.filter(
+        due_date__range=[start_date, end_date]
+    )
+
+    total_bills = bills.count()
+    paid_bills = bills.filter(is_paid=True).count()
+    unpaid_bills = bills.filter(is_paid=False).count()
+
+    total_billed = bills.aggregate(
+        total=Sum('cost')
+    )['total'] or 0
+
+    outstanding_balance = bills.filter(
+        is_paid=False
+    ).aggregate(
+        total=Sum('cost')
+    )['total'] or 0
+
+    # ================= PAYMENT SUMMARY =================
+
+    payments = Payment.objects.filter(
+        status='paid',
+        paid_at__date__range=[start_date, end_date]
+    )
+
+    amount_collected = payments.aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    gcash_collected = payments.filter(
+        payment_method='gcash'
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    cash_collected = payments.filter(
+        payment_method='cash'
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    payment_count = payments.count()
+
+    # ================= MAINTENANCE SUMMARY =================
+
+    # Count maintenance requests based on report date
+    maintenance_requests = MaintenanceRequest.objects.filter(
+        date_reported__date__range=[start_date, end_date]
+    )
+
+    maintenance_count = maintenance_requests.count()
+
+    maintenance_completed = maintenance_requests.filter(
+        status='completed'
+    ).count()
+
+    maintenance_pending = maintenance_requests.filter(
+        status='pending'
+    ).count()
+
+    # Calculate expenses based on completion date
+    completed_maintenance = MaintenanceRequest.objects.filter(
+        status='completed',
+        date_completed__date__range=[start_date, end_date]
+    )
+
+    maintenance_expenses = completed_maintenance.aggregate(
+        total=Sum('maintenance_cost')
+    )['total'] or 0
+
+    # ================= FINANCIAL OVERVIEW =================
+
+    from decimal import Decimal
+
+    net_income = (
+        Decimal(str(amount_collected))
+        - Decimal(str(maintenance_expenses))
+    )
+
+    return render(request, 'system/summary_reports.html', {
+        'username': request.user.username,
+        'unread_alerts_count': Alert.objects.filter(
+            is_read=False
+        ).count(),
+
+        'start_date': start_date,
+        'end_date': end_date,
+
+        'total_bills': total_bills,
+        'paid_bills': paid_bills,
+        'unpaid_bills': unpaid_bills,
+        'total_billed': total_billed,
+        'outstanding_balance': outstanding_balance,
+
+        'amount_collected': amount_collected,
+        'gcash_collected': gcash_collected,
+        'cash_collected': cash_collected,
+        'payment_count': payment_count,
+
+        'maintenance_expenses': maintenance_expenses,
+        'maintenance_count': maintenance_count,
+        'maintenance_completed': maintenance_completed,
+        'maintenance_pending': maintenance_pending,
+
+        'net_income': net_income,
+    })
+
+
+
 def get_building_stats(request):
     profile = request.user.userprofile
     

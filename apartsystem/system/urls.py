@@ -64,6 +64,7 @@ urlpatterns = [
     
     # ==================== MONITORING & SETTINGS ====================
     path('monitoring/', views.monitoring_dashboard, name='monitoring_dashboard'),
+    path('summary-reports/', views.summary_reports, name='summary_reports'),
     path('settings/', views.system_settings, name='system_settings'),
     path('system-health/', views.health_dashboard, name='health_dashboard'),
     path('health/', views.health_dashboard, name='system_health_dashboard'),
