@@ -1,0 +1,631 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Energy Monitoring | Smart Energy</title>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tenant-sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tenant-theme.css' %}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .main-content {
+            padding: 25px;
+        }
+
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            color: #1c3f53;
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: #718096;
+        }
+
+        .monitor-controls,
+        .monitor-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 14px rgba(0,0,0,.06);
+        }
+
+        .monitor-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .period-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .period-btn {
+            border: 1px solid #dce4eb;
+            background: #fff;
+            color: #536777;
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .period-btn.active {
+            background: #1c3f53;
+            border-color: #1c3f53;
+            color: #fff;
+        }
+
+        .date-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .date-control input {
+            padding: 9px 12px;
+            border: 1px solid #dce4eb;
+            border-radius: 8px;
+            font: inherit;
+        }
+
+        .period-label {
+            color: #718096;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .usage-stat {
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 14px rgba(0,0,0,.06);
+            min-width: 0;
+        }
+
+        .usage-stat .stat-icon {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #edf5f8;
+            color: #1c6b85;
+            margin-bottom: 14px;
+        }
+
+        .usage-stat .stat-label {
+            color: #718096;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .usage-stat .stat-value {
+            color: #1c3f53;
+            font-size: 25px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .usage-stat .stat-unit {
+            color: #718096;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .monitor-card h2 {
+            color: #1c3f53;
+            font-size: 17px;
+            margin-bottom: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 340px;
+        }
+
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+
+        .comparison-value {
+            font-weight: 700;
+            color: #1c3f53;
+        }
+
+        .comparison-value.positive {
+            color: #dc3545;
+        }
+
+        .comparison-value.negative {
+            color: #198754;
+        }
+
+        .no-room-card,
+        .error-message {
+            background: #fff;
+            padding: 25px;
+            border-radius: 14px;
+            text-align: center;
+            color: #718096;
+        }
+
+        .no-room-card i {
+            font-size: 36px;
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+
+        .loading-message {
+            color: #718096;
+            text-align: center;
+            padding: 25px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 70px;
+                padding: 12px;
+                min-width: 0;
+                overflow-x: hidden;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .monitor-controls {
+                align-items: stretch;
+                padding: 14px;
+            }
+
+            .period-buttons {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .period-btn {
+                width: 100%;
+            }
+
+            .date-control {
+                width: 100%;
+            }
+
+            .date-control input {
+                width: 100%;
+            }
+
+            .chart-container {
+                height: 270px;
+            }
+
+            .usage-stat {
+                padding: 15px;
+            }
+
+            .usage-stat .stat-value {
+                font-size: 22px;
+            }
+        }
+
+
+/* ========================================
+   TENANT MAINTENANCE TEXT COLORS
+   Owner design remains unchanged
+======================================== */
+
+{% if user_type != 'owner' %}
+
+/* Main page title */
+.page-header h1 {
+    color: #ffffff !important;
+}
+
+/* Main page title icon */
+.page-header h1 i {
+    color: #ffffff !important;
+}
+
+/* Main page subtitle */
+.page-header p {
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Monitoring page */
+.maintenance-actions h2 {
+    color: #ffffff !important;
+}
+
+/* My monitoring subtitle */
+.maintenance-actions p {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+{% endif %}
+
+    </style>
+</head>
+
+<body>
+
+    {% include 'user/tenant_sidebar.html' with tenant_sidebar_css_in_head=True %}
+
+    <div class="main-content">
+
+        <div class="page-header">
+            <h1>
+                <i class="fas fa-bolt"></i>
+                Energy Monitoring
+            </h1>
+            <p>
+                Monitor your room's electricity consumption over different periods.
+            </p>
+        </div>
+
+        {% if no_room %}
+
+            <div class="no-room-card">
+                <i class="fas fa-home"></i>
+                <h2>No Room Assigned</h2>
+                <p>
+                    You don't currently have an assigned room.
+                    Please contact your administrator.
+                </p>
+            </div>
+
+        {% else %}
+
+            <div class="monitor-controls">
+
+                <div class="period-buttons">
+                    <button class="period-btn"
+                            data-period="daily"
+                            type="button">Daily</button>
+
+                    <button class="period-btn"
+                            data-period="weekly"
+                            type="button">Weekly</button>
+
+                    <button class="period-btn active"
+                            data-period="monthly"
+                            type="button">Monthly</button>
+
+                    <button class="period-btn"
+                            data-period="yearly"
+                            type="button">Yearly</button>
+                </div>
+
+                <div class="date-control">
+                    <label for="selectedDate">Select date:</label>
+                    <input type="date" id="selectedDate">
+                </div>
+
+            </div>
+
+            <div class="period-label" id="periodLabel">
+                Loading period...
+            </div>
+
+            <div class="stats-grid">
+
+                <div class="usage-stat">
+                    <div class="stat-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-label">Total Consumption</div>
+                    <div class="stat-value" id="totalUsage">0.00</div>
+                    <div class="stat-unit">kWh</div>
+                </div>
+
+                <div class="usage-stat">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-label" id="averageLabel">
+                        Average Consumption
+                    </div>
+                    <div class="stat-value" id="averageUsage">0.00</div>
+                    <div class="stat-unit">kWh per interval</div>
+                </div>
+
+                <div class="usage-stat">
+                    <div class="stat-icon">
+                        <i class="fas fa-arrow-trend-up"></i>
+                    </div>
+                    <div class="stat-label" id="peakLabel">
+                        Peak Consumption
+                    </div>
+                    <div class="stat-value" id="peakUsage">0.00</div>
+                    <div class="stat-unit">kWh</div>
+                </div>
+
+            </div>
+
+            <div class="monitor-card">
+
+                <h2>
+                    <i class="fas fa-chart-area"></i>
+                    Electricity Consumption
+                </h2>
+
+                <p class="period-label">
+                    Consumption breakdown for the selected period
+                </p>
+
+                <div class="chart-container">
+                    <canvas id="energyChart"></canvas>
+                </div>
+
+                <div class="comparison-row">
+                    <div>
+                        <strong>Previous Period Comparison</strong>
+                        <div class="period-label" style="margin:5px 0 0;">
+                            Compared with the equivalent previous period
+                        </div>
+                    </div>
+
+                    <div class="comparison-value" id="comparisonValue">
+                        0.00 kWh
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="error-message" id="errorMessage" hidden></div>
+
+        {% endif %}
+
+    </div>
+
+    {% if not no_room %}
+    <script>
+        const API_URL = "{% url 'tenant_energy_usage_api' %}";
+
+        let selectedPeriod = "monthly";
+        let energyChart = null;
+
+        const dateInput = document.getElementById("selectedDate");
+        const periodLabel = document.getElementById("periodLabel");
+
+        const today = new Date();
+        const localToday = [
+            today.getFullYear(),
+            String(today.getMonth() + 1).padStart(2, "0"),
+            String(today.getDate()).padStart(2, "0")
+        ].join("-");
+
+        dateInput.value = localToday;
+
+        function updateAverageLabel() {
+            const labels = {
+                daily: "Average per Hour",
+                weekly: "Average per Day",
+                monthly: "Average per Day",
+                yearly: "Average per Month"
+            };
+
+            document.getElementById("averageLabel").textContent =
+                labels[selectedPeriod];
+
+            document.getElementById("peakLabel").textContent =
+                "Peak " + (
+                    selectedPeriod === "daily" ? "Hour" :
+                    selectedPeriod === "yearly" ? "Month" : "Day"
+                ) + " Consumption";
+        }
+
+        function updateDateInput() {
+            if (selectedPeriod === "monthly") {
+                dateInput.step = "1";
+            } else {
+                dateInput.step = "1";
+            }
+        }
+
+        document.querySelectorAll(".period-btn").forEach(button => {
+            button.addEventListener("click", function () {
+                document.querySelectorAll(".period-btn")
+                    .forEach(btn => btn.classList.remove("active"));
+
+                this.classList.add("active");
+                selectedPeriod = this.dataset.period;
+
+                updateAverageLabel();
+                updateDateInput();
+                loadEnergyData();
+            });
+        });
+
+        dateInput.addEventListener("change", loadEnergyData);
+
+        function showError(message) {
+            const errorBox = document.getElementById("errorMessage");
+            errorBox.textContent = message;
+            errorBox.hidden = false;
+        }
+
+        function clearError() {
+            const errorBox = document.getElementById("errorMessage");
+            errorBox.textContent = "";
+            errorBox.hidden = true;
+        }
+
+        async function loadEnergyData() {
+            clearError();
+
+            periodLabel.textContent = "Loading consumption data...";
+
+            try {
+                const params = new URLSearchParams({
+                    period: selectedPeriod,
+                    date: dateInput.value
+                });
+
+                const response = await fetch(`${API_URL}?${params}`);
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Unable to load energy data.");
+                }
+
+                updateDashboard(data);
+
+            } catch (error) {
+                console.error("Energy monitoring error:", error);
+                showError(error.message);
+                periodLabel.textContent = "Unable to load selected period.";
+            }
+        }
+
+        function updateDashboard(data) {
+            periodLabel.textContent =
+                `${data.room} • ${data.period_label}`;
+
+            document.getElementById("totalUsage").textContent =
+                Number(data.total).toFixed(2);
+
+            document.getElementById("averageUsage").textContent =
+                Number(data.average).toFixed(2);
+
+            document.getElementById("peakUsage").textContent =
+                Number(data.peak).toFixed(2);
+
+            const comparison = Number(data.comparison);
+            const comparisonElement =
+                document.getElementById("comparisonValue");
+
+            const sign = comparison > 0 ? "+" : "";
+
+            comparisonElement.textContent =
+                `${sign}${comparison.toFixed(2)} kWh`;
+
+            comparisonElement.classList.remove("positive", "negative");
+
+            if (comparison > 0) {
+                comparisonElement.classList.add("positive");
+            } else if (comparison < 0) {
+                comparisonElement.classList.add("negative");
+            }
+
+            renderChart(data.labels, data.usage);
+        }
+
+        function renderChart(labels, usage) {
+            const ctx = document.getElementById("energyChart")
+                .getContext("2d");
+
+            if (energyChart) {
+                energyChart.destroy();
+            }
+
+            energyChart = new Chart(ctx, {
+                type: "line",
+
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Energy Consumption (kWh)",
+                        data: usage,
+                        borderColor: "#1c6b85",
+                        backgroundColor: "rgba(28, 107, 133, 0.12)",
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: "top"
+                        },
+
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ": " +
+                                        Number(context.raw).toFixed(2) +
+                                        " kWh";
+                                }
+                            }
+                        }
+                    },
+
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "Energy (kWh)"
+                            }
+                        },
+
+                        x: {
+                            title: {
+                                display: true,
+                                text: "Time Period"
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        updateAverageLabel();
+        loadEnergyData();
+    </script>
+    {% endif %}
+
+</body>
+</html>

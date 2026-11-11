@@ -93,4 +93,7 @@ urlpatterns = [
     path('payment/cash/verify/<int:payment_id>/', views.verify_cash_payment, name='verify_cash_payment'),
     path('payment/', views.payment_method, name='payment_method'),
     path('payment/checkout/<str:reference>/', views.payment_checkout_simulation, name='payment_checkout_simulation'),
+
+    path('tenant/energy-monitoring/', views.tenant_energy_monitoring, name='tenant_energy_monitoring'),
+    path('api/tenant-energy-usage/', views.tenant_energy_usage_api, name='tenant_energy_usage_api'),
 ]

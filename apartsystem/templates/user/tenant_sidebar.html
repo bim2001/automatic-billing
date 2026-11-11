@@ -35,8 +35,19 @@
         </a>
     </div>
 
-    <div class="nav-divider"></div>
+    <div class="nav-item">
+        <a href="{% url 'tenant_energy_monitoring' %}"
+           class="nav-link"
+           data-tooltip="Energy Monitoring"
+          data-tenant-nav="energy">
+           <i class="fas fa-bolt"></i>
+           <span>Energy Monitoring</span>
+        </a>
+    </div>
 
+
+    <div class="nav-divider"></div>
+    
     <div class="nav-item">
         <a href="{% url 'payment_method' %}"
            class="nav-link"

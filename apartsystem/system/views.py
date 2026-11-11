@@ -546,6 +546,158 @@ def get_building_stats(request):
     })
 
 @login_required
+def tenant_energy_monitoring(request):
+    profile = request.user.userprofile
+
+    if profile.user_type != 'tenant':
+        return redirect('dashboard')
+
+    room = profile.room
+
+    return render(request, 'user/tenant_energy_monitoring.html', {
+        'room': room,
+        'username': request.user.username,
+        'no_room': not bool(room),
+    })
+
+@login_required
+def tenant_energy_usage_api(request):
+    profile = request.user.userprofile
+
+    if profile.user_type != 'tenant':
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    room = profile.room
+
+    if not room:
+        return JsonResponse({'error': 'No room assigned'}, status=404)
+
+    period = request.GET.get('period', 'monthly').lower()
+    if period not in ['daily', 'weekly', 'monthly', 'yearly']:
+        return JsonResponse({'error': 'Invalid period'}, status=400)
+
+    try:
+        selected_date = date.fromisoformat(
+            request.GET.get('date', timezone.localdate().isoformat())
+        )
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'Invalid date'}, status=400)
+
+    # Determine the selected period and its previous comparison period.
+    if period == 'daily':
+        start_date = selected_date
+        end_date = start_date + timedelta(days=1)
+        previous_start = start_date - timedelta(days=1)
+        previous_end = start_date
+        labels = [f'{hour:02d}:00' for hour in range(24)]
+
+    elif period == 'weekly':
+        start_date = selected_date - timedelta(days=selected_date.weekday())
+        end_date = start_date + timedelta(days=7)
+        previous_start = start_date - timedelta(days=7)
+        previous_end = start_date
+        labels = [
+            (start_date + timedelta(days=i)).strftime('%a')
+            for i in range(7)
+        ]
+
+    elif period == 'monthly':
+        start_date = selected_date.replace(day=1)
+
+        if start_date.month == 12:
+            end_date = date(start_date.year + 1, 1, 1)
+        else:
+            end_date = date(start_date.year, start_date.month + 1, 1)
+
+        previous_end = start_date
+        previous_start = (start_date - timedelta(days=1)).replace(day=1)
+
+        labels = [
+            str(day)
+            for day in range(1, (end_date - start_date).days + 1)
+        ]
+
+    else:  # yearly
+        start_date = date(selected_date.year, 1, 1)
+        end_date = date(selected_date.year + 1, 1, 1)
+        previous_start = date(selected_date.year - 1, 1, 1)
+        previous_end = start_date
+        labels = [
+            date(selected_date.year, month, 1).strftime('%b')
+            for month in range(1, 13)
+        ]
+
+    start_datetime = timezone.make_aware(
+        datetime.combine(start_date, datetime.min.time())
+    )
+    end_datetime = timezone.make_aware(
+        datetime.combine(end_date, datetime.min.time())
+    )
+    previous_start_datetime = timezone.make_aware(
+        datetime.combine(previous_start, datetime.min.time())
+    )
+    previous_end_datetime = timezone.make_aware(
+        datetime.combine(previous_end, datetime.min.time())
+    )
+
+    readings = EnergyUsage.objects.filter(
+        room=room,
+        timestamp__gte=start_datetime,
+        timestamp__lt=end_datetime
+    ).order_by('timestamp')
+
+    # Initialize every bucket to zero so periods without readings
+    # still appear correctly on the chart.
+    usage_totals = [0.0] * len(labels)
+
+    for reading in readings:
+        local_timestamp = timezone.localtime(reading.timestamp)
+
+        if period == 'daily':
+            bucket_index = local_timestamp.hour
+
+        elif period == 'weekly':
+            bucket_index = (local_timestamp.date() - start_date).days
+
+        elif period == 'monthly':
+            bucket_index = local_timestamp.day - 1
+
+        else:
+            bucket_index = local_timestamp.month - 1
+
+        if 0 <= bucket_index < len(usage_totals):
+            usage_totals[bucket_index] += reading.kwh
+
+    usage_totals = [round(value, 2) for value in usage_totals]
+
+    previous_total = EnergyUsage.objects.filter(
+        room=room,
+        timestamp__gte=previous_start_datetime,
+        timestamp__lt=previous_end_datetime
+    ).aggregate(total=Sum('kwh'))['total'] or 0
+
+    current_total = sum(usage_totals)
+    average_usage = current_total / len(usage_totals) if usage_totals else 0
+    peak_usage = max(usage_totals) if usage_totals else 0
+    comparison = current_total - previous_total
+
+    return JsonResponse({
+        'room': room.name,
+        'period': period,
+        'period_label': start_date.strftime('%B %Y') if period == 'monthly'
+            else str(start_date.year) if period == 'yearly'
+            else start_date.strftime('%b %d, %Y') if period == 'daily'
+            else f'{start_date.strftime("%b %d")} - {(end_date - timedelta(days=1)).strftime("%b %d, %Y")}',
+        'labels': labels,
+        'usage': usage_totals,
+        'total': round(current_total, 2),
+        'previous_total': round(previous_total, 2),
+        'comparison': round(comparison, 2),
+        'average': round(average_usage, 2),
+        'peak': round(peak_usage, 2),
+    })
+
+@login_required
 def get_room_usage_data(request):
     profile = request.user.userprofile
     

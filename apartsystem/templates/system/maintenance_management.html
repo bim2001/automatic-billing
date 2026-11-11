@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
     {% if user_type != 'owner' %}
     <link rel="stylesheet" href="{% static 'css/tenant-sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tenant-theme.css' %}">
     {% endif %}
 
     <style>
@@ -437,6 +438,41 @@
                 padding: 24px 20px;
             }
         }
+
+/* ========================================
+   TENANT MAINTENANCE TEXT COLORS
+   Owner design remains unchanged
+======================================== */
+
+{% if user_type != 'owner' %}
+
+/* Main page title */
+.page-header h1 {
+    color: #ffffff !important;
+}
+
+/* Main page title icon */
+.page-header h1 i {
+    color: #ffffff !important;
+}
+
+/* Main page subtitle */
+.page-header p {
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* My Maintenance Reports heading */
+.maintenance-actions h2 {
+    color: #ffffff !important;
+}
+
+/* My Maintenance Reports subtitle */
+.maintenance-actions p {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+{% endif %}
+
     </style>
 </head>
 

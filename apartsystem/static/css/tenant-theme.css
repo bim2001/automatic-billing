@@ -1,0 +1,40 @@
+
+/* ========================================
+   TENANT GLOBAL THEME
+======================================== */
+
+body {
+    background: linear-gradient(
+        135deg,
+        #667eea 0%,
+        #764ba2 100%
+    );
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* Keep page content transparent so the
+   global gradient remains visible */
+.main-content {
+    background: transparent;
+}
+
+
+/* ========================================
+   HIDE TENANT PAGE SCROLLBAR
+   Keep scrolling functionality enabled
+======================================== */
+
+/* Firefox and older Edge */
+html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* Chrome, Edge, Safari */
+html::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
