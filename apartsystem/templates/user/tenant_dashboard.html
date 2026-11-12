@@ -499,11 +499,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .alert-item.over_limit {
-            border-left-color: #dc3545;
-        }
+        } 
 
         .alert-item.power_off {
             border-left-color: #ffc107;
@@ -747,16 +743,48 @@
             color: #dc3545;
         }
 
+
+    /* ENERGY OVERVIEW - RESPONSIVE DESKTOP LAYOUT */
         .energy-overview-grid {
             display: grid;
-            grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+            grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
             gap: 25px;
             align-items: stretch;
+            width: 100%;
+            min-width: 0;
         }
 
-        .energy-overview-grid .card {
+            .energy-overview-grid > .card {
+            width: 100%;
+            min-width: 0;
             margin-bottom: 25px;
         }
+
+    /* Smaller desktop and group view */
+    @media (min-width: 769px) and (max-width: 1200px) {
+        .energy-overview-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+        }
+
+        .energy-overview-grid > .card {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+
+/* Prevent chart overflow */
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+            min-width: 0;
+    }
+
+        .chart-container canvas {
+            display: block;
+            max-width: 100%;
+    }
 
         .computation-panel {
             display: flex;
@@ -1339,10 +1367,10 @@
                     <div class="info-label"><i class="fas fa-coins"></i> Electricity Rate</div>
                     <div class="info-value">₱{{ electricity_rate|floatformat:2 }}/kWh</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label"><i class="fas fa-tachometer-alt"></i> Monthly Limit</div>
-                    <div class="info-value">{{ room.limit }} kWh</div>
-                </div>
+            <div class="info-item">
+                <div class="info-label"><i class="fas fa-bolt"></i> Current Usage</div>
+                <div class="info-value">{{ room.get_current_usage|floatformat:1 }} kWh</div>
+            </div>
                 <div class="info-item">
                     <div class="info-label"><i class="fas fa-chart-simple"></i> Current Usage</div>
                     <div class="info-value">{{ room.usage|floatformat:1 }} kWh</div>

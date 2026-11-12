@@ -1,8 +1,11 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Edit Room - Smart Energy System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         * {
             margin: 0;
@@ -68,6 +71,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 15px;
         }
 
         .tenant-details h3 {
@@ -88,6 +92,7 @@
             border-radius: 5px;
             text-decoration: none;
             font-size: 14px;
+            white-space: nowrap;
         }
 
         .btn-remove:hover {
@@ -176,92 +181,155 @@
             background: #5a6268;
         }
 
-        /* HIDE MESSAGES ON THIS PAGE */
-        .messages {
-            display: none;
-        }
-        
+        .messages,
         .alert {
             display: none;
         }
 
         @media (max-width: 480px) {
-            .form-card {
-                padding: 25px;
+            body {
+                padding: 12px;
             }
-            
+
+            .navbar {
+                padding: 14px 16px;
+                margin-bottom: 18px;
+                font-size: 17px;
+            }
+
+            .form-card {
+                padding: 25px 18px;
+            }
+
+            .form-title {
+                font-size: 23px;
+            }
+
+            .tenant-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .btn-remove {
+                align-self: flex-start;
+            }
+
             .btn-group {
                 flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
             }
         }
     </style>
 </head>
+
 <body>
-    <!-- Messages block removed - hidden on this page -->
 
     <div class="navbar">
-        <div style="font-size: 20px; font-weight: 600;"><i class="fas fa-edit"></i> Edit Room</div>
+        <div style="font-size: 20px; font-weight: 600;">
+            <i class="fas fa-edit"></i> Edit Room
+        </div>
     </div>
 
     <div class="container">
         <div class="form-card">
-            <h1 class="form-title">Edit Room: {{ room.name }}</h1>
 
-            <!-- Tenant Information (display only) -->
+            <h1 class="form-title">
+                Edit Room: {{ room.name }}
+            </h1>
+
+            <!-- Tenant Information -->
             {% if room.is_occupied %}
             <div class="tenant-info">
                 <div class="tenant-details">
-                    <h3><i class="fas fa-user"></i> Current Tenant: {{ room.get_tenant_name }}</h3>
+                    <h3>
+                        <i class="fas fa-user"></i>
+                        Current Tenant: {{ room.get_tenant_name }}
+                    </h3>
                     <p>This room is currently occupied. Editing room details will affect this tenant's billing.</p>
                 </div>
-                <a href="{% url 'remove_tenant' room.id %}" class="btn-remove" onclick="return confirm('Remove tenant from this room?')">
+
+                <a href="{% url 'remove_tenant' room.id %}"
+                   class="btn-remove"
+                   onclick="return confirm('Remove tenant from this room?')">
                     <i class="fas fa-user-minus"></i> Remove Tenant
                 </a>
             </div>
             {% else %}
             <div class="tenant-info" style="background: #fff3cd; border-left-color: #ffc107;">
                 <div class="tenant-details">
-                    <h3><i class="fas fa-home"></i> No Tenant Assigned</h3>
+                    <h3>
+                        <i class="fas fa-home"></i> No Tenant Assigned
+                    </h3>
                     <p>This room is currently vacant. You can assign a tenant from the dashboard.</p>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Current Room Details (display only - automatic from sensor) -->
+            <!-- Current Room Details -->
             <div class="current-room">
-                <strong><i class="fas fa-info-circle"></i> Current Details:</strong><br>
-                • Room Name: {{ room.name }}<br>
-                • Current Usage: <strong>{{ current_usage|floatformat:2 }}</strong> kWh <span style="color: #28a745;">(automatic from sensor)</span><br>
-                • Monthly Limit: {{ room.limit }} kWh<br>
-                • Power Status: {% if room.power_status %}<span style="color: #28a745;">ON ⚡</span>{% else %}<span style="color: #dc3545;">OFF 🔌</span>{% endif %}<br>
+                <strong>
+                    <i class="fas fa-info-circle"></i> Current Details:
+                </strong>
+                <br>
+
+                • Room Name: {{ room.name }}
+                <br>
+
+                • Current Usage:
+                <strong>{{ current_usage|floatformat:2 }}</strong> kWh
+                <span style="color: #28a745;">(automatic from sensor)</span>
+                <br>
+
+                • Power Status:
+                {% if room.power_status %}
+                    <span style="color: #28a745;">ON ⚡</span>
+                {% else %}
+                    <span style="color: #dc3545;">OFF 🔌</span>
+                {% endif %}
+                <br>
+
                 • Current Bill: ₱{{ room.cost|floatformat:2 }}
             </div>
 
+            <!-- Edit Room Form -->
             <form method="post">
                 {% csrf_token %}
 
                 <div class="form-group">
-                    <label><i class="fas fa-tag"></i> Room Name</label>
-                    <input type="text" name="name" class="form-control" required value="{{ room.name }}" placeholder="e.g., Room 101">
-                    <div class="help-text">Change the room name if needed</div>
-                </div>
+                    <label>
+                        <i class="fas fa-tag"></i> Room Name
+                    </label>
 
-                <div class="form-group">
-                    <label><i class="fas fa-tachometer-alt"></i> Monthly Electricity Limit (kWh)</label>
-                    <input type="number" name="limit" class="form-control" step="0.01" required value="{{ room.limit }}" placeholder="50">
-                    <div class="help-text">System will create alerts when usage exceeds this limit</div>
+                    <input
+                        type="text"
+                        name="name"
+                        class="form-control"
+                        required
+                        value="{{ room.name }}"
+                        placeholder="e.g., Room 101"
+                    >
+
+                    <div class="help-text">
+                        Change the room name if needed
+                    </div>
                 </div>
 
                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> Save Changes
                     </button>
+
                     <a href="{% url 'rooms_page' %}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Cancel
                     </a>
                 </div>
             </form>
+
         </div>
     </div>
+
 </body>
 </html>

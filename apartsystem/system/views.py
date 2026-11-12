@@ -503,7 +503,6 @@ def get_building_stats(request):
         room_stats.append({
             'name': room.name,
             'usage': round(total_kwh, 2),
-            'limit': room.limit,
             'status': 'ON' if room.power_status else 'OFF',
             'tenant': room.get_tenant_name() or 'Vacant'
         })
@@ -1468,26 +1467,11 @@ def dashboard(request):
         current_usage = room.get_current_usage()
         room.current_usage = current_usage
         room.cost = current_usage * ELECTRICITY_RATE
-
-
-        room.over_limit = current_usage > room.limit
-        
-        if room.over_limit and not Alert.objects.filter(
-            room=room, 
-            alert_type='over_limit',
-            created_at__date=timezone.now().date()
-        ).exists():
-            Alert.objects.create(
-                room=room,
-                alert_type='over_limit',
-                message=f"Room {room.name} is over limit! Current: {current_usage} kWh, Limit: {room.limit} kWh"
-            )
     
     total_rooms = rooms.count()
     occupied_rooms = sum(1 for room in rooms if room.is_occupied())
     total_kwh = sum(room.current_usage for room in rooms)
     total_cost = sum(room.cost for room in rooms)
-    over_limit_count = sum(1 for room in rooms if room.over_limit)
     
     recent_alerts = Alert.objects.order_by('-created_at')[:10]
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
@@ -1514,7 +1498,6 @@ def dashboard(request):
             'occupied_rooms': occupied_rooms,
             'total_kwh': total_kwh,
             'total_cost': total_cost,
-            'over_limit_count': over_limit_count,
         }
     })
 
@@ -1590,7 +1573,6 @@ def tenant_dashboard(request):
         pass
 
     tenant_alert_types = [
-        'over_limit',
         'power_off',
         'power_on',
         'billing',
@@ -1670,13 +1652,12 @@ def tenant_notifications(request):
         return redirect('tenant_dashboard')
 
     tenant_alert_types = [
-        'over_limit',
         'power_off',
         'power_on',
         'billing',
         'late_payment',
         'abnormal_usage',
-        'high_consumption'
+        'high_consumption',
         'maintenance'
     ]
 
@@ -1732,7 +1713,7 @@ def tenant_billing_history(request):
     settings = get_settings()
     electricity_rate = settings.electricity_rate
     
-    tenant_alert_types = ['over_limit', 'power_off', 'power_on', 'billing']
+    tenant_alert_types = ['power_off', 'power_on', 'billing']
     unread_alerts_count = Alert.objects.filter(
         room=room,
         alert_type__in=tenant_alert_types,
@@ -1835,77 +1816,93 @@ def toggle_power(request, room_id):
     return redirect('rooms_page')
 
 
+
 @login_required
 def add_room(request):
     if request.user.userprofile.user_type != 'owner':
         return redirect('tenant_dashboard')
-    
+
     if request.method == 'POST':
         name = request.POST.get('name')
-        limit = float(request.POST.get('limit', 200))
         power_status = request.POST.get('power_status') == 'on'
-        
+
         if not name:
             messages.error(request, "Room name is required.")
             return render(request, 'system/add_room.html')
-        
+
         room = Room.objects.create(
             name=name,
-            limit=limit,
             power_status=power_status
         )
-        
+
         Alert.objects.create(
             alert_type='power_on',
             message=f"New room added: {name}",
             room=room
         )
-        
+
         messages.success(request, f"Room '{name}' added successfully!")
-        log_activity(request, 'create', f"Created room {name} with {limit} kWh limit.")
+        log_activity(request, 'create', f"Created room {name}.")
+
         return redirect('rooms_page')
-    
+
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
-    
+
     return render(request, 'system/add_room.html', {
         'username': request.user.username,
         'unread_alerts_count': unread_alerts_count
     })
 
 
+
+
 @login_required
 def edit_room(request, room_id):
     if request.user.userprofile.user_type != 'owner':
         return redirect('tenant_dashboard')
-    
+
     room = get_object_or_404(Room, id=room_id)
     old_name = room.name
-    
+
     if request.method == 'POST':
-        room.name = request.POST.get('name')
-        room.limit = float(request.POST.get('limit', 200))
+        new_name = request.POST.get('name', '').strip()
+
+        if not new_name:
+            messages.error(request, "Room name is required.")
+            return redirect('edit_room', room_id=room.id)
+
+        room.name = new_name
         room.save()
-        
+
         Alert.objects.create(
             alert_type='billing',
             message=f"Room {room.name} updated",
             room=room
         )
-        
-        messages.success(request, f"Room '{room.name}' updated successfully!")
-        log_activity(request, 'update', f"Updated room {old_name} to {room.name} with {room.limit} kWh limit.")
+
+        messages.success(
+            request,
+            f"Room '{room.name}' updated successfully!"
+        )
+
+        log_activity(
+            request,
+            'update',
+            f"Updated room {old_name} to {room.name}."
+        )
+
         return redirect('rooms_page')
-    
+
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
-    
     current_usage = room.get_current_usage()
-    
+
     return render(request, 'system/edit_room.html', {
         'room': room,
         'current_usage': current_usage,
         'username': request.user.username,
         'unread_alerts_count': unread_alerts_count
     })
+
 
 
 @login_required
@@ -2301,47 +2298,11 @@ def detect_abnormal_usage():
     return alerts_created
 
 def check_high_consumption():
-    print("\n📊 Checking for high consumption...")
-    print("-" * 50)
-    
-    today = timezone.now()
-    current_month = today.month
-    current_year = today.year
-    
-    rooms = Room.objects.all()
-    alerts_created = 0
-    
-    for room in rooms:
-        total_usage = EnergyUsage.objects.filter(
-            room=room,
-            timestamp__year=current_year,
-            timestamp__month=current_month
-        ).aggregate(total=Sum('kwh'))['total'] or 0
-        
-        if room.limit > 0:
-            percentage = (total_usage / room.limit) * 100
-            
-            if percentage >= 90 and percentage < 100:
-                Alert.objects.create(
-                    room=room,
-                    alert_type='high_consumption',
-                    message=f"⚠️ You've used {percentage:.1f}% of your monthly limit ({total_usage:.1f}/{room.limit} kWh). Consider reducing consumption."
-                )
-                alerts_created += 1
-                print(f"  ⚠️ {room.name}: {percentage:.1f}% of limit")
-            
-            elif percentage >= 100:
-                Alert.objects.create(
-                    room=room,
-                    alert_type='over_limit',
-                    message=f"🚨 You've EXCEEDED your monthly limit! Current: {total_usage:.1f} kWh, Limit: {room.limit} kWh"
-                )
-                alerts_created += 1
-                print(f"  🚨 {room.name}: EXCEEDED limit!")
-    
-    print("-" * 50)
-    print(f"✅ Created {alerts_created} consumption alerts")
-    return alerts_created
+    # Fixed monthly-limit alerts are disabled because the system no longer
+    # uses a fixed kWh limit per room. Keep this function and its integer
+    # return value so run_smart_features_daily() and its API remain compatible.
+    print("\n📊 Fixed-limit high-consumption alerts are disabled.")
+    return 0
 
 def run_smart_features_daily():
     print("\n" + "="*60)
@@ -2523,49 +2484,55 @@ def activity_log(request):
     })
 
 
+
+
 @login_required
 def health_dashboard(request):
     profile = request.user.userprofile
-    
+
     if profile.user_type != 'owner':
         return redirect('dashboard')
-    
+
+    # SYSTEM COUNTS
     rooms_count = Room.objects.count()
-    tenants_count = UserProfile.objects.filter(user_type='tenant').count()
+
+    tenants_count = UserProfile.objects.filter(
+        user_type='tenant',
+        is_archived=False
+    ).count()
+
     bills_count = Billing.objects.count()
     readings_count = EnergyUsage.objects.count()
-    unread_alerts = Alert.objects.filter(is_read=False).count()
-    
-    today = timezone.now().date()
+
+    unread_alerts = Alert.objects.filter(
+        is_read=False
+    ).count()
+
+    # BILLING STATUS
+    today = timezone.localdate()
+
     upcoming_bills = Billing.objects.filter(
         is_paid=False,
         due_date__gte=today
     ).count()
-    
+
     overdue_bills = Billing.objects.filter(
         is_paid=False,
         due_date__lt=today
     ).count()
-    
-    last_reading = EnergyUsage.objects.order_by('-timestamp').first()
-    last_alert = Alert.objects.order_by('-created_at').first()
-    
-    rooms_over_limit = []
-    for room in Room.objects.all():
-        total_usage = EnergyUsage.objects.filter(
-            room=room,
-            timestamp__month=timezone.now().month
-        ).aggregate(total=models.Sum('kwh'))['total'] or 0
-        
-        if total_usage > room.limit:
-            rooms_over_limit.append({
-                'name': room.name,
-                'usage': total_usage,
-                'limit': room.limit
-            })
-    
+
+    # LATEST SYSTEM ACTIVITY
+    last_reading = EnergyUsage.objects.order_by(
+        '-timestamp'
+    ).first()
+
+    last_alert = Alert.objects.order_by(
+        '-created_at'
+    ).first()
+
     return render(request, 'system/health_dashboard.html', {
         'username': request.user.username,
+
         'stats': {
             'rooms': rooms_count,
             'tenants': tenants_count,
@@ -2575,9 +2542,9 @@ def health_dashboard(request):
             'upcoming': upcoming_bills,
             'overdue': overdue_bills,
         },
+
         'last_reading': last_reading,
         'last_alert': last_alert,
-        'rooms_over_limit': rooms_over_limit,
         'unread_alerts_count': unread_alerts,
     })
 
@@ -3291,7 +3258,6 @@ def rooms_page(request):
         current_usage = room.get_current_usage()
         room.current_usage = current_usage
         room.cost = current_usage * ELECTRICITY_RATE
-        room.over_limit = current_usage > room.limit
         
         # Check for unpaid bills
         from .models import Billing
@@ -3306,22 +3272,11 @@ def rooms_page(request):
         
         
         
-        if room.over_limit and not Alert.objects.filter(
-            room=room, 
-            alert_type='over_limit',
-            created_at__date=timezone.now().date()
-        ).exists():
-            Alert.objects.create(
-                room=room,
-                alert_type='over_limit',
-                message=f"Room {room.name} is over limit! Current: {current_usage} kWh, Limit: {room.limit} kWh"
-            )
-    
+
     total_rooms = rooms.count()
     occupied_rooms = sum(1 for room in rooms if room.is_occupied())
     total_kwh = sum(room.current_usage for room in rooms)
     total_cost = sum(room.cost for room in rooms)
-    over_limit_count = sum(1 for room in rooms if room.over_limit)
     
     recent_alerts = Alert.objects.order_by('-created_at')[:10]
     unread_alerts_count = Alert.objects.filter(is_read=False).count()
@@ -3343,7 +3298,6 @@ def rooms_page(request):
             'occupied_rooms': occupied_rooms,
             'total_kwh': total_kwh,
             'total_cost': total_cost,
-            'over_limit_count': over_limit_count,
         }
     })
 

@@ -345,35 +345,27 @@ def process_batch_readings(readings, token=None):
 
 
 def check_immediate_alerts(room, kwh):
-    """Check for immediate alerts based on reading"""
-    from django.db.models import Sum, Avg
-    
-    # Get today's total usage
+    """Check for unusually high energy readings."""
+    from django.db.models import Avg
+
     today = timezone.now().date()
-    today_total = EnergyUsage.objects.filter(
-        room=room,
-        timestamp__date=today
-    ).aggregate(total=Sum('kwh'))['total'] or 0
-    
-    # Check if approaching limit
-    if today_total > room.limit * 0.8:  # 80% of limit
-        Alert.objects.create(
-            room=room,
-            alert_type='high_consumption',
-            message=f"⚠️ You've used {today_total:.1f} kWh today ({int((today_total/room.limit)*100)}% of monthly limit)"
-        )
-    
-    # Check for unusually high reading
+
+    # Get average daily usage over the last 7 days
     avg_daily = EnergyUsage.objects.filter(
         room=room,
-        timestamp__date__gte=today - timezone.timedelta(days=7)
+        timestamp__date__gte=today - timezone.timedelta(days=7),
+        timestamp__date__lt=today
     ).aggregate(avg=Avg('kwh'))['avg'] or 0
-    
-    if kwh > avg_daily * 3 and avg_daily > 0:
+
+    # Detect unusually high reading
+    if avg_daily > 0 and kwh > avg_daily * 3:
         Alert.objects.create(
             room=room,
             alert_type='abnormal_usage',
-            message=f"⚠️ Unusually high reading: {kwh}kWh ({(kwh/avg_daily):.1f}x your average)"
+            message=(
+                f"⚠️ Unusually high reading: {kwh:.2f} kWh "
+                f"({kwh / avg_daily:.1f}x your average)"
+            )
         )
 
 
@@ -546,14 +538,14 @@ def get_building_stats(request):
     profile = request.user.userprofile
     if profile.user_type != 'owner':
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-    
+
     from django.db.models import Sum
     from datetime import datetime, timedelta
-    from .models import Billing  # ✅ IMPORTANTE: I-import ang Billing
-    
+    from .models import Billing
+
     start_date = request.GET.get('start')
     end_date = request.GET.get('end')
-    
+
     if start_date and end_date:
         start = datetime.strptime(start_date, '%Y-%m-%d')
         end = datetime.strptime(end_date, '%Y-%m-%d')
@@ -561,69 +553,82 @@ def get_building_stats(request):
         today = datetime.now()
         start = datetime(today.year, today.month, 1)
         end = today
-    
+
     rooms = Room.objects.all()
     room_names = []
     room_usages = []
     daily_building = []
     days = []
-    
+
     # Get daily totals
     current = start
     while current <= end:
         day_total = EnergyUsage.objects.filter(
             timestamp__date=current.date()
         ).aggregate(total=Sum('kwh'))['total'] or 0
+
         daily_building.append(round(day_total, 2))
         days.append(current.strftime('%b %d'))
         current += timedelta(days=1)
-    
+
     # Get room totals
     total_building_usage = 0
     occupied_rooms_count = 0
     room_stats = []
-    
+
     for room in rooms:
         total_kwh = EnergyUsage.objects.filter(
             room=room,
             timestamp__date__gte=start.date(),
             timestamp__date__lte=end.date()
         ).aggregate(total=Sum('kwh'))['total'] or 0
-        
+
         room_names.append(room.name)
         room_usages.append(round(total_kwh, 2))
-        
+
         room_stats.append({
             'name': room.name,
             'usage': round(total_kwh, 2),
-            'limit': room.limit,
             'status': 'ON' if room.power_status else 'OFF',
             'tenant': room.get_tenant_name() or 'Vacant'
         })
+
         total_building_usage += total_kwh
+
         if room.is_occupied():
             occupied_rooms_count += 1
-    
+
     room_stats.sort(key=lambda x: x['usage'], reverse=True)
-    avg_per_room = round(total_building_usage / occupied_rooms_count, 2) if occupied_rooms_count > 0 else 0
-    
+
+    avg_per_room = (
+        round(total_building_usage / occupied_rooms_count, 2)
+        if occupied_rooms_count > 0 else 0
+    )
+
     # Current unpaid bill total follows each room's active tenant cycle.
     month_name = end.strftime("%B %Y")
     total_bill = 0
+
     try:
         from .views import _generate_assignment_cycle, get_active_assignment
 
         today = timezone.localdate()
+
         for room in rooms:
             assignment = get_active_assignment(room)
+
             if assignment and assignment.move_in_date <= today:
-                bill, _, _ = _generate_assignment_cycle(room, assignment, today)
+                bill, _, _ = _generate_assignment_cycle(
+                    room, assignment, today
+                )
+
                 if bill and not bill.is_paid:
                     total_bill += bill.cost
+
     except Exception as e:
         print(f"Error getting total bill: {e}")
         total_bill = 0
-    
+
     return JsonResponse({
         'total_rooms': len(rooms),
         'occupied_rooms': occupied_rooms_count,
@@ -635,8 +640,8 @@ def get_building_stats(request):
         'daily_building': daily_building,
         'days': days,
         'month': month_name,
-        'current_bill_total': float(total_bill),           # ✅ BAGO
-        'total_kwh_this_month': round(total_building_usage, 2),  # ✅ BAGO
+        'current_bill_total': float(total_bill),
+        'total_kwh_this_month': round(total_building_usage, 2),
     })
 
 @login_required

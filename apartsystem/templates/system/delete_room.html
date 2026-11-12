@@ -276,8 +276,7 @@
             <div class="room-details">
                 <h4><i class="fas fa-door-open"></i> Room Details:</h4>
                 <p><i class="fas fa-tag"></i> <strong>Name:</strong> {{ room.name }}</p>
-                <p><i class="fas fa-chart-line"></i> <strong>Current Usage:</strong> {{ room.usage }} kWh</p>
-                <p><i class="fas fa-tachometer-alt"></i> <strong>Monthly Limit:</strong> {{ room.limit }} kWh</p>
+                <p><i class="fas fa-chart-line"></i> <strong>Current Usage:</strong> {{ room.usage }} kWh</p> 
                 <p><i class="fas fa-power-off"></i> <strong>Status:</strong> {% if room.power_status %}<span style="color: #28a745;">ON ⚡</span>{% else %}<span style="color: #dc3545;">OFF 🔌</span>{% endif %}</p>
             </div>
             

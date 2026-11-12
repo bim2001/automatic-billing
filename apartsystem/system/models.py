@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 class Room(models.Model):
     name = models.CharField(max_length=50)
-    limit = models.FloatField(default=50)
     power_status = models.BooleanField(default=True)
     # REMOVED: usage field - automatic na ito galing sa EnergyUsage
     
@@ -247,8 +246,7 @@ class EnergyUsage(models.Model):
         ordering = ['-timestamp']
 
 class Alert(models.Model):
-    ALERT_TYPES = [
-        ('over_limit', 'Usage Over Limit'),
+    ALERT_TYPES = [ 
         ('power_off', 'Power Auto-OFF'),
         ('power_on', 'Power Restored'),
         ('billing', 'Billing Alert'),
@@ -305,8 +303,7 @@ class Alert(models.Model):
         elif self.alert_type == 'maintenance':
             self.visibility = 'tenant_only'
 
-        elif self.alert_type in [
-            'over_limit',
+        elif self.alert_type in [ 
             'power_off',
             'power_on',
             'billing',

@@ -197,7 +197,7 @@
                     <select name="room_id" required>
                         <option value="">-- Choose a room --</option>
                         {% for room in available_rooms %}
-                        <option value="{{ room.id }}">{{ room.name }} (Limit: {{ room.limit }} kWh)</option>
+                        <option value="{{ room.id }}">{{ room.name }}</option>
                         {% empty %}
                         <option disabled>No available rooms</option>
                         {% endfor %}

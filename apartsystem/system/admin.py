@@ -5,8 +5,7 @@ from .models import Room, Billing, Alert, UserProfile, SystemSettings, EnergyUsa
 
 
 @admin.register(Room)
-class RoomAdmin(admin.ModelAdmin):
-    list_display = ['name', 'get_current_usage', 'limit', 'power_status']
+class RoomAdmin(admin.ModelAdmin): 
     list_filter = ['power_status']
     search_fields = ['name']
     

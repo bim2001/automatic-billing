@@ -106,11 +106,7 @@
             min-width: 45px;
             text-align: center;
         }
-        
-        .alert-icon.over_limit {
-            background: #fff3cd;
-            color: #856404;
-        }
+
         
         .alert-icon.power_off {
             background: #f8d7da;
@@ -505,8 +501,7 @@
             {% for alert in alerts %}
             <div class="alert-item {% if not alert.is_read %}unread{% endif %}">
                 <div class="alert-icon {{ alert.alert_type }}">
-                    {% if alert.alert_type == 'over_limit' %}<i class="fas fa-exclamation-triangle"></i>
-                    {% elif alert.alert_type == 'power_off' %}<i class="fas fa-power-off"></i>
+                    {% if alert.alert_type == 'power_off' %}<i class="fas fa-power-off"></i>
                     {% elif alert.alert_type == 'power_on' %}<i class="fas fa-plug"></i>
                     {% elif alert.alert_type == 'billing' %}<i class="fas fa-file-invoice-dollar"></i>
                     {% elif alert.alert_type == 'tenant_assigned' %}<i class="fas fa-user-plus"></i>

@@ -941,7 +941,7 @@
                     {% if tenant.room %}
                     <div class="detail-item">
                         <div class="detail-label"><i class="fas fa-bolt"></i> Usage:</div>
-                        <div class="detail-value">{{ tenant.room.usage|floatformat:1 }} / {{ tenant.room.limit }} kWh</div>
+                        <div class="detail-value">{{ tenant.room.get_current_usage|floatformat:1 }} kWh</div>
                     </div>
                     <div class="detail-item">
                         <div class="detail-label"><i class="fas fa-power-off"></i> Power:</div>

@@ -507,8 +507,10 @@
             {% for alert in alerts %}
             <div class="alert-item {% if not alert.is_read %}unread{% endif %}">
                 <div class="alert-icon">
-                    {% if alert.alert_type == 'over_limit' %}
-                        <i class="fas fa-exclamation-triangle"></i>
+                    {% if alert.alert_type == 'power_off' %}
+                        <i class="fas fa-plug"></i>
+                    {% elif alert.alert_type == 'power_on' %}
+                        <i class="fas fa-bolt"></i>
                     {% elif alert.alert_type == 'power_off' %}
                         <i class="fas fa-plug"></i>
                     {% elif alert.alert_type == 'power_on' %}
